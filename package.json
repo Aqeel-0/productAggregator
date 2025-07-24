@@ -1,0 +1,66 @@
+{
+  "name": "aggremart",
+  "version": "1.0.0",
+  "description": "AggreMart: The Intelligent Product Discovery & Comparison Engine",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npm run db:migrate && npm run db:seed",
+    "db:test": "node test-db-connection.js",
+    "scrape": "node src/scrapers/amazon/scraper.js",
+    "parse": "node src/services/parser.js",
+    "test": "jest",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "ecommerce",
+    "product-aggregator",
+    "price-comparison",
+    "scraping",
+    "nodejs",
+    "express"
+  ],
+  "author": "AggreMart Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/cloud-sql-connector": "^1.2.3",
+    "@google-cloud/storage": "^7.16.0",
+    "axios": "^1.6.0",
+    "bull": "^4.12.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "cron": "^3.1.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "knex": "^3.1.0",
+    "morgan": "^1.10.0",
+    "openai": "^4.20.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "puppeteer": "^21.11.0",
+    "puppeteer-extra": "^3.3.4",
+    "puppeteer-extra-plugin-stealth": "^2.11.1",
+    "redis": "^4.6.10",
+    "sequelize": "^6.35.0",
+    "user-agents": "^1.1.609",
+    "uuid": "^9.0.1",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.1.0",
+    "sequelize-cli": "^6.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
