@@ -60,16 +60,21 @@ class BaseCrawler {
 
     const page = await this.browser.newPage();
     
-    // Set a random user agent
-    const userAgent = new UserAgent();
-    await page.setUserAgent(userAgent.toString());
+    // Set user agent (use config if provided, otherwise random)
+    if (this.config.userAgent) {
+      await page.setUserAgent(this.config.userAgent);
+    } else {
+      const userAgent = new UserAgent();
+      await page.setUserAgent(userAgent.toString());
+    }
     
-    // Set viewport
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    });
+    // Set viewport (use config if provided, otherwise default)
+    const viewport = {
+      width: this.config.viewport?.width || 1920,
+      height: this.config.viewport?.height || 1080,
+      deviceScaleFactor: this.config.viewport?.deviceScaleFactor || 1,
+    };
+    await page.setViewport(viewport);
     
     // Set extra HTTP headers
     await page.setExtraHTTPHeaders({
@@ -106,9 +111,11 @@ class BaseCrawler {
     }
   }
 
-  async delay(min = 1000, max = 3000) {
-    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-    await new Promise(resolve => setTimeout(resolve, delay));
+  // Delay between requests to be respectful to the server
+  async delay(min = 500, max = 1000) { // Reduced from default 2000-5000 range
+    const delayTime = Math.floor(Math.random() * (max - min + 1)) + min;
+    this.logger.debug(`Waiting ${delayTime}ms before next action`);
+    return new Promise(resolve => setTimeout(resolve, delayTime));
   }
 
   async safeClick(page, selector, options = {}) {

@@ -1,0 +1,623 @@
+[
+  {
+    "brand": "samsung",
+    "model": "Samsung Galaxy M05",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/Samsung-Storage-Display-Charging-Security/dp/B0DFY3XCB6/ref=sr_1_1?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-1",
+        "price": 50,
+        "rating": 4
+      },
+      {
+        "url": "https://www.amazon.in/Samsung-Storage-Display-Charging-Security/dp/B0DFY3XCB6/ref=sr_1_1?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-1",
+        "price": 50,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Samsung-Storage-Display-Charging-Security/dp/B0DFY3XCB6/ref=sr_1_1?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-1",
+        "price": 50,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "iqoo",
+    "model": "iQOO Z10x 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T674FJ/ref=sr_1_2?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-2",
+        "price": 7300,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T7B9TM/ref=sr_1_4?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-4",
+        "price": 7300,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T5S162/ref=sr_1_16?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-16",
+        "price": 7300,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T61RZD/ref=sr_1_22?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-22",
+        "price": 7300,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T674FJ/ref=sr_1_2?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-2",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T7B9TM/ref=sr_1_4?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-4",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T5S162/ref=sr_1_16?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-16",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T61RZD/ref=sr_1_22?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-22",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T674FJ/ref=sr_1_2?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-2",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T7B9TM/ref=sr_1_4?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-4",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Grade-Durability/dp/B0F2T61RZD/ref=sr_1_22?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-22",
+        "price": 7300,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "iqoo",
+    "model": "iQOO Z10 Lite 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5TDB9P/ref=sr_1_3?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-3",
+        "price": 5,
+        "rating": 4
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Shock-Resistance/dp/B0FC5XK9WZ/ref=sr_1_7?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-7",
+        "price": 5,
+        "rating": 4
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5XCLXG/ref=sr_1_13?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-13",
+        "price": 5,
+        "rating": 4
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Shock-Resistance/dp/B0FC5TBWG5/ref=sr_1_21?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-21",
+        "price": 5,
+        "rating": 4
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5TDB9P/ref=sr_1_3?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-3",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5XCLXG/ref=sr_1_13?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-13",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Shock-Resistance/dp/B0FC5TBWG5/ref=sr_1_21?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-21",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5TDB9P/ref=sr_1_3?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-3",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Shock-Resistance/dp/B0FC5XK9WZ/ref=sr_1_7?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-7",
+        "price": 5,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "iqoo",
+    "model": "iQOO Z10 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/iQOO-Stroage-Snapdragon-Processor-Brightest/dp/B0F2HCGXTB/ref=sr_1_5?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-5",
+        "price": null,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Glacier-Snapdragon-Processor-Brightest/dp/B0F2HDFMFC/ref=sr_1_8?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-8",
+        "price": null,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HBYZ8B/ref=sr_1_14?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-14",
+        "price": null,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HFRD4P/ref=sr_1_17?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-17",
+        "price": null,
+        "rating": 4.3
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stroage-Snapdragon-Processor-Brightest/dp/B0F2HCGXTB/ref=sr_1_5?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-5",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HBYZ8B/ref=sr_1_14?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-14",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HFRD4P/ref=sr_1_17?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-17",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stroage-Snapdragon-Processor-Brightest/dp/B0F2HCGXTB/ref=sr_1_5?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-5",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Glacier-Snapdragon-Processor-Brightest/dp/B0F2HDFMFC/ref=sr_1_8?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-8",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "redmi",
+    "model": "Redmi A4 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/Redmi-A4-5G-Sparkle-Charging/dp/B0DLW427YG/ref=sr_1_6?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-6",
+        "price": 4,
+        "rating": 3.9
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Storage-Segment-Largest-Charging/dp/B0DLW1L5PR/ref=sr_1_10?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-10",
+        "price": 4,
+        "rating": 3.9
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Sparkle-Storage-Segment-Charging/dp/B0DLW44CGS/ref=sr_1_12?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-12",
+        "price": 4,
+        "rating": 3.9
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-A4-5G-Storage-Charging/dp/B0DLW4QD72/ref=sr_1_23?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-23",
+        "price": 4,
+        "rating": 3.9
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Storage-Segment-Largest-Charging/dp/B0DLW1L5PR/ref=sr_1_10?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-10",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Sparkle-Storage-Segment-Charging/dp/B0DLW44CGS/ref=sr_1_12?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-12",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-A4-5G-Storage-Charging/dp/B0DLW4QD72/ref=sr_1_23?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-23",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-A4-5G-Sparkle-Charging/dp/B0DLW427YG/ref=sr_1_6?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-6",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Storage-Segment-Largest-Charging/dp/B0DLW1L5PR/ref=sr_1_10?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-10",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-Sparkle-Storage-Segment-Charging/dp/B0DLW44CGS/ref=sr_1_12?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-12",
+        "price": 4,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "samsung",
+    "model": "Samsung Galaxy S24 Ultra 5G AI Smartphone with Galaxy AI",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/Samsung-Galaxy-Smartphone-Titanium-Storage/dp/B0CS5XW6TN/ref=sr_1_9?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-9",
+        "price": null,
+        "rating": 4.4
+      },
+      {
+        "url": "https://www.amazon.in/Samsung-Galaxy-Smartphone-Titanium-Storage/dp/B0CS5XW6TN/ref=sr_1_9?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-9",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "realme",
+    "model": "realme NARZO 80 Lite 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TT7Z5Q/ref=sr_1_11?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-11",
+        "price": null,
+        "rating": 4.2
+      },
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TS623W/ref=sr_1_19?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-19",
+        "price": null,
+        "rating": 4.2
+      },
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TT7Z5Q/ref=sr_1_11?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-11",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TS623W/ref=sr_1_19?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-19",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TT7Z5Q/ref=sr_1_11?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-11",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/realme-Long-Lasting-Resistance-Military-Grade-Durability/dp/B0F9TS623W/ref=sr_1_19?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-19",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "apple",
+    "model": "Apple iPhone 15",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/Apple-iPhone-15-128-GB/dp/B0CHX1W1XY/ref=sr_1_15?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-15",
+        "price": 15,
+        "rating": 4.5
+      },
+      {
+        "url": "https://www.amazon.in/Apple-iPhone-15-128-GB/dp/B0CHX2F5QT/ref=sr_1_20?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-20",
+        "price": 15,
+        "rating": 4.5
+      },
+      {
+        "url": "https://www.amazon.in/Apple-iPhone-15-128-GB/dp/B0CHX2F5QT/ref=sr_1_20?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-20",
+        "price": 15,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Apple-iPhone-15-128-GB/dp/B0CHX1W1XY/ref=sr_1_15?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-15",
+        "price": 15,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "oneplus",
+    "model": "OnePlus Nord CE4 Lite 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/OnePlus-Nord-Lite-128GB-Storage/dp/B0D5YFZ946/ref=sr_1_18?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-18",
+        "price": null,
+        "rating": 4.1
+      },
+      {
+        "url": "https://www.amazon.in/OnePlus-Nord-Lite-128GB-Storage/dp/B0D5YFZ946/ref=sr_1_18?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-18",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "iqoo",
+    "model": "iQOO Z9x 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/iQOO-Tornado-Storage-Snapdragon-FlashCharge/dp/B07WHQHNZC/ref=sr_1_24?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE._nFuzHGVwJJiTWcNI4AfYYSQy7zmfGhVwqefQ4s-0xk&dib_tag=se&qid=1753360384&s=electronics&sr=1-24",
+        "price": 4,
+        "rating": 4.2
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Tornado-Storage-Snapdragon-FlashCharge/dp/B07WHQHNZC/ref=sr_1_24?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y&dib_tag=se&qid=1753361792&s=electronics&sr=1-24",
+        "price": 4,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "acer",
+    "model": "Acer Super ZX 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/sspa/click?ie=UTF8&spc=MToyODI1NjUwOTE5Mzg5NDc1OjE3NTMzNjE3OTI6c3BfYnRmX2Jyb3dzZTozMDA2MTk5ODI5NzQ4MzI6OjA6Og&url=%2FStorage-Display-Ultra-Thin-Dimensity-Processor%2Fdp%2FB0F4DG9ZH5%2Fref%3Dsr_1_25_sspa%3Fdib%3DeyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y%26dib_tag%3Dse%26qid%3D1753361792%26s%3Delectronics%26sr%3D1-25-spons%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9idGZfYnJvd3Nl%26psc%3D1&sp_cr=DUB",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "lava",
+    "model": "Lava Gem 2025 Dual Sim Keypad Phone",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/sspa/click?ie=UTF8&spc=MToyODI1NjUwOTE5Mzg5NDc1OjE3NTMzNjE3OTI6c3BfYnRmX2Jyb3dzZTozMDA2MjMwNTIyMTUyMzI6OjA6Og&url=%2FLava-Gem-Powerful-Wireless-Recording%2Fdp%2FB0F13RP56D%2Fref%3Dsr_1_26_sspa%3Fdib%3DeyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y%26dib_tag%3Dse%26qid%3D1753361792%26s%3Delectronics%26sr%3D1-26-spons%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9idGZfYnJvd3Nl%26psc%3D1&sp_cr=DUB",
+        "price": null,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "redmi",
+    "model": "Redmi Note 14 5G",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/sspa/click?ie=UTF8&spc=MToyODI1NjUwOTE5Mzg5NDc1OjE3NTMzNjE3OTI6c3BfYnRmX2Jyb3dzZTozMDA1MjMyMTM0MzA5MzI6OjA6Og&url=%2FRedmi-Note-14-5G-Dimensity%2Fdp%2FB0DPFTYQN7%2Fref%3Dsr_1_27_sspa%3Fdib%3DeyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.goLtTzXMBZ2Ih6Q6F3Jl7-UZfWzmP4n1Y4hZACY8R1Y%26dib_tag%3Dse%26qid%3D1753361792%26s%3Delectronics%26sr%3D1-27-spons%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9idGZfYnJvd3Nl%26psc%3D1&sp_cr=DUB",
+        "price": 6,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "unknown",
+    "model": "Unknown",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/iQOO-Titanium-Dimensity-Processor-Shock-Resistance/dp/B0FC5XCLXG/ref=sr_1_13?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-13",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HBYZ8B/ref=sr_1_14?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-14",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Ultramarine-Dimensity-Military-Grade-Durability/dp/B0F2T5S162/ref=sr_1_16?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-16",
+        "price": 7300,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Stellar-Snapdragon-Processor-Brightest/dp/B0F2HFRD4P/ref=sr_1_17?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-17",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/OnePlus-Nord-Lite-128GB-Storage/dp/B0D5YFZ946/ref=sr_1_18?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-18",
+        "price": null,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Dimensity-Processor-Military-Shock-Resistance/dp/B0FC5TBWG5/ref=sr_1_21?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-21",
+        "price": 5,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/Redmi-A4-5G-Storage-Charging/dp/B0DLW4QD72/ref=sr_1_23?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-23",
+        "price": 4,
+        "rating": null
+      },
+      {
+        "url": "https://www.amazon.in/iQOO-Tornado-Storage-Snapdragon-FlashCharge/dp/B07WHQHNZC/ref=sr_1_24?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-24",
+        "price": 4,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "unknown",
+    "model": "Item model number",
+    "variants": [
+      {}
+    ],
+    "sources": [
+      {
+        "url": "https://www.amazon.in/Apple-iPhone-15-128-GB/dp/B0CHX2F5QT/ref=sr_1_20?dib=eyJ2IjoiMSJ9.8KBCJvAMf1YYK1AfV0VD8jjQlb5zxqglMExkkdn4T0NtU0YWKiv27K1q6_7-Iin3Hy48rLGlD1j1qMRDNkLipQHnIp5UTAv20eOCIMUdYwRt5kK4Rlvj_kGXoiZeHtpegosHdmtuZSm6m6uab_AbRqaVuGfzkdhSr7edoCuG3KyXzf-sVrSxdqjKTL_qTvBKLlvFe4zncglDzLhBZbpOj4oG-SZQmNIMYF3bEMibHkCJPEZZUvZ5f8MIRL1ofXy9nPjuxKl_Ft_dQoh5VjqeP1Pitcu_l86DLsoUZhHUXrE.7-lH93-gF63GGDF2s6wT216St6PRGrDKITVPA3RykUI&dib_tag=se&qid=1753362895&s=electronics&sr=1-20",
+        "price": 15,
+        "rating": null
+      }
+    ]
+  },
+  {
+    "brand": "Edge",
+    "model": "60 Fusion 5G",
+    "variants": [
+      {
+        "ram_gb": 8,
+        "storage_gb": null,
+        "color": "PANTONE Slipstream",
+        "os": null,
+        "display_inches": null,
+        "camera_mp": null,
+        "battery_mah": null,
+        "specifications": {}
+      }
+    ],
+    "sources": [
+      {
+        "source": "flipkart",
+        "url": "https://www.flipkart.com/motorola-edge-60-fusion-5g-pantone-slipstream-256-gb/p/itm8553dc1ee56ee?pid=MOBH9ARFZHXSRYMA&lid=LSTMOBH9ARFZHXSRYMAF5I7OY&marketplace=FLIPKART&hl_lid=&store=tyy%2F4io",
+        "price": null,
+        "original_price": null,
+        "discount": null,
+        "rating": null,
+        "rating_count": null,
+        "images": {}
+      }
+    ]
+  },
+  {
+    "brand": "Pova",
+    "model": "7 5G",
+    "variants": [
+      {
+        "ram_gb": 8,
+        "storage_gb": null,
+        "color": "Geek Black",
+        "os": null,
+        "display_inches": null,
+        "camera_mp": null,
+        "battery_mah": null,
+        "specifications": {}
+      }
+    ],
+    "sources": [
+      {
+        "source": "flipkart",
+        "url": "https://www.flipkart.com/tecno-pova-7-5g-geek-black-128-gb/p/itmf66f1c493f942?pid=MOBHD8ZJGGW3W9BP&lid=LSTMOBHD8ZJGGW3W9BPJMRMXR&marketplace=FLIPKART&hl_lid=&store=tyy%2F4io",
+        "price": null,
+        "original_price": null,
+        "discount": null,
+        "rating": null,
+        "rating_count": null,
+        "images": {}
+      }
+    ]
+  },
+  {
+    "brand": "MOTOROLA",
+    "model": "Edge 60 Fusion 5G",
+    "variants": [
+      {
+        "ram_gb": 12,
+        "storage_gb": 256,
+        "color": "PANTONE Slipstream",
+        "os": "Android 15",
+        "display_inches": 6.67,
+        "camera_mp": 50,
+        "battery_mah": 5500,
+        "specifications": {
+          "Model Number": "PB7G0004IN|PB7G0016IN",
+          "Model Name": "Edge 60 Fusion 5G",
+          "Color": "PANTONE Slipstream",
+          "SIM Type": "Dual Sim",
+          "Display Size": "16.94 cm (6.67 inch)",
+          "Resolution": "2712 x 1220 Pixels",
+          "Display Colors": "10 Bit (Over a Billion Shades of Color)",
+          "Operating System": "Android 15",
+          "Processor Brand": "Mediatek",
+          "Processor Type": "Dimensity 7400",
+          "Internal Storage": "256 GB",
+          "RAM": "12 GB",
+          "Primary Camera Available": "Yes",
+          "Primary Camera": "50MP + 13MP",
+          "Primary Camera Features": "Rear Camera Setup: 50MP Camera (Sony LYTIA 700C Sensor, f/1.88 Aperture, 1.0um Pixel Size, Ultra Pixel Technology for 2.0um, Quad PDAF, Optical Image Stabilization (OIS)) + 13MP Ultrawide Angle Camera (FOV: 120 Degree, Macro Vision, f/2.2 Aperture, 1.12um Pixel Size, PDAF), 3-in-1 Light Sensor (Ambient Light + Flicker Reduction + RGB Sensor), Camera Features: Ultra Res, Portrait (24mm/35mm/50mm), Pro (W/Long Exposure), 360 Degree Panorama, Night Vision, Adobe Scan, Spot Color, Auto Smile Capture, Google Lens Integration, Smart Composition, Shot Optimization, Auto Night Vision, Burst Shot, Timer, Assistive Grid, Leveler, Metering Mode, Watermark, RAW Photo Output, QR/Barcode Scanner, HDR/Ultra HDR, Super Resolution Zoom, Active Photos, Live Filters, Quick Capture (Twist-Twist), Active Photos, Video Features: Timelapse (W/ Hyperlapse), Slow Motion, Portrait Video, Dual Capture Video, Macro, Spot Color, Video Stabilization, Video Snapshot, Audio Zoom, External Microphone Support",
+          "Secondary Camera Available": "Yes",
+          "Secondary Camera": "32MP Front Camera",
+          "Secondary Camera Features": "Front Camera Setup: 32MP Camera (f/2.2 Aperture, 0.7um Pixel Size, Quad Pixel Technology for 1.4um, 4K Video), Camera Features: Pro (W/ Long Exposure), Spot Color, Auto Smile Capture, Gesture Capture, Auto Night Vision, Timer, Assistive Grid, Leveler, Metering Mode, Watermark, Selfie Photo Mirror, Selfie Animation, Face Beauty, RAW Photo Output, HDR, Active Photos, Live Filters, Quick Capture (Twist-Twist), Video Features: Dual Capture, Timelapse (W/ Hyperlapse), Portrait, Spot Color, Video Stabilization, Face Beauty, Video Snapshot, Live Filters, External Microphone Support",
+          "Video Recording Resolution": "Rear Camera: Main Camera [4K UHD (at 30 fps), FHD (at 60 fps/at 30 fps), Slow Motion: FHD (at 120 fps), HD (at 240 fps), Portrait Video: HD (at 30 fps)], Rear Ultra Wide/Macro Camera [4K UHD (at 30 fps), FHD (at 30 fps)] | Front Camera: 4K UHD (at 30 fps), FHD (at 60 fps/at 30 fps)",
+          "Frame Rate": "60 fps, 30 fps",
+          "Network Type": "5G, 4G, 3G, 2G",
+          "Upgradable Operating System": "3 OS Upgrade and 4 Years SMR",
+          "Battery Capacity": "5500 mAh"
+        }
+      }
+    ],
+    "sources": [
+      {
+        "source": "flipkart",
+        "url": "https://www.flipkart.com/motorola-edge-60-fusion-5g-pantone-slipstream-256-gb/p/itm637e7bca8a605?pid=MOBH9AQZANYGWEQH&lid=LSTMOBH9AQZANYGWEQHSMKZEE&marketplace=FLIPKART&hl_lid=&store=tyy%2F4io",
+        "price": 24999,
+        "original_price": 27999,
+        "discount": "10% off",
+        "rating": "4.5",
+        "rating_count": 19,
+        "images": {}
+      }
+    ]
+  },
+  {
+    "brand": "Phone",
+    "model": "(3a) Pro (Grey, 128 GB) (8 GB RAM)",
+    "variants": [
+      {
+        "ram_gb": 8,
+        "storage_gb": null,
+        "color": "3a",
+        "os": null,
+        "display_inches": null,
+        "camera_mp": null,
+        "battery_mah": null,
+        "specifications": {}
+      }
+    ],
+    "sources": [
+      {
+        "source": "flipkart",
+        "url": "https://www.flipkart.com/nothing-phone-3a-pro-grey-128-gb/p/itm04daaef6652d4?pid=MOBH8G3PTSQZDGGM&lid=LSTMOBH8G3PTSQZDGGME6MTMY&marketplace=FLIPKART&hl_lid=&store=tyy%2F4io",
+        "price": null,
+        "original_price": null,
+        "discount": null,
+        "rating": null,
+        "rating_count": null,
+        "images": {}
+      }
+    ]
+  }
+]

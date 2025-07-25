@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const BaseCrawler = require('./base-crawler');
+const BaseCrawler = require('../base-crawler');
 
 class AmazonDetailCrawler extends BaseCrawler {
   constructor(config) {
