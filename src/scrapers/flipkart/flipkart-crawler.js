@@ -3,8 +3,10 @@ const path = require('path');
 const BaseCrawler = require('../base-crawler');
 const cheerio = require('cheerio');
 const { CATEGORY_SELECTORS, PRODUCT_SELECTORS } = require('./flipkart-selectors');
+const RateLimiter = require('../../rate-limiter/RateLimiter');
+const FlipkartRateLimitConfig = require('../../rate-limiter/configs/flipkart-config');
 
-class FlipkartDetailCrawler extends BaseCrawler {
+class FlipkartCrawler extends BaseCrawler {
   constructor(config = {}) {
     const defaultConfig = {
       headless: config.headless !== undefined ? config.headless : true,
@@ -17,16 +19,36 @@ class FlipkartDetailCrawler extends BaseCrawler {
       proxyConfig: {
         useProxy: false
       },
-      maxProducts: 5
+      maxProducts: 5,
+      // Enhanced memory management configuration for Flipkart
+      memoryManagement: {
+        enabled: true,
+        maxMemoryMB: 1024, // 1GB for Flipkart
+        maxPages: 4, // Slightly more generous than Amazon
+        pagePoolSize: 3, // Larger pool for Flipkart
+        cleanupInterval: 60000, // 1 minute
+        forceGCInterval: 240000, // 4 minutes
+        memoryCheckInterval: 25000, // 25 seconds
+      }
     };
     
     super({ ...defaultConfig, ...config });
     this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy,4io&otracker=categorytree';
-    this.checkpointFile = path.join(__dirname, 'checkpoint.json');
-    this.outputFile = path.join(__dirname, 'flipkart_scraped_data.json');
+    this.checkpointFile = path.join(__dirname, 'checkpoint-rate-limited.json');
+    this.outputFile = path.join(__dirname, 'flipkart_scraped_data_rate_limited.json');
     this.productLinks = [];
     this.checkpoint = this.loadCheckpoint();
     this.maxProducts = config?.maxProducts || Infinity;
+    
+    // Initialize rate limiter
+    this.rateLimiter = new RateLimiter({
+      redis: { enabled: false }, // Use memory-based for simplicity
+      defaultAlgorithm: FlipkartRateLimitConfig.algorithm,
+      cleanupInterval: 60000 // 1 minute cleanup
+    });
+    
+    // Register Flipkart-specific rules
+    this.rateLimiter.registerRules('flipkart', FlipkartRateLimitConfig);
     
     // Ensure checkpoint has the required structure
     if (!this.checkpoint.productLinks) {
@@ -35,6 +57,8 @@ class FlipkartDetailCrawler extends BaseCrawler {
     if (this.checkpoint.lastProcessedIndex === undefined) {
       this.checkpoint.lastProcessedIndex = -1;
     }
+    
+    this.logger.info('Rate limiter and memory management initialized with Flipkart configuration');
   }
 
   loadCheckpoint() {
@@ -80,7 +104,7 @@ class FlipkartDetailCrawler extends BaseCrawler {
 
   async start() {
     try {
-      this.logger.info('Starting Flipkart detail crawler');
+      this.logger.info('Starting Flipkart detail crawler with rate limiting');
       
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
@@ -93,18 +117,69 @@ class FlipkartDetailCrawler extends BaseCrawler {
       await this.scrapeProductDetails();
       this.logger.info('Crawling completed successfully');
       
-      await this.close();
+      // Enhanced cleanup to ensure proper shutdown
+      await this.shutdown();
+      
     } catch (error) {
       this.logger.error(`Error during crawling: ${error.message}`);
       this.saveCheckpoint();
-      await this.close();
+      await this.shutdown();
       throw error;
+    }
+  }
+
+  /**
+   * Enhanced shutdown method to ensure complete cleanup
+   */
+  async shutdown() {
+    try {
+      this.logger.info('Starting enhanced shutdown process...');
+      
+      // Close rate limiter if it has cleanup methods
+      if (this.rateLimiter && typeof this.rateLimiter.close === 'function') {
+        await this.rateLimiter.close();
+        this.logger.debug('Rate limiter closed');
+      }
+      
+      // Close the base crawler (browser, memory management, etc.)
+      await this.close();
+      
+      // Force any remaining intervals to clear
+      const highestIntervalId = setTimeout(() => {}, 0);
+      for (let i = 0; i < highestIntervalId; i++) {
+        clearTimeout(i);
+        clearInterval(i);
+      }
+      
+      // Final garbage collection
+      if (global.gc) {
+        global.gc();
+        this.logger.debug('Final garbage collection performed');
+      }
+      
+      this.logger.info('Enhanced shutdown completed');
+      
+      // Force process exit after a short delay to ensure everything is cleaned up
+      setTimeout(() => {
+        this.logger.info('Forcing process exit');
+        process.exit(0);
+      }, 2000);
+      
+    } catch (error) {
+      this.logger.error(`Error during shutdown: ${error.message}`);
+      // Force exit even if cleanup fails
+      setTimeout(() => {
+        process.exit(1);
+      }, 3000);
     }
   }
 
   async scrapeProductLinks() {
     const page = await this.newPage();
     try {
+      // Enable JavaScript for category page
+      await page.setJavaScriptEnabled(true);
+      
       this.logger.info(`Navigating to category page: ${this.categoryUrl}`);
       await this.navigate(page, this.categoryUrl);
       
@@ -135,10 +210,11 @@ class FlipkartDetailCrawler extends BaseCrawler {
       this.logger.info(`Found ${this.productLinks.length} product links`);
       this.checkpoint.productLinks = this.productLinks;
       
-      await page.close();
+      // Return page to pool instead of closing
+      await this.returnPageToPool(page);
     } catch (error) {
       this.logger.error(`Error scraping product links: ${error.message}`);
-      await page.close();
+      await this.safeClosePage(page);
       throw error;
     }
   }
@@ -168,8 +244,13 @@ class FlipkartDetailCrawler extends BaseCrawler {
           results.length = 0;
         }
         
-        // Add a delay between requests
-        await this.delay(2000, 5000);
+        // Rate-limited delay calculation
+        const rateLimitResult = await this.rateLimiter.checkLimit(`product-${i}`, 'flipkart');
+        const adaptiveDelay = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
+        
+        this.logger.info(`Rate limit status: ${rateLimitResult.remaining} requests remaining. Adaptive delay: ${adaptiveDelay}ms`);
+        await this.delay(adaptiveDelay);
+        
       } catch (error) {
         this.logger.error(`Error processing product at index ${i}: ${error.message}`);
       }
@@ -181,18 +262,22 @@ class FlipkartDetailCrawler extends BaseCrawler {
   async _scrapeProductDetail(url) {
     const page = await this.newPage();
     try {
+      // Enable JavaScript for Flipkart
+      await page.setJavaScriptEnabled(true);
+      
       this.logger.info(`Scraping product details from: ${url}`);
       
       await this.navigate(page, url);
-      await this.delay(500, 1000); // Reduced from 2-3 seconds to 0.5-1 second
+      await this.delay(500, 1000);
 
       const productData = await this._extractProductData(page);
       
-      await page.close();
+      // Return page to pool instead of closing
+      await this.returnPageToPool(page);
       return { url, ...productData };
       
     } catch (error) {
-      await page.close();
+      await this.safeClosePage(page);
       this.logger.error(`Error scraping product detail: ${error.message}`);
       return { url, title: null, specifications: {} };
     }
@@ -249,10 +334,9 @@ class FlipkartDetailCrawler extends BaseCrawler {
     }
   }
 
-  // NEW: Add pricing extraction for null fields fix
   async _extractPricing(page) {
     try {
-      await page.waitForTimeout(500); // Reduced from 2000ms to 500ms
+      await page.waitForTimeout(500);
 
       const result = await page.evaluate((selectors) => {
         const getElementByXPath = (xpath) => {
@@ -266,7 +350,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           discount: null
         };
 
-        // Extract current price
         if (selectors.PRICE) {
           for (const xpath of selectors.PRICE) {
             const priceElement = getElementByXPath(xpath);
@@ -280,7 +363,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           }
         }
         
-        // Extract original price
         if (selectors.ORIGINAL_PRICE) {
           for (const xpath of selectors.ORIGINAL_PRICE) {
             const originalElement = getElementByXPath(xpath);
@@ -294,7 +376,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           }
         }
         
-        // Extract discount
         if (selectors.DISCOUNT) {
           for (const xpath of selectors.DISCOUNT) {
             const discountElement = getElementByXPath(xpath);
@@ -318,7 +399,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
     }
   }
 
-  // NEW: Add rating extraction for null fields fix  
   async _extractRating(page) {
     try {
       const result = await page.evaluate((selectors) => {
@@ -332,7 +412,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           count: null
         };
 
-        // Extract rating score
         if (selectors.RATING) {
           for (const xpath of selectors.RATING) {
             const ratingElement = getElementByXPath(xpath);
@@ -347,7 +426,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           }
         }
 
-        // Extract rating count
         if (selectors.RATING_COUNT) {
           for (const xpath of selectors.RATING_COUNT) {
             const countElement = getElementByXPath(xpath);
@@ -379,17 +457,14 @@ class FlipkartDetailCrawler extends BaseCrawler {
       
       const categories = [];
       
-      // Extract from breadcrumb navigation
       const breadcrumbContainer = $('div._7dPnhA');
       
       if (breadcrumbContainer.length > 0) {
-        // Get all breadcrumb links
         breadcrumbContainer.find('a.R0cyWM').each((_, element) => {
           const categoryText = $(element).text().trim();
           categories.push(categoryText);
         });
         
-        // Get the final product category
         const finalCategory = breadcrumbContainer.find('div.KalC6f p').text().trim();
         categories.push(finalCategory);
       }
@@ -400,9 +475,7 @@ class FlipkartDetailCrawler extends BaseCrawler {
       return [];
     }
   }
-  
 
-  // NEW: Extract tags (renamed from old categories)
   async _extractTags(page) {
     try {
       return await page.evaluate(() => {
@@ -415,7 +488,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
     }
   }
 
-  // NEW: Extract main and all product images
   async _extractImages(page) {
     try {
       return await page.evaluate((selectors) => {
@@ -436,7 +508,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
         let mainImage = null;
         let allImages = [];
 
-        // Extract main image
         if (selectors.MAIN_IMAGE) {
           for (const xpath of selectors.MAIN_IMAGE) {
             const imgElement = getElementByXPath(xpath);
@@ -447,7 +518,6 @@ class FlipkartDetailCrawler extends BaseCrawler {
           }
         }
 
-        // Extract all images
         const imageElements = getAllElementsByXPath('//img[contains(@src, "rukminim")]');
         allImages = imageElements.map(img => img.src).filter(src => src);
 
@@ -465,16 +535,10 @@ class FlipkartDetailCrawler extends BaseCrawler {
   async get_specification(page) {
     this.logger.info('Extracting specifications with Cheerio...');
     try {
-      // Step 1: Get the static HTML from the page
       const html = await page.content();
-      
-      // Step 2: Load the HTML into Cheerio for easy traversal
       const $ = cheerio.load(html);
 
       const specifications = {};
-
-      // Step 3: Select the main parent container for all specifications
-      // This is more reliable than a single, long XPath.
       const mainContainer = $('div._1OjC5I');
 
       if (mainContainer.length === 0) {
@@ -482,32 +546,23 @@ class FlipkartDetailCrawler extends BaseCrawler {
         return {};
       }
 
-      // Step 4: Loop through each specification category section within the parent
-      // (e.g., "General", "Display Features", etc.)
       mainContainer.find('div.GNDEQ-').each((_, categoryEl) => {
         const categorySection = $(categoryEl);
-
-        // Step 5: Go down to the child node to get the category name (the header)
         const categoryName = categorySection.find('div[class="_4BJ2V+"]').text().trim();
         
         if (!categoryName) {
-          return; // Skip sections without a valid header
+          return;
         }
 
         specifications[categoryName] = {};
         this.logger.info(`Found specification category: ${categoryName}`);
 
-        // Step 6: Within the category, find all the table rows (`tr`)
         categorySection.find('tr.WJdYP6.row').each((_, rowEl) => {
           const row = $(rowEl);
-          
-          // Step 7: For each row, get the field name (first `td`) and value (second `td`)
           const fieldName = row.find('td.col-3-12').text().trim();
           let fieldValue = '';
 
           const valueCell = row.find('td.col-9-12');
-          
-          // The value might be in a list item `li` or directly in the `td`
           const listItem = valueCell.find('li.HPETK2');
           if (listItem.length > 0) {
             fieldValue = listItem.text().trim();
@@ -515,13 +570,11 @@ class FlipkartDetailCrawler extends BaseCrawler {
             fieldValue = valueCell.text().trim();
           }
 
-          // Add the field to our specifications object if both parts exist
           if (fieldName && fieldValue) {
             specifications[categoryName][fieldName] = fieldValue;
           }
         });
 
-        // Clean up: remove a category if no fields were found for it
         if (Object.keys(specifications[categoryName]).length === 0) {
           delete specifications[categoryName];
         }
@@ -532,27 +585,37 @@ class FlipkartDetailCrawler extends BaseCrawler {
 
     } catch (error) {
       this.logger.error(`Error extracting specifications with Cheerio: ${error.message}`);
-      return {}; // Return an empty object on failure
+      return {};
     }
   }
- 
 
+  async close() {
+    await super.close();
+    if (this.rateLimiter) {
+      await this.rateLimiter.close();
+    }
+  }
 }
 
 // Run the crawler if this script is executed directly
 if (require.main === module) {
-  const crawler = new FlipkartDetailCrawler({
+  const crawler = new FlipkartDetailCrawlerRateLimited({
     headless: true,
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 5
+    maxProducts: 1
   });
   
-  crawler.start().catch(error => {
-    console.error('Crawler failed:', error);
-    process.exit(1);
-  });
+  crawler.start()
+    .then(() => {
+      console.log('✅ Crawler completed successfully');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('❌ Crawler failed:', error.message);
+      process.exit(1);
+    });
 }
 
-module.exports = FlipkartDetailCrawler; 
+module.exports = FlipkartDetailCrawlerRateLimited; 

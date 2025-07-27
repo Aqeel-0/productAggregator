@@ -1,107 +1,464 @@
-const fs = require('fs');
-const path = require('path');
-const { createLogger } = require('../utils/logger'); // Assuming your logger
+// Try to import logger, fall back to console if not available
+let logger;
+try {
+  logger = require('../utils/logger');
+} catch (e) {
+  logger = console;
+}
 
-const logger = createLogger('AmazonNormalizer');
+class AmazonNormalizer {
+  constructor() {
+    this.logger = logger;
+  }
 
-function normalizeAmazonProduct(raw) {
-  if (!raw) {
-    logger.warn('Received null or undefined product');
+  /**
+   * Normalize array of Amazon scraped products
+   */
+  normalizeProducts(products) {
+    const normalized = [];
+    
+    for (const product of products) {
+      try {
+        const normalizedProduct = this.normalizeProduct(product);
+        normalized.push(normalizedProduct);
+      } catch (error) {
+        console.error(`Error normalizing product: ${error.message}`, product.title);
+      }
+    }
+    
+    return normalized;
+  }
+
+  /**
+   * Normalize single Amazon product
+   */
+  normalizeProduct(product) {
+    // Extract brand and model from existing data
+    const { brand, model } = this.extractBrandAndModel(product);
+    
+    // Extract variant attributes from existing specification fields
+    const variant = this.extractVariantAttributes(product);
+    
+    // Extract essential specifications only
+    const specifications = this.extractEssentialSpecs(product.specifications);
+    
+    // Normalize price (Amazon doesn't seem to have price in this data)
+    const price = this.normalizePrice(null); // No price data available
+    
+    // Normalize rating from Customer Reviews
+    const rating = this.normalizeRating(product.specifications["Customer Reviews"]);
+
+    // Amazon doesn't have category hierarchy like Flipkart, so we'll create a simple one
+    const category = this.normalizeCategory(product);
+
+    return {
+      // Core product identification
+      brand: brand,
+      model: model,
+      title: product.title,
+      
+      // Variant attributes (used for matching same products)
+      variant: {
+        ram_gb: variant.ram_gb,
+        storage_gb: variant.storage_gb,
+        color: variant.color
+      },
+      
+      // Product categorization
+      category: category,
+      
+      // Essential specifications only
+      specifications: specifications,
+      
+      // Pricing and rating
+      price: price,
+      rating: rating,
+      
+      // Metadata
+      source: 'amazon',
+      url: product.url,
+      image: product.image || null,
+      
+      // Original data (for debugging)
+      originalTitle: product.title
+    };
+  }
+
+  /**
+   * Extract brand and model from existing specification data and title
+   */
+  extractBrandAndModel(product) {
+    // Get brand directly from specifications (Amazon has this field)
+    const brand = product.specifications?.["Brand"] || 
+                  this.extractBrandFromTitle(product.title) || 
+                  'Unknown';
+    
+    // Get model from Item model number or extract from title
+    let model = product.specifications?.["Item model number"] || 'Unknown';
+    
+    // If model is just a code, try to extract from title
+    if (model === 'Unknown' || this.isModelCode(model)) {
+      model = this.extractModelFromTitle(product.title, brand) || model;
+    }
+
+    return { 
+      brand: this.standardizeBrand(brand), 
+      model: model 
+    };
+  }
+
+  /**
+   * Check if a model string looks like a model code (e.g., "SM-M055F", "I2404")
+   */
+  isModelCode(model) {
+    if (!model || model === 'Unknown') return false;
+    // Model codes are usually short with letters, numbers, and dashes
+    return model.length <= 10 && /^[A-Z0-9\-]+$/i.test(model);
+  }
+
+  /**
+   * Extract model name from title
+   */
+  extractModelFromTitle(title, brand) {
+    if (!title || !brand) return null;
+    
+    // Remove brand from title and extract meaningful model name
+    let modelText = title.replace(new RegExp(brand, 'gi'), '').trim();
+    
+    // Remove variant info and extract first few words as model
+    modelText = modelText
+      .replace(/\(.*?\)/g, '') // Remove parentheses content
+      .replace(/\|.*$/, '') // Remove everything after |
+      .replace(/\b\d+\s*GB\s*(RAM|Storage)\b/gi, '') // Remove RAM/Storage info
+      .replace(/\b\d+\s*GB\b/g, '') // Remove GB references
+      .replace(/\b(Black|White|Blue|Red|Green|Silver|Gold|Gray|Grey|Rose|Pink|Purple|Yellow|Orange|Titanium|Mint|Ultramarine|Glacial)\b/gi, '') // Remove colors
+      .replace(/[-,]/g, ' ') // Replace separators
+      .replace(/\s+/g, ' ') // Clean spaces
+      .trim();
+
+    // Take first 3-4 meaningful words
+    const words = modelText.split(' ').filter(word => 
+      word.length > 1 && 
+      !word.match(/^\d+$/) && // Not just numbers
+      word.length < 15 // Not too long
+    );
+    
+    return words.slice(0, 3).join(' ').trim() || null;
+  }
+
+  /**
+   * Standardize brand names
+   */
+  standardizeBrand(brand) {
+    const brandMappings = {
+      'samsung': 'Samsung',
+      'iqoo': 'iQOO',
+      'apple': 'Apple',
+      'xiaomi': 'Xiaomi',
+      'oneplus': 'OnePlus',
+      'realme': 'Realme',
+      'oppo': 'Oppo',
+      'vivo': 'Vivo',
+      'motorola': 'Motorola',
+      'nokia': 'Nokia',
+      'nothing': 'Nothing',
+      'poco': 'Poco',
+      'tecno': 'Tecno',
+      'infinix': 'Infinix',
+      'honor': 'Honor',
+      'huawei': 'Huawei',
+      'google': 'Google'
+    };
+    
+    return brandMappings[brand.toLowerCase()] || brand;
+  }
+
+  /**
+   * Fallback: Extract brand from title
+   */
+  extractBrandFromTitle(title) {
+    if (!title) return null;
+
+    const brandPatterns = [
+      { brand: 'Samsung', patterns: ['samsung', 'galaxy'] },
+      { brand: 'Apple', patterns: ['apple', 'iphone'] },
+      { brand: 'Google', patterns: ['google', 'pixel'] },
+      { brand: 'OnePlus', patterns: ['oneplus', 'one plus'] },
+      { brand: 'Xiaomi', patterns: ['xiaomi', 'mi', 'redmi'] },
+      { brand: 'Realme', patterns: ['realme'] },
+      { brand: 'Oppo', patterns: ['oppo'] },
+      { brand: 'Vivo', patterns: ['vivo'] },
+      { brand: 'Motorola', patterns: ['motorola', 'moto'] },
+      { brand: 'Nokia', patterns: ['nokia'] },
+      { brand: 'Nothing', patterns: ['nothing', 'cmf'] },
+      { brand: 'Poco', patterns: ['poco'] },
+      { brand: 'Tecno', patterns: ['tecno'] },
+      { brand: 'Infinix', patterns: ['infinix'] },
+      { brand: 'Honor', patterns: ['honor'] },
+      { brand: 'Huawei', patterns: ['huawei'] },
+      { brand: 'iQOO', patterns: ['iqoo'] }
+    ];
+
+    const titleLower = title.toLowerCase();
+    
+    for (const brandInfo of brandPatterns) {
+      for (const pattern of brandInfo.patterns) {
+        if (titleLower.includes(pattern)) {
+          return brandInfo.brand;
+        }
+      }
+    }
+    
     return null;
   }
 
-  const specs = raw.specifications || {};
-  const title = raw.title || '';
+  /**
+   * Extract variant attributes from existing specification fields
+   */
+  extractVariantAttributes(product) {
+    const attributes = {};
+    const specs = product.specifications || {};
 
-  // Helper to extract number from string (e.g., "4 GB" -> 4)
-  const extractNumber = (str) => {
-    if (!str || typeof str !== 'string') return null;
-    const match = str.match(/[\d.]+/);
-    return match ? parseFloat(match[0]) : null;
-  };
-
-  // Parse model and color from title (common pattern: "Model (Color, RAM, Storage)")
-  const titleParts = title.match(/^(.*?) \((.*?)\)/) || [];
-  const model = titleParts[1]?.trim() || specs['Item model number'] || 'Unknown';
-  const variantStr = titleParts[2] || '';
-  
-  // Safely extract color
-  const color = typeof variantStr === 'string' && variantStr.match(/(\w+ Green|\w+ Blue|\w+ Black|\w+ White|\w+ Red|\w+)/i)?.[0]?.toLowerCase() || 
-                (typeof specs['Colour'] === 'string' ? specs['Colour'].toLowerCase() : null);
-
-  // Extract category (often from title or features; default to 'Smartphones' based on data)
-  const category = typeof specs['Generic Name'] === 'string' ? specs['Generic Name'].toLowerCase() : 'smartphones'; // Adjust based on analysis
-
-  // Standardize attributes
-  const attributes = {
-    color,
-    storage_gb: extractNumber(specs['Memory Storage Capacity'] || variantStr) || null,
-    ram_gb: extractNumber(specs['RAM Memory Installed Size'] || specs['RAM'] || variantStr) || null,
-    // Add more as needed (e.g., battery: extractNumber(specs['Battery Power Rating']))
-  };
-
-  // Extract price (often in features; placeholder if not direct)
-  const price = extractNumber(specs['Feature 1'] || specs['Feature 2'] || '') || null; // Enhance if price is in title/features
-
-  // Extract review count safely
-  let reviewCount = 0;
-  if (typeof specs['Customer Reviews'] === 'string') {
-    const reviewMatch = specs['Customer Reviews'].match(/(\d+) ratings/);
-    reviewCount = reviewMatch ? parseInt(reviewMatch[1]) : 0;
-  }
-
-  // Collect normalized data (no DB integration)
-  return {
-    brand: typeof specs['Brand'] === 'string' ? specs['Brand'].trim().toLowerCase() : 'unknown',
-    model,
-    category,
-    attributes,
-    price,
-    store_name: 'amazon',
-    store_product_id: specs['ASIN'] || (typeof raw.url === 'string' ? raw.url.split('/dp/')?.[1]?.split('/')[0] : null) || null,
-    currency: specs['Currency'] || 'INR',
-    url: raw.url,
-    stock_status: 'unknown', // Enhance if available
-    rating: extractNumber(specs['Customer Reviews']) || null,
-    review_count: reviewCount,
-    scraped_at: new Date().toISOString(),
-  };
-}
-
-async function main() {
-  try {
-    const inputPath = path.join(__dirname, '../scrapers/amazon_scraped_data.json');
-    const data = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-
-    const normalizedData = [];
-    let success = 0, failed = 0;
-    for (const item of data) {
-      try {
-        const normalized = normalizeAmazonProduct(item);
-        if (normalized) { // Only push if normalization was successful
-          normalizedData.push(normalized);
-          success++;
-        } else {
-          failed++;
-        }
-      } catch (err) {
-        logger.error(`Failed to normalize product: ${item.title || 'unknown'} - ${err.message}`);
-        failed++;
+    // Extract RAM from multiple possible fields
+    const ramField = specs['RAM Memory Installed Size'] || specs['RAM'];
+    if (ramField) {
+      // Convert "4 GB" or "6 GB" -> 4, 6
+      const ramMatch = ramField.match(/(\d+)\s*GB/i);
+      if (ramMatch) {
+        attributes.ram_gb = parseInt(ramMatch[1]);
       }
     }
 
-    // Save to output file with pretty-printing
-    const outputPath = path.join(__dirname, '../scrapers/normalized_amazon_data.json');
-    fs.writeFileSync(outputPath, JSON.stringify(normalizedData, null, 2), 'utf8');
+    // Extract Storage from Memory Storage Capacity or title
+    const storageField = specs['Memory Storage Capacity'];
+    if (storageField) {
+      // Convert "128 GB" -> 128
+      const storageMatch = storageField.match(/(\d+)\s*GB/i);
+      if (storageMatch) {
+        attributes.storage_gb = parseInt(storageMatch[1]);
+      }
+    } else {
+      // Try to extract from title as fallback
+      const title = product.title || '';
+      const titleStorageMatch = title.match(/(\d+)\s*GB\s*Storage/i);
+      if (titleStorageMatch) {
+        attributes.storage_gb = parseInt(titleStorageMatch[1]);
+      }
+    }
 
-    logger.info(`Normalization complete: ${success} successful, ${failed} failed out of ${data.length}. Saved to ${outputPath}`);
-  } catch (err) {
-    logger.error(`Error in main: ${err.message}`);
+    // Extract Color from Colour field
+    const colorField = specs['Colour'];
+    if (colorField) {
+      attributes.color = colorField;
+    } else {
+      // Try to extract from title
+      const title = product.title || '';
+      const colorMatch = title.match(/\(([^,)]+),/);
+      if (colorMatch) {
+        attributes.color = colorMatch[1].trim();
+      }
+    }
+
+    return attributes;
+  }
+
+  /**
+   * Create category structure for Amazon using real breadcrumb data
+   */
+  normalizeCategory(product) {
+    const categories = product.categories || [];
+    const brand = product.specifications?.["Brand"] || 'Unknown';
+    
+    if (categories.length === 0) {
+      // Fallback to synthetic categories if no breadcrumb data
+      const genericName = product.specifications?.["Generic Name"] || 'Unknown';
+      return {
+        main: 'Electronics',
+        sub: genericName,
+        specific: `${brand} ${genericName}`,
+        brand: this.standardizeBrand(brand),
+        breadcrumb: ['Electronics', genericName, `${brand} ${genericName}`],
+        full_path: `Electronics > ${genericName} > ${brand} ${genericName}`
+      };
+    }
+    
+    // Use real Amazon breadcrumb categories
+    return {
+      main: categories[0] || 'Electronics',                    // First breadcrumb level
+      sub: categories[1] || 'Unknown',                         // Second breadcrumb level  
+      specific: categories[2] || `${brand} Products`,          // Third breadcrumb level
+      brand: this.standardizeBrand(brand),
+      breadcrumb: categories.slice(0, -1),                     // Exclude last item (usually product name)
+      full_path: categories.join(' > ')                        // Complete Amazon breadcrumb path
+    };
+  }
+
+  /**
+   * Extract only essential specifications
+   */
+  extractEssentialSpecs(specifications) {
+    if (!specifications) return {};
+
+    const essential = {};
+
+    // General info (keep minimal)
+    const general = {};
+    if (specifications['Item model number']) {
+      general.model_number = specifications['Item model number'];
+    }
+    if (specifications['Operating System']) {
+      general.operating_system = specifications['Operating System'];
+    }
+    if (specifications['Special features']) {
+      general.special_features = specifications['Special features'];
+    }
+    if (Object.keys(general).length > 0) {
+      essential.general = general;
+    }
+
+    // Display
+    const display = {};
+    if (specifications['Resolution']) {
+      display.resolution = specifications['Resolution'];
+    }
+    if (specifications['Device interface - primary']) {
+      display.interface = specifications['Device interface - primary'];
+    }
+    if (Object.keys(display).length > 0) {
+      essential.display = display;
+    }
+
+    // Processor
+    const processor = {};
+    if (specifications['CPU Model']) {
+      processor.cpu_model = specifications['CPU Model'];
+    }
+    if (specifications['CPU Speed']) {
+      processor.cpu_speed = specifications['CPU Speed'];
+    }
+    if (Object.keys(processor).length > 0) {
+      essential.processor = processor;
+    }
+
+    // Battery
+    const battery = {};
+    if (specifications['Battery Power Rating']) {
+      battery.capacity = specifications['Battery Power Rating'] + ' mAh';
+    }
+    if (Object.keys(battery).length > 0) {
+      essential.battery = battery;
+    }
+
+    // Connectivity
+    const connectivity = {};
+    if (specifications['Connectivity technologies']) {
+      connectivity.technologies = specifications['Connectivity technologies'];
+    }
+    if (specifications['Wireless communication technologies']) {
+      connectivity.wireless = specifications['Wireless communication technologies'];
+    }
+    if (specifications['GPS']) {
+      connectivity.gps = specifications['GPS'];
+    }
+    if (Object.keys(connectivity).length > 0) {
+      essential.connectivity = connectivity;
+    }
+
+    // Physical
+    const physical = {};
+    if (specifications['Product Dimensions']) {
+      physical.dimensions = specifications['Product Dimensions'];
+    }
+    if (specifications['Item Weight']) {
+      physical.weight = specifications['Item Weight'];
+    }
+    if (specifications['Form factor']) {
+      physical.form_factor = specifications['Form factor'];
+    }
+    if (Object.keys(physical).length > 0) {
+      essential.physical = physical;
+    }
+
+    return essential;
+  }
+
+  /**
+   * Normalize price data (Amazon data doesn't seem to have price)
+   */
+  normalizePrice(price) {
+    // Amazon scraped data doesn't include price information
+    return {
+      current: null,
+      original: null,
+      discount: null,
+      currency: 'INR'
+    };
+  }
+
+  /**
+   * Normalize rating data from Customer Reviews field
+   */
+  normalizeRating(customerReviews) {
+    if (!customerReviews || customerReviews === 'Customer Reviews') {
+      return {
+        score: null,
+        count: 0
+      };
+    }
+
+    // Parse format: "4.0 4.0 out of 5 stars    4,990 ratings4.0 out of 5 stars"
+    const scoreMatch = customerReviews.match(/^(\d+\.?\d*)/);
+    const countMatch = customerReviews.match(/(\d{1,3}(?:,\d{3})*)\s*ratings/);
+
+    let score = null;
+    let count = 0;
+
+    if (scoreMatch) {
+      score = parseFloat(scoreMatch[1]);
+    }
+
+    if (countMatch) {
+      count = parseInt(countMatch[1].replace(/,/g, ''));
+    }
+
+    return {
+      score: score,
+      count: count
+    };
+  }
+
+  /**
+   * Normalize products from file
+   */
+  async normalizeFromFile(filePath) {
+    try {
+      const fs = require('fs');
+      const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      
+      console.log(`Normalizing ${rawData.length} Amazon products...`);
+      const normalized = this.normalizeProducts(rawData);
+      
+      console.log(`Successfully normalized ${normalized.length} products`);
+      return normalized;
+    } catch (error) {
+      console.error(`Error reading/normalizing file: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Save normalized data to file
+   */
+  async saveNormalizedData(normalizedData, outputPath) {
+    try {
+      const fs = require('fs');
+      fs.writeFileSync(outputPath, JSON.stringify(normalizedData, null, 2));
+      console.log(`Saved normalized data to ${outputPath}`);
+    } catch (error) {
+      console.error(`Error saving normalized data: ${error.message}`);
+      throw error;
+    }
   }
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = { normalizeAmazonProduct }; 
+module.exports = AmazonNormalizer; 
