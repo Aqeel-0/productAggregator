@@ -33,12 +33,22 @@ class FlipkartCrawler extends BaseCrawler {
     };
     
     super({ ...defaultConfig, ...config });
-    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy,4io&otracker=categorytree';
+    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree';
     this.checkpointFile = path.join(__dirname, 'checkpoint-rate-limited.json');
     this.outputFile = path.join(__dirname, 'flipkart_scraped_data_rate_limited.json');
     this.productLinks = [];
     this.checkpoint = this.loadCheckpoint();
-    this.maxProducts = config?.maxProducts || Infinity;
+    
+    // Multi-page scraping configuration
+    this.maxProducts = config.maxProducts || null; // If null, uses maxPages instead
+    this.maxPages = config.maxPages || 3; // Default: scrape 3 pages
+    this.maxConcurrent = config.maxConcurrent || 2;
+    this.maxRetries = config.maxRetries || 3;
+    
+    // Page-level configuration with validation
+    this.productsPerPage = Math.max(1, Math.min(config.productsPerPage || 24, 100)); // Between 1-100
+    this.delayBetweenPages = Math.max(500, config.delayBetweenPages || 2000); // Minimum 500ms
+    
     
     // Initialize rate limiter
     this.rateLimiter = new RateLimiter({
@@ -57,8 +67,17 @@ class FlipkartCrawler extends BaseCrawler {
     if (this.checkpoint.lastProcessedIndex === undefined) {
       this.checkpoint.lastProcessedIndex = -1;
     }
+    if (!this.checkpoint.failedProducts) {
+      this.checkpoint.failedProducts = [];
+    }
+    if (!this.checkpoint.pagesScraped) {
+      this.checkpoint.pagesScraped = [];
+    }
+    if (this.checkpoint.lastPageScraped === undefined) {
+      this.checkpoint.lastPageScraped = 0;
+    }
     
-    this.logger.info('Rate limiter and memory management initialized with Flipkart configuration');
+    // Rate limiter and memory management initialized
   }
 
   loadCheckpoint() {
@@ -70,13 +89,20 @@ class FlipkartCrawler extends BaseCrawler {
     } catch (error) {
       this.logger.error(`Error loading checkpoint: ${error.message}`);
     }
-    return { productLinks: [], lastProcessedIndex: -1 };
+    return { 
+      productLinks: [], 
+      lastProcessedIndex: -1, 
+      failedProducts: [],
+      lastRunTimestamp: null,
+      pagesScraped: [],
+      lastPageScraped: 0
+    };
   }
 
   saveCheckpoint() {
     try {
       fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      this.logger.info('Checkpoint saved');
+      // Checkpoint saved
     } catch (error) {
       this.logger.error(`Error saving checkpoint: ${error.message}`);
     }
@@ -174,85 +200,303 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  async scrapeProductLinks() {
-    const page = await this.newPage();
-    try {
-      // Enable JavaScript for category page
-      await page.setJavaScriptEnabled(true);
-      
-      this.logger.info(`Navigating to category page: ${this.categoryUrl}`);
-      await this.navigate(page, this.categoryUrl);
-      
-      // Wait for page to load
-      await page.waitForSelector('body', { timeout: 10000 });
-      
-      // Extract product links using XPath
-      this.productLinks = await page.evaluate((xpath) => {
-        const links = [];
-        const result = document.evaluate(
-          xpath,
-          document,
-          null,
-          XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-          null
-        );
-        
-        for (let i = 0; i < result.snapshotLength; i++) {
-          const element = result.snapshotItem(i);
-          if (element.href && element.href.includes('/p/')) {
-            links.push(element.href);
-          }
-        }
-        
-        return links;
-      }, CATEGORY_SELECTORS.PRODUCT_LINK);
-      
-      this.logger.info(`Found ${this.productLinks.length} product links`);
-      this.checkpoint.productLinks = this.productLinks;
-      
-      // Return page to pool instead of closing
-      await this.returnPageToPool(page);
-    } catch (error) {
-      this.logger.error(`Error scraping product links: ${error.message}`);
-      await this.safeClosePage(page);
-      throw error;
+  /**
+   * Build URL for specific page number
+   */
+  buildPageUrl(pageNumber) {
+    if (pageNumber === 1) {
+      return this.categoryUrl;
+    }
+    
+    // Replace existing page parameter or add it
+    if (this.categoryUrl.includes('page=')) {
+      return this.categoryUrl.replace(/page=\d+/, `page=${pageNumber}`);
+    } else {
+      const separator = this.categoryUrl.includes('?') ? '&' : '?';
+      return `${this.categoryUrl}${separator}page=${pageNumber}`;
     }
   }
 
-  async scrapeProductDetails() {
-    const startIndex = this.checkpoint.lastProcessedIndex + 1;
-    const endIndex = Math.min(this.productLinks.length, startIndex + this.maxProducts);
+  /**
+   * Check if there's a next page available
+   */
+  async hasNextPage(page) {
+    try {
+      const nextButton = await page.evaluate((selector) => {
+        const result = document.evaluate(
+          selector,
+          document,
+          null,
+          XPathResult.FIRST_ORDERED_NODE_TYPE,
+          null
+        );
+        
+        const nextElement = result.singleNodeValue;
+        if (!nextElement) return false;
+        
+        // Check if the Next button is disabled (has disabled class or is not clickable)
+        const isDisabled = nextElement.classList.contains('_2Xp0TH') || 
+                          nextElement.classList.contains('disabled') ||
+                          nextElement.hasAttribute('disabled') ||
+                          nextElement.style.pointerEvents === 'none';
+        
+        // Also check if the href points to the same page (no pagination)
+        const href = nextElement.href;
+        const currentUrl = window.location.href;
+        const isSamePage = href === currentUrl;
+        
+        return !isDisabled && !isSamePage;
+      }, CATEGORY_SELECTORS.NEXT_PAGE);
+      
+      return nextButton;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Determine how many pages to scrape based on configuration
+   */
+  calculatePagesToScrape() {
+    if (this.maxProducts) {
+      // Calculate pages needed for desired number of products
+      const pagesNeeded = Math.ceil(this.maxProducts / this.productsPerPage);
+      this.logger.info(`Target: ${this.maxProducts} products (estimated ${pagesNeeded} pages needed)`);
+      return Math.min(pagesNeeded, this.maxPages || 10); // Cap at maxPages if set
+    } else {
+      // Use maxPages directly
+      this.logger.info(`Target: ${this.maxPages} pages`);
+      return this.maxPages;
+    }
+  }
+
+  /**
+   * Enhanced multi-page product link scraping
+   */
+  async scrapeProductLinks() {
+    const allProductLinks = [];
+    const targetPages = this.calculatePagesToScrape();
+    const startPage = this.checkpoint.lastPageScraped + 1;
     
-    this.logger.info(`Scraping product details from index ${startIndex} to ${endIndex - 1}`);
+    this.logger.info(`🚀 Starting: Pages ${startPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products`);
     
-    const results = [];
-    for (let i = startIndex; i < endIndex; i++) {
-      const url = this.productLinks[i];
-      this.logger.info(`Processing product ${i + 1}/${endIndex} (${url})`);
+    for (let currentPage = startPage; currentPage <= targetPages; currentPage++) {
+      const page = await this.newPage();
       
       try {
-        const productData = await this._scrapeProductDetail(url);
-        results.push(productData);
+        // Enable JavaScript for category page
+        await page.setJavaScriptEnabled(true);
         
-        // Update checkpoint after each product
-        this.checkpoint.lastProcessedIndex = i;
-        this.saveCheckpoint();
+        const pageUrl = this.buildPageUrl(currentPage);
+        // Scraping page ${currentPage}
         
-        // Save data in batches of 5 or at the end
-        if (results.length >= 5 || i === endIndex - 1) {
-          this.saveData(results);
-          results.length = 0;
+        await this.navigate(page, pageUrl);
+        
+        // Wait for page to load
+        await page.waitForSelector('body', { timeout: 10000 });
+        
+        // Extract product links from current page
+        const pageLinks = await page.evaluate((xpath) => {
+          const links = [];
+          const result = document.evaluate(
+            xpath,
+            document,
+            null,
+            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+            null
+          );
+          
+          for (let i = 0; i < result.snapshotLength; i++) {
+            const element = result.snapshotItem(i);
+            if (element.href && element.href.includes('/p/')) {
+              links.push(element.href);
+            }
+          }
+          
+          return links;
+        }, CATEGORY_SELECTORS.PRODUCT_LINK);
+        
+        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products | Total: ${allProductLinks.length + pageLinks.length}`);
+        
+        // Stop if no products found (end of results)
+        if (pageLinks.length === 0) {
+          this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
+          await this.returnPageToPool(page);
+          break;
         }
         
-        // Rate-limited delay calculation
-        const rateLimitResult = await this.rateLimiter.checkLimit(`product-${i}`, 'flipkart');
-        const adaptiveDelay = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
+        // Add unique links to collection (normalize URLs by removing query parameters)
+        const uniqueLinks = pageLinks.filter(link => {
+          const linkBase = link.split('?')[0]; // Remove query params for comparison
+          return !allProductLinks.some(existingLink => existingLink.split('?')[0] === linkBase);
+        });
+        allProductLinks.push(...uniqueLinks);
         
-        this.logger.info(`Rate limit status: ${rateLimitResult.remaining} requests remaining. Adaptive delay: ${adaptiveDelay}ms`);
-        await this.delay(adaptiveDelay);
+        // Update checkpoint
+        this.checkpoint.lastPageScraped = currentPage;
+        this.checkpoint.pagesScraped.push(currentPage);
+        this.saveCheckpoint();
+        
+        // Total links collected so far
+        
+        // Check if we have enough products
+        if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
+          this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
+          await this.returnPageToPool(page);
+          break;
+        }
+        
+        // Check for next page (only if we haven't reached our target pages)
+        if (currentPage < targetPages) {
+          const hasNext = await this.hasNextPage(page);
+          if (!hasNext) {
+            // No more pages available
+            await this.returnPageToPool(page);
+            break;
+          }
+        }
+        
+        // Return page to pool
+        await this.returnPageToPool(page);
+        
+        // Delay between pages for respectful scraping
+        if (currentPage < targetPages) {
+          // Waiting between pages
+          await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
+        }
         
       } catch (error) {
-        this.logger.error(`Error processing product at index ${i}: ${error.message}`);
+        this.logger.error(`Error scraping page ${currentPage}: ${error.message}`);
+        await this.safeClosePage(page);
+        
+        // Continue with next page unless it's a critical error
+        if (error.message.includes('blocked') || error.message.includes('CAPTCHA')) {
+          throw error;
+        }
+      }
+    }
+    
+    // Limit to maxProducts if specified
+    if (this.maxProducts && allProductLinks.length > this.maxProducts) {
+      allProductLinks.splice(this.maxProducts);
+      // Limited to requested product count
+    }
+    
+    this.productLinks = allProductLinks;
+    this.checkpoint.productLinks = this.productLinks;
+    this.saveCheckpoint();
+    
+    this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
+  }
+
+  /**
+   * Process single product with retry logic
+   */
+  async processProductWithRetry(url, index) {
+    let lastError;
+    
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        // Check rate limits
+        const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'flipkart');
+        if (!rateLimitResult.allowed) {
+          const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
+          this.logger.warn(`Rate limit hit, waiting ${delayMs}ms`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          continue; // Don't count this as a retry
+        }
+        
+        // Processing product ${index + 1}
+        const productData = await this._scrapeProductDetail(url);
+        
+        // Adaptive delay based on rate limit status
+        const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        
+        return productData;
+        
+      } catch (error) {
+        lastError = error;
+        const errorMessage = error?.message || 'Unknown error occurred';
+        this.logger.warn(`Attempt ${attempt} failed for ${url}: ${errorMessage}`);
+        
+        if (attempt < this.maxRetries) {
+          const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff
+          this.logger.debug(`Retrying in ${backoffMs}ms`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+      }
+    }
+    
+    throw lastError;
+  }
+
+  async scrapeProductDetails() {
+    const totalProducts = this.productLinks.length;
+    let processingCount = totalProducts;
+    
+    // If maxProducts is specified and less than total links, limit processing
+    if (this.maxProducts && this.maxProducts < totalProducts) {
+      processingCount = this.maxProducts;
+      this.logger.info(`Limiting processing to ${this.maxProducts} products out of ${totalProducts} collected`);
+    }
+    
+    const startIndex = this.checkpoint.lastProcessedIndex + 1;
+    const endIndex = Math.min(processingCount, totalProducts);
+    
+    this.logger.info(`Scraping product details from index ${startIndex} to ${endIndex - 1} with max ${this.maxConcurrent} concurrent requests`);
+    
+    const results = [];
+    const concurrent = Math.min(this.maxConcurrent, endIndex - startIndex);
+    
+    // Process products in batches for controlled concurrency
+    for (let i = startIndex; i < endIndex; i += concurrent) {
+      const batchEnd = Math.min(i + concurrent, endIndex);
+      const batchPromises = [];
+      
+      for (let j = i; j < batchEnd; j++) {
+        const url = this.productLinks[j];
+        batchPromises.push(this.processProductWithRetry(url, j));
+      }
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Process results and update checkpoint
+      for (let k = 0; k < batchResults.length; k++) {
+        const result = batchResults[k];
+        const index = i + k;
+        
+        if (result.status === 'fulfilled' && result.value) {
+          results.push(result.value);
+          this.checkpoint.lastProcessedIndex = index;
+        } else {
+          const errorMessage = result.reason && result.reason.message ? result.reason.message : (result.reason || 'Unknown error');
+          this.logger.error(`Failed to process product at index ${index}: ${errorMessage}`);
+          this.checkpoint.failedProducts.push({
+            index,
+            url: this.productLinks[index],
+            error: errorMessage,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Save progress
+      this.saveCheckpoint();
+      
+      // Save data in batches
+      if (results.length >= 5 || i + concurrent >= endIndex) {
+        if (results.length > 0) {
+          this.saveData(results);
+          results.length = 0; // Clear the array
+        }
+      }
+      
+      // Add batch delay
+      if (i + concurrent < endIndex) {
+        const delayMs = Math.random() * 2000 + 1000; // 1-3 seconds
+        this.logger.debug(`Batch delay: ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
     
@@ -580,7 +824,7 @@ class FlipkartCrawler extends BaseCrawler {
         }
       });
 
-      this.logger.info(`Successfully extracted ${Object.keys(specifications).length} specification categories.`);
+      // Extracted specifications
       return specifications;
 
     } catch (error) {
@@ -599,12 +843,16 @@ class FlipkartCrawler extends BaseCrawler {
 
 // Run the crawler if this script is executed directly
 if (require.main === module) {
-  const crawler = new FlipkartDetailCrawlerRateLimited({
+  const crawler = new FlipkartCrawler({
     headless: true,
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 1
+    maxProducts: 200,
+    maxPages: 20,
+    delayBetweenPages: 5000,
+    maxConcurrent: 4,
+    maxRetries: 3,
   });
   
   crawler.start()
@@ -618,4 +866,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = FlipkartDetailCrawlerRateLimited; 
+module.exports = FlipkartCrawler; 

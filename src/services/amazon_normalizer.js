@@ -42,13 +42,13 @@ class AmazonNormalizer {
     // Extract essential specifications only
     const specifications = this.extractEssentialSpecs(product.specifications);
     
-    // Normalize price (Amazon doesn't seem to have price in this data)
-    const price = this.normalizePrice(null); // No price data available
+    // Normalize price from Amazon data
+    const price = this.normalizePrice(product.price);
     
-    // Normalize rating from Customer Reviews
-    const rating = this.normalizeRating(product.specifications["Customer Reviews"]);
+    // Normalize rating from Amazon data
+    const rating = this.normalizeRating(product.rating);
 
-    // Amazon doesn't have category hierarchy like Flipkart, so we'll create a simple one
+    // Normalize category
     const category = this.normalizeCategory(product);
 
     return {
@@ -229,7 +229,7 @@ class AmazonNormalizer {
       }
     }
 
-    // Extract Storage from Memory Storage Capacity or title
+    // Extract Storage from title or technical details
     const storageField = specs['Memory Storage Capacity'];
     if (storageField) {
       // Convert "128 GB" -> 128
@@ -246,7 +246,7 @@ class AmazonNormalizer {
       }
     }
 
-    // Extract Color from Colour field
+    // Extract Color from Colour field or title
     const colorField = specs['Colour'];
     if (colorField) {
       attributes.color = colorField;
@@ -303,9 +303,14 @@ class AmazonNormalizer {
 
     // General info (keep minimal)
     const general = {};
-    if (specifications['Item model number']) {
+    
+    // Extract model number from Technical Details (nested structure)
+    if (specifications["Technical Details"]?.technicalDetails?.["Item model number"]) {
+      general.model_number = specifications["Technical Details"].technicalDetails["Item model number"];
+    } else if (specifications['Item model number']) {
       general.model_number = specifications['Item model number'];
     }
+    
     if (specifications['Operating System']) {
       general.operating_system = specifications['Operating System'];
     }
@@ -318,10 +323,14 @@ class AmazonNormalizer {
 
     // Display
     const display = {};
-    if (specifications['Resolution']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["Resolution"]) {
+      display.resolution = specifications["Technical Details"].technicalDetails["Resolution"];
+    } else if (specifications['Resolution']) {
       display.resolution = specifications['Resolution'];
     }
-    if (specifications['Device interface - primary']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["Device interface - primary"]) {
+      display.interface = specifications["Technical Details"].technicalDetails["Device interface - primary"];
+    } else if (specifications['Device interface - primary']) {
       display.interface = specifications['Device interface - primary'];
     }
     if (Object.keys(display).length > 0) {
@@ -331,10 +340,10 @@ class AmazonNormalizer {
     // Processor
     const processor = {};
     if (specifications['CPU Model']) {
-      processor.cpu_model = specifications['CPU Model'];
+      processor.chipset = specifications['CPU Model'];
     }
     if (specifications['CPU Speed']) {
-      processor.cpu_speed = specifications['CPU Speed'];
+      processor.speed = specifications['CPU Speed'];
     }
     if (Object.keys(processor).length > 0) {
       essential.processor = processor;
@@ -342,7 +351,9 @@ class AmazonNormalizer {
 
     // Battery
     const battery = {};
-    if (specifications['Battery Power Rating']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["Battery Power Rating"]) {
+      battery.capacity = specifications["Technical Details"].technicalDetails["Battery Power Rating"] + ' mAh';
+    } else if (specifications['Battery Power Rating']) {
       battery.capacity = specifications['Battery Power Rating'] + ' mAh';
     }
     if (Object.keys(battery).length > 0) {
@@ -351,79 +362,67 @@ class AmazonNormalizer {
 
     // Connectivity
     const connectivity = {};
-    if (specifications['Connectivity technologies']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["Connectivity technologies"]) {
+      connectivity.technologies = specifications["Technical Details"].technicalDetails["Connectivity technologies"];
+    } else if (specifications['Connectivity technologies']) {
       connectivity.technologies = specifications['Connectivity technologies'];
     }
-    if (specifications['Wireless communication technologies']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["Wireless communication technologies"]) {
+      connectivity.wireless = specifications["Technical Details"].technicalDetails["Wireless communication technologies"];
+    } else if (specifications['Wireless communication technologies']) {
       connectivity.wireless = specifications['Wireless communication technologies'];
     }
-    if (specifications['GPS']) {
+    if (specifications["Technical Details"]?.technicalDetails?.["GPS"]) {
+      connectivity.gps = specifications["Technical Details"].technicalDetails["GPS"];
+    } else if (specifications['GPS']) {
       connectivity.gps = specifications['GPS'];
     }
     if (Object.keys(connectivity).length > 0) {
       essential.connectivity = connectivity;
     }
 
-    // Physical
-    const physical = {};
-    if (specifications['Product Dimensions']) {
-      physical.dimensions = specifications['Product Dimensions'];
-    }
-    if (specifications['Item Weight']) {
-      physical.weight = specifications['Item Weight'];
-    }
-    if (specifications['Form factor']) {
-      physical.form_factor = specifications['Form factor'];
-    }
-    if (Object.keys(physical).length > 0) {
-      essential.physical = physical;
-    }
-
     return essential;
   }
 
   /**
-   * Normalize price data (Amazon data doesn't seem to have price)
+   * Normalize price data
    */
   normalizePrice(price) {
-    // Amazon scraped data doesn't include price information
-    return {
+    if (!price) return {
       current: null,
       original: null,
       discount: null,
       currency: 'INR'
     };
+
+    // Clean price strings and convert to numbers
+    const cleanPrice = (priceStr) => {
+      if (!priceStr) return null;
+      const cleaned = priceStr.replace(/[₹,]/g, '').trim();
+      const match = cleaned.match(/(\d+)/);
+      return match ? parseInt(match[1]) : null;
+    };
+
+    return {
+      current: cleanPrice(price.current),
+      original: cleanPrice(price.original),
+      discount: price.discount || null,
+      currency: 'INR'
+    };
   }
 
   /**
-   * Normalize rating data from Customer Reviews field
+   * Normalize rating data
    */
-  normalizeRating(customerReviews) {
-    if (!customerReviews || customerReviews === 'Customer Reviews') {
-      return {
-        score: null,
-        count: 0
-      };
-    }
-
-    // Parse format: "4.0 4.0 out of 5 stars    4,990 ratings4.0 out of 5 stars"
-    const scoreMatch = customerReviews.match(/^(\d+\.?\d*)/);
-    const countMatch = customerReviews.match(/(\d{1,3}(?:,\d{3})*)\s*ratings/);
-
-    let score = null;
-    let count = 0;
-
-    if (scoreMatch) {
-      score = parseFloat(scoreMatch[1]);
-    }
-
-    if (countMatch) {
-      count = parseInt(countMatch[1].replace(/,/g, ''));
-    }
+  normalizeRating(rating) {
+    if (!rating) return {
+      score: null,
+      count: 0
+    };
 
     return {
-      score: score,
-      count: count
+      score: rating.value || null,
+      count: rating.count || 0
     };
   }
 
@@ -461,4 +460,49 @@ class AmazonNormalizer {
   }
 }
 
-module.exports = AmazonNormalizer; 
+module.exports = AmazonNormalizer;
+
+// Main execution block - run when file is executed directly
+if (require.main === module) {
+  const path = require('path');
+  
+  async function main() {
+    try {
+      console.log('🚀 Starting Amazon Normalizer...\n');
+      
+      // Initialize normalizer
+      const normalizer = new AmazonNormalizer();
+      
+      // Define input and output paths
+      const inputPath = path.join(__dirname, '../scrapers/amazon/amazon_scraped_data.json');
+      const outputPath = path.join(__dirname, '../../parsed_data/amazon_normalized_data.json');
+      
+      console.log(`📁 Input file: ${inputPath}`);
+      console.log(`📁 Output file: ${outputPath}\n`);
+      
+      // Check if input file exists
+      const fs = require('fs');
+      if (!fs.existsSync(inputPath)) {
+        console.error(`❌ Input file not found: ${inputPath}`);
+        console.log('💡 Please run the Amazon crawler first to generate scraped data.');
+        process.exit(1);
+      }
+      
+      // Normalize the data
+      const normalizedData = await normalizer.normalizeFromFile(inputPath);
+      
+      // Save normalized data
+      await normalizer.saveNormalizedData(normalizedData, outputPath);
+      
+      console.log('\n✅ Amazon normalization completed successfully!');
+      console.log(`📊 Normalized ${normalizedData.length} products`);
+      
+    } catch (error) {
+      console.error('\n❌ Normalization failed:', error.message);
+      process.exit(1);
+    }
+  }
+  
+  // Run the main function
+  main();
+} 

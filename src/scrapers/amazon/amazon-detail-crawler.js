@@ -37,14 +37,21 @@ class AmazonDetailCrawler extends BaseCrawler {
     this.categoryUrl = config.categoryUrl || 'https://www.amazon.in/s?i=electronics&rh=n%3A1389432031&s=popularity-rank&fs=true&page=1';
     this.outputFile = config.outputFile || path.join(__dirname, 'amazon_scraped_data.json');
     this.checkpointFile = config.checkpointFile || path.join(__dirname, 'checkpoint.json');
-    this.maxProducts = config.maxProducts || 1; // Set to 1 for debugging
+    
+    // Multi-page scraping configuration
+    this.maxProducts = config.maxProducts || null; // If null, uses maxPages instead
+    this.maxPages = config.maxPages || 3; // Default: scrape 3 pages
     this.maxConcurrent = config.maxConcurrent || 1;
     this.maxRetries = config.maxRetries || 3;
+    
+    // Page-level configuration
+    this.productsPerPage = config.productsPerPage || 16; // Amazon typically shows 16 products per page
+    this.delayBetweenPages = config.delayBetweenPages || 3000; // 3 seconds between pages
 
     // Load checkpoint
     this.checkpoint = this.loadCheckpoint();
     this.productLinks = this.checkpoint.productLinks || [];
-
+    
     // Ensure checkpoint has the required structure
     if (!this.checkpoint.productLinks) {
       this.checkpoint.productLinks = [];
@@ -58,8 +65,14 @@ class AmazonDetailCrawler extends BaseCrawler {
     if (!this.checkpoint.lastRunTimestamp) {
       this.checkpoint.lastRunTimestamp = null;
     }
+    if (!this.checkpoint.pagesScraped) {
+      this.checkpoint.pagesScraped = [];
+    }
+    if (this.checkpoint.lastPageScraped === undefined) {
+      this.checkpoint.lastPageScraped = 0;
+    }
 
-    this.logger.info('Rate limiter and memory management initialized with Amazon configuration');
+    // Rate limiter and memory management initialized
   }
 
   async initialize() {
@@ -124,7 +137,7 @@ class AmazonDetailCrawler extends BaseCrawler {
 
   async navigate(page, url) {
     try {
-      this.logger.info(`Navigating to: ${url}`);
+      // Navigating to page
       
       // Navigate with more reliable wait conditions (networkidle0 can be too strict)
       await page.goto(url, { 
@@ -203,7 +216,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       const combinedData = [...existingData, ...newData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`Saved ${newData.length} products to ${this.outputFile}`);
+      this.logger.info(`💾 Saved ${newData.length} products | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -211,33 +224,27 @@ class AmazonDetailCrawler extends BaseCrawler {
 
   async start() {
     try {
-      this.logger.info('Starting optimized Amazon detail crawler with memory management');
+      this.logger.info('🚀 Amazon Crawler Starting');
       
-      // Log initial memory stats
-      const initialMemory = this.getMemoryStats();
-      this.logger.info(`Initial memory stats: ${JSON.stringify(initialMemory)}`);
+      // Initialize memory monitoring
       
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
       } else {
         this.productLinks = this.checkpoint.productLinks;
-        this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
+        this.logger.info(`📋 Resuming: ${this.productLinks.length} products from checkpoint`);
       }
 
       await this.scrapeProductDetails();
       
       // Retry failed products if any
       if (this.checkpoint.failedProducts.length > 0) {
-        this.logger.info(`Retrying ${this.checkpoint.failedProducts.length} failed products`);
+        this.logger.info(`🔄 Retrying ${this.checkpoint.failedProducts.length} failed products`);
         await this.retryFailedProducts();
       }
       
-      // Log final memory stats
-      const finalMemory = this.getMemoryStats();
-      this.logger.info(`Final memory stats: ${JSON.stringify(finalMemory)}`);
-      
-      this.logger.info('Crawling completed successfully');
+      this.logger.info('✅ Amazon crawling completed successfully');
       
       // Enhanced cleanup to ensure proper shutdown
       await this.shutdown();
@@ -260,7 +267,7 @@ class AmazonDetailCrawler extends BaseCrawler {
    */
   async shutdown() {
     try {
-      this.logger.info('Starting enhanced shutdown process...');
+              // Starting shutdown process
       
       // Close rate limiter if it has cleanup methods
       if (this.rateLimiter && typeof this.rateLimiter.close === 'function') {
@@ -284,11 +291,11 @@ class AmazonDetailCrawler extends BaseCrawler {
         this.logger.debug('Final garbage collection performed');
       }
       
-      this.logger.info('Enhanced shutdown completed');
+              // Shutdown completed
       
       // Force process exit after a short delay to ensure everything is cleaned up
       setTimeout(() => {
-        this.logger.info('Forcing process exit');
+        // Forcing clean exit
         process.exit(0);
       }, 2000);
       
@@ -301,23 +308,29 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
 
-  async scrapeProductLinks() {
-    const page = await this.newPage();
+  /**
+   * Build URL for specific page number
+   */
+  buildPageUrl(pageNumber) {
+    if (pageNumber === 1) {
+      return this.categoryUrl;
+    }
+    
+    // Replace existing page parameter or add it
+    if (this.categoryUrl.includes('page=')) {
+      return this.categoryUrl.replace(/page=\d+/, `page=${pageNumber}`);
+    } else {
+      const separator = this.categoryUrl.includes('?') ? '&' : '?';
+      return `${this.categoryUrl}${separator}page=${pageNumber}`;
+    }
+  }
+
+  /**
+   * Check if there's a next page available
+   */
+  async hasNextPage(page) {
     try {
-      // Enable JavaScript for category page
-      await page.setJavaScriptEnabled(true);
-      
-      this.logger.info(`Navigating to category page: ${this.categoryUrl}`);
-      await this.navigate(page, this.categoryUrl);
-      
-      // Check for access issues
-      await this.checkForErrors(page);
-      
-      // Wait for product grid to load
-      await page.waitForSelector('.s-main-slot.s-result-list', { timeout: 15000 });
-      
-      // Extract product links using XPath
-      this.productLinks = await page.evaluate((selectors) => {
+      const nextButton = await page.evaluate((selectors) => {
         const getAllElementsByXPath = (xpath) => {
           const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
           const elements = [];
@@ -327,43 +340,170 @@ class AmazonDetailCrawler extends BaseCrawler {
           return elements;
         };
         
-        const links = [];
+        const nextButtons = getAllElementsByXPath(selectors.NEXT_PAGE);
+        return nextButtons.length > 0 && !nextButtons[0].classList.contains('a-disabled');
+      }, CATEGORY_SELECTORS);
+      
+      return nextButton;
+    } catch (error) {
+      this.logger.debug(`Error checking next page: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Determine how many pages to scrape based on configuration
+   */
+  calculatePagesToScrape() {
+    if (this.maxProducts) {
+      // Calculate pages needed for desired number of products
+      const pagesNeeded = Math.ceil(this.maxProducts / this.productsPerPage);
+      // Target products calculated
+      return Math.min(pagesNeeded, this.maxPages || 10); // Cap at maxPages if set
+    } else {
+      // Use maxPages directly
+              // Target pages set
+      return this.maxPages;
+    }
+  }
+
+  /**
+   * Enhanced multi-page product link scraping
+   */
+  async scrapeProductLinks() {
+    const allProductLinks = [];
+    const targetPages = this.calculatePagesToScrape();
+    const startPage = this.checkpoint.lastPageScraped + 1;
+    
+          this.logger.info(`🚀 Starting: Pages ${startPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products`);
+    
+    for (let currentPage = startPage; currentPage <= targetPages; currentPage++) {
+      const page = await this.newPage();
+      
+      try {
+        // Enable JavaScript for category page
+        await page.setJavaScriptEnabled(true);
         
-        // Try each XPath selector in the array
-        if (selectors.PRODUCT_LINK) {
-          for (const xpath of selectors.PRODUCT_LINK) {
-            const linkElements = getAllElementsByXPath(xpath);
-            if (linkElements.length > 0) {
-              linkElements.forEach(element => {
-                if (element.href && element.href.includes('/dp/')) {
-                  links.push(element.href);
-                }
-              });
-              if (links.length > 0) break; // Use first successful selector
+        const pageUrl = this.buildPageUrl(currentPage);
+                  // Scraping current page
+        
+        await this.navigate(page, pageUrl);
+        
+        // Check for access issues
+        await this.checkForErrors(page);
+        
+        // Wait for product grid to load
+        await page.waitForSelector('.s-main-slot.s-result-list', { timeout: 15000 });
+        
+        // Extract product links from current page
+        const pageLinks = await page.evaluate((selectors) => {
+          const getAllElementsByXPath = (xpath) => {
+            const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            const elements = [];
+            for (let i = 0; i < result.snapshotLength; i++) {
+              elements.push(result.snapshotItem(i));
             }
+            return elements;
+          };
+          
+          const links = [];
+          
+          // Try each XPath selector in the array
+          if (selectors.PRODUCT_LINK) {
+            for (const xpath of selectors.PRODUCT_LINK) {
+              const linkElements = getAllElementsByXPath(xpath);
+              if (linkElements.length > 0) {
+                linkElements.forEach(element => {
+                  if (element.href && element.href.includes('/dp/')) {
+                    links.push(element.href);
+                  }
+                });
+                if (links.length > 0) break; // Use first successful selector
+              }
+            }
+          }
+          
+          return links;
+        }, CATEGORY_SELECTORS);
+        
+                  this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products | Total: ${allProductLinks.length + pageLinks.length}`);
+        
+        // Stop if no products found (end of results)
+        if (pageLinks.length === 0) {
+                      this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
+          await this.returnPageToPool(page);
+          break;
+        }
+        
+        // Add unique links to collection (normalize URLs by removing query parameters)
+        const uniqueLinks = pageLinks.filter(link => {
+          const linkBase = link.split('?')[0]; // Remove query params for comparison
+          return !allProductLinks.some(existingLink => existingLink.split('?')[0] === linkBase);
+        });
+        allProductLinks.push(...uniqueLinks);
+        
+        // Update checkpoint
+        this.checkpoint.lastPageScraped = currentPage;
+        this.checkpoint.pagesScraped.push(currentPage);
+        this.saveCheckpoint();
+        
+                  // Total links collected
+        
+        // Check if we have enough products
+        if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
+                      this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
+          await this.returnPageToPool(page);
+          break;
+        }
+        
+        // Check for next page (only if we haven't reached our target pages)
+        if (currentPage < targetPages) {
+          const hasNext = await this.hasNextPage(page);
+          if (!hasNext) {
+            // No more pages available
+            await this.returnPageToPool(page);
+            break;
           }
         }
         
-        return links;
-      }, CATEGORY_SELECTORS);
-      
-      this.logger.info(`Found ${this.productLinks.length} product links`);
-      this.checkpoint.productLinks = this.productLinks;
-      
-      // Return page to pool instead of closing
-      await this.returnPageToPool(page);
-    } catch (error) {
-      this.logger.error(`Error scraping product links: ${error.message}`);
-      await this.safeClosePage(page);
-      throw error;
+        // Return page to pool
+        await this.returnPageToPool(page);
+        
+        // Delay between pages for respectful scraping
+        if (currentPage < targetPages) {
+                      // Waiting between pages
+          await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
+        }
+        
+      } catch (error) {
+        this.logger.error(`Error scraping page ${currentPage}: ${error.message}`);
+        await this.safeClosePage(page);
+        
+        // Continue with next page unless it's a critical error
+        if (error.message.includes('CAPTCHA') || error.message.includes('blocked')) {
+          throw error;
+        }
+      }
     }
+    
+    // Limit to maxProducts if specified
+    if (this.maxProducts && allProductLinks.length > this.maxProducts) {
+      allProductLinks.splice(this.maxProducts);
+              // Limited to requested product count
+    }
+    
+    this.productLinks = allProductLinks;
+    this.checkpoint.productLinks = this.productLinks;
+    this.saveCheckpoint();
+    
+          this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
   }
 
   async scrapeProductDetails() {
     const startIndex = this.checkpoint.lastProcessedIndex + 1;
     const endIndex = Math.min(this.productLinks.length, startIndex + this.maxProducts);
     
-    this.logger.info(`Scraping product details from index ${startIndex} to ${endIndex - 1}`);
+          this.logger.info(`🔍 Processing products ${startIndex + 1}-${endIndex} (${this.maxConcurrent} concurrent)`);
     
     const results = [];
     const concurrent = Math.min(this.maxConcurrent, endIndex - startIndex);
@@ -419,7 +559,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       }
     }
     
-    this.logger.info(`Completed scraping ${endIndex - startIndex} products`);
+          this.logger.info(`✅ Completed batch: ${results.length} products processed | Failed: ${this.checkpoint.failedProducts.length}`);
   }
 
   async processProductWithRetry(url, index) {
@@ -436,7 +576,7 @@ class AmazonDetailCrawler extends BaseCrawler {
           continue; // Don't count this as a retry
         }
         
-        this.logger.info(`Processing product ${index + 1} (attempt ${attempt}): ${url}`);
+                  // Processing product
         const productData = await this._scrapeProductDetail(url);
         
         // Adaptive delay based on rate limit status
@@ -530,7 +670,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       const $ = cheerio.load(html);
       
       // Pass $ (Cheerio object) to all extraction methods
-      const title = this._extractTitle($);
+      const title = await this._extractTitle($);
       const pricing = await this._extractPricing($);
       const rating = await this._extractRating($);
       const images = await this._extractImages($);
@@ -589,7 +729,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     return categories;
   }
 
-  _extractTitle($) {
+  async _extractTitle($) {
     try {
       for (const selector of PRODUCT_SELECTORS.TITLE) {
         const titleElement = $(selector).first();
@@ -611,7 +751,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
 
-  _extractPricing($) {
+  async _extractPricing($) {
     try {
       const pricing = {
         current: null,
@@ -719,7 +859,7 @@ class AmazonDetailCrawler extends BaseCrawler {
         main: mainImage,
         all: [] // Can be expanded later if needed
       };
-    } catch (error) {
+      } catch (error) {
       this.logger.error(`Error extracting images: ${error.message}`);
       return { main: null, all: [] };
     }
@@ -743,7 +883,7 @@ class AmazonDetailCrawler extends BaseCrawler {
   }
 
   async _extractSpecifications($) {
-    this.logger.info('Extracting specifications with Cheerio...');
+          // Extracting specifications
     try {
       const specifications = {};
 
@@ -763,7 +903,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       }
               
       const productDetails = await this._extractSpecs($);
-      const technicalDetails = await this._extractTechnicalDetailse($);
+      const technicalDetails = await this._extractTechnicalDetails($);
       const cleanedSpecs = {};
       Object.keys(specifications).forEach(key => {
         const value = specifications[key];
@@ -782,7 +922,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       });
       cleanedSpecs['Product Details'] = {productDetails};
       cleanedSpecs['Technical Details'] = {technicalDetails};
-      this.logger.info(`Successfully extracted ${Object.keys(cleanedSpecs).length} specifications.`);
+              // Extracted specifications
       return cleanedSpecs;
 
     } catch (error) {
@@ -791,7 +931,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
 
-     async _extractTechnicalDetails($) {
+  async _extractTechnicalDetails($) {
      try {
        console.log('=== EXTRACTING FROM TECHNICAL DETAILS TABLES ===');
        
@@ -827,12 +967,11 @@ class AmazonDetailCrawler extends BaseCrawler {
        console.log(`✅ Extracted ${Object.keys(specifications).length} items from technical details tables`);
        return specifications;
        
-     } catch (error) {
+      } catch (error) {
        console.error('Error extracting from technical details tables:', error);
        return {};
      }
-   }
-  
+  }
   
   async _extractSpecs($) {
     try {
@@ -874,7 +1013,7 @@ class AmazonDetailCrawler extends BaseCrawler {
   async _extractCategories($) {
     try {
       const categories = [];
-
+      
       // Extract using CSS selectors (since XPaths are placeholders)
       const breadcrumbSelectors = [
         '#wayfinding-breadcrumbs_container a',
@@ -887,11 +1026,11 @@ class AmazonDetailCrawler extends BaseCrawler {
         const elements = $(selector);
         if (elements.length > 0) {
           elements.each((_, element) => {
-            const categoryText = $(element).text().trim();
+        const categoryText = $(element).text().trim();
             if (categoryText && categoryText.length > 1 && !categoryText.includes('›') && !categoryText.includes('...')) {
-              categories.push(categoryText);
-            }
-          });
+          categories.push(categoryText);
+        }
+      });
           if (categories.length > 0) break;
         }
       }
@@ -910,7 +1049,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     const results = [];
     for (const failedProduct of failedProducts) {
       try {
-        this.logger.info(`Retrying failed product: ${failedProduct.url}`);
+        // Retrying failed product
         const productData = await this.processProductWithRetry(failedProduct.url, failedProduct.index);
         results.push(productData);
         
@@ -940,12 +1079,14 @@ class AmazonDetailCrawler extends BaseCrawler {
 // Run the crawler if this script is executed directly
 if (require.main === module) {
   const crawler = new AmazonDetailCrawler({
-    headless: false,
+    headless: true,
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 1,
-    maxConcurrent: 1
+    maxProducts: 200,
+    maxConcurrent: 10,
+    maxPages: 20,
+    delayBetweenPages: 3000
   });
   
   crawler.start().catch(error => {
