@@ -119,10 +119,32 @@ class FlipkartCrawler extends BaseCrawler {
       }
       
       const newData = Array.isArray(data) ? data : [data];
-      const combinedData = [...existingData, ...newData];
+      
+      // Create a URL-based deduplication map
+      const existingUrls = new Set();
+      existingData.forEach(product => {
+        if (product.url) {
+          const baseUrl = product.url.split('?')[0].split('#')[0];
+          existingUrls.add(baseUrl);
+        }
+      });
+      
+      // Filter out products with URLs that already exist
+      const uniqueNewData = newData.filter(product => {
+        if (!product.url) return true; // Keep products without URLs
+        const baseUrl = product.url.split('?')[0].split('#')[0];
+        if (existingUrls.has(baseUrl)) {
+          this.logger.debug(`🔄 Skipping duplicate URL: ${baseUrl.substring(50)}`);
+          return false;
+        }
+        existingUrls.add(baseUrl);
+        return true;
+      });
+      
+      const combinedData = [...existingData, ...uniqueNewData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`Saved ${newData.length} products to ${this.outputFile}`);
+      this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -298,6 +320,7 @@ class FlipkartCrawler extends BaseCrawler {
         // Extract product links from current page
         const pageLinks = await page.evaluate((xpath) => {
           const links = [];
+          const seenUrls = new Set(); // Track URLs to prevent duplicates within same page
           const result = document.evaluate(
             xpath,
             document,
@@ -309,7 +332,11 @@ class FlipkartCrawler extends BaseCrawler {
           for (let i = 0; i < result.snapshotLength; i++) {
             const element = result.snapshotItem(i);
             if (element.href && element.href.includes('/p/')) {
-              links.push(element.href);
+              const baseUrl = element.href.split('?')[0].split('#')[0];
+              if (!seenUrls.has(baseUrl)) {
+                seenUrls.add(baseUrl);
+                links.push(element.href);
+              }
             }
           }
           

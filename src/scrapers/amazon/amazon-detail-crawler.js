@@ -213,10 +213,32 @@ class AmazonDetailCrawler extends BaseCrawler {
       }
       
       const newData = Array.isArray(data) ? data : [data];
-      const combinedData = [...existingData, ...newData];
+      
+      // Create a URL-based deduplication map
+      const existingUrls = new Set();
+      existingData.forEach(product => {
+        if (product.url) {
+          const baseUrl = product.url.split('?')[0].split('#')[0];
+          existingUrls.add(baseUrl);
+        }
+      });
+      
+      // Filter out products with URLs that already exist
+      const uniqueNewData = newData.filter(product => {
+        if (!product.url) return true; // Keep products without URLs
+        const baseUrl = product.url.split('?')[0].split('#')[0];
+        if (existingUrls.has(baseUrl)) {
+          this.logger.debug(`🔄 Skipping duplicate URL: ${baseUrl.substring(50)}`);
+          return false;
+        }
+        existingUrls.add(baseUrl);
+        return true;
+      });
+      
+      const combinedData = [...existingData, ...uniqueNewData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`💾 Saved ${newData.length} products | Total: ${combinedData.length}`);
+      this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -407,6 +429,7 @@ class AmazonDetailCrawler extends BaseCrawler {
           };
           
           const links = [];
+          const seenUrls = new Set(); // Track URLs to prevent duplicates within same page
           
           // Try each XPath selector in the array
           if (selectors.PRODUCT_LINK) {
@@ -415,7 +438,11 @@ class AmazonDetailCrawler extends BaseCrawler {
               if (linkElements.length > 0) {
                 linkElements.forEach(element => {
                   if (element.href && element.href.includes('/dp/')) {
-                    links.push(element.href);
+                    const baseUrl = element.href.split('?')[0].split('#')[0];
+                    if (!seenUrls.has(baseUrl)) {
+                      seenUrls.add(baseUrl);
+                      links.push(element.href);
+                    }
                   }
                 });
                 if (links.length > 0) break; // Use first successful selector

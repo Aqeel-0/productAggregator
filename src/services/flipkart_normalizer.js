@@ -45,7 +45,7 @@ class FlipkartNormalizer {
     
     // Store current title for fallback extractions
     this.currentTitle = product.title;
-    
+
     return {
       source_details: {
         source_name: "flipkart",
@@ -82,7 +82,7 @@ class FlipkartNormalizer {
       },
       
       source_metadata: {
-        category_breadcrumb: this.enhanceCategoryBreadcrumb(product.category, product.price)
+        category_breadcrumb: product.category || []
       }
     };
   }
@@ -94,21 +94,21 @@ class FlipkartNormalizer {
     // First check title for Apple products specifically
     if (product.title && product.title.toLowerCase().includes('apple')) {
       return 'Apple';
-    }
-    
+  }
+
     // First try from category
     if (product.category && Array.isArray(product.category) && product.category[3]) {
       const brandCategory = product.category[3];
-      const brand = brandCategory.replace(/\s+Mobiles?$/i, '').trim();
-      
-      const brandMappings = {
+    const brand = brandCategory.replace(/\s+Mobiles?$/i, '').trim();
+    
+    const brandMappings = {
         'Samsung': 'Samsung',
-        'realme': 'Realme', 
+      'realme': 'Realme',
         'POCO': 'POCO',
-        'Tecno': 'Tecno',
-        'Google': 'Google',
-        'Xiaomi': 'Xiaomi',
-        'Nothing': 'Nothing',
+      'Tecno': 'Tecno',
+      'Google': 'Google',
+      'Xiaomi': 'Xiaomi',
+      'Nothing': 'Nothing',
         'OnePlus': 'OnePlus',
         'OPPO': 'OPPO',
         'vivo': 'Vivo',
@@ -119,11 +119,11 @@ class FlipkartNormalizer {
         'Micromax': 'Micromax',
         'LAVA': 'LAVA',
         'Kechaoda': 'Kechaoda'
-      };
-      
+    };
+    
       if (brandMappings[brand]) {
         return brandMappings[brand];
-      }
+  }
     }
     
     // Fallback to title extraction
@@ -172,7 +172,7 @@ class FlipkartNormalizer {
       // Remove brand name and extract model
       const title = product.title;
       const brandPatterns = ['Samsung', 'realme', 'POCO', 'Tecno', 'Google', 'Xiaomi', 'Nothing', 'OnePlus', 'OPPO', 'vivo', 'Motorola', 'Infinix', 'IQOO'];
-      
+    
       for (const brand of brandPatterns) {
         if (title.toLowerCase().includes(brand.toLowerCase())) {
           // Extract everything after brand until first parenthesis
@@ -265,7 +265,7 @@ class FlipkartNormalizer {
         return parseInt(titleMatch[1]);
       }
     }
-    
+
     return null;
   }
 
@@ -330,9 +330,9 @@ class FlipkartNormalizer {
         const match = sizeStr.match(/([\d.]+)\s*inch/i);
         if (match) {
           display.size_in = parseFloat(match[1]);
-        }
       }
-      
+    }
+
       // Extract resolution
       if (displayFeatures['Resolution']) {
         display.resolution = displayFeatures['Resolution'];
@@ -349,12 +349,12 @@ class FlipkartNormalizer {
         const match = ppiStr.match(/(\d+)\s*PPI/i);
         if (match) {
           display.ppi = parseInt(match[1]);
-        }
+      }
       }
     }
     
     return Object.keys(display).length > 0 ? display : null;
-  }
+    }
 
   /**
    * Extract performance specifications
@@ -387,13 +387,13 @@ class FlipkartNormalizer {
     }
     
     return Object.keys(performance).length > 0 ? performance : null;
-  }
+    }
 
   /**
    * Extract camera specifications
    */
   extractCameraSpecs(specs) {
-    const camera = {};
+      const camera = {};
     
     if (specs['Camera Features']) {
       const cameraFeatures = specs['Camera Features'];
@@ -415,13 +415,13 @@ class FlipkartNormalizer {
     }
     
     return Object.keys(camera).length > 0 ? camera : null;
-  }
+    }
 
   /**
    * Extract battery specifications
    */
   extractBatterySpecs(specs) {
-    const battery = {};
+      const battery = {};
     
     if (specs['Battery & Power Features']) {
       const batteryFeatures = specs['Battery & Power Features'];
@@ -439,16 +439,16 @@ class FlipkartNormalizer {
     // Quick charging from General specs
     if (specs.General && specs.General['Quick Charging']) {
       battery.quick_charging = specs.General['Quick Charging'] === 'Yes';
-    }
+      }
     
     return Object.keys(battery).length > 0 ? battery : null;
-  }
+    }
 
   /**
    * Extract connectivity specifications
    */
   extractConnectivitySpecs(specs) {
-    const connectivity = {};
+      const connectivity = {};
     
     if (specs['Connectivity Features']) {
       const connFeatures = specs['Connectivity Features'];
@@ -472,7 +472,7 @@ class FlipkartNormalizer {
     // SIM type from General specs
     if (specs.General && specs.General['SIM Type']) {
       connectivity.sim_type = specs.General['SIM Type'];
-    }
+      }
     
     return Object.keys(connectivity).length > 0 ? connectivity : null;
   }
@@ -511,8 +511,8 @@ class FlipkartNormalizer {
         if (match) {
           design.depth_mm = parseFloat(match[1]);
         }
-      }
-      
+  }
+
       // Weight
       if (dimensions['Weight']) {
         const weightStr = dimensions['Weight'];
@@ -527,37 +527,6 @@ class FlipkartNormalizer {
   }
 
   /**
-   * Enhance category breadcrumb with device type based on price
-   */
-  enhanceCategoryBreadcrumb(category, price) {
-    if (!category || !Array.isArray(category)) {
-      return [];
-    }
-
-    // Create enhanced category array
-    let enhancedCategory = [...category];
-    
-    // Find the "Mobiles" entry in the breadcrumb and add device type after it
-    const mobilesIndex = enhancedCategory.findIndex(item => 
-      item && item.toLowerCase().includes('mobiles')
-    );
-    
-    if (mobilesIndex !== -1 && price && price.current) {
-      const priceValue = parseFloat(price.current);
-      
-      if (!isNaN(priceValue)) {
-        // Add device classification based on price threshold of ₹3000
-        const deviceType = priceValue < 3000 ? 'Basic Mobile' : 'Smartphone';
-        
-        // Insert the device type right after "Mobiles"
-        enhancedCategory.splice(mobilesIndex + 1, 0, deviceType);
-      }
-    }
-    
-    return enhancedCategory;
-  }
-
-  /**
    * Normalize products from file
    */
   async normalizeFromFile(filePath) {
@@ -569,11 +538,11 @@ class FlipkartNormalizer {
       
       console.log(`Successfully normalized ${normalized.length} products`);
       return normalized;
-    } catch (error) {
+  } catch (error) {
       console.error(`Error reading/normalizing file: ${error.message}`);
-      throw error;
-    }
+    throw error;
   }
+}
 
   /**
    * Save normalized data to file
@@ -595,7 +564,7 @@ class FlipkartNormalizer {
   }
 }
 
-module.exports = FlipkartNormalizer;
+module.exports = FlipkartNormalizer; 
 
 // Main execution block - run when file is executed directly
 if (require.main === module) {

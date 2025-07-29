@@ -9,6 +9,7 @@ try {
 class AmazonNormalizer {
   constructor() {
     this.logger = logger;
+    this.currentTitle = null; // Store current title for fallback extractions
   }
 
   /**
@@ -19,6 +20,12 @@ class AmazonNormalizer {
     
     for (const product of products) {
       try {
+        // Skip products with null or empty titles
+        if (!product.title || product.title.trim() === '') {
+          console.error(`Error normalizing product: Product has null or empty title - skipping`, product.title);
+          continue;
+        }
+
         const normalizedProduct = this.normalizeProduct(product);
         normalized.push(normalizedProduct);
       } catch (error) {
@@ -30,97 +37,82 @@ class AmazonNormalizer {
   }
 
   /**
-   * Normalize single Amazon product
+   * Normalize single Amazon product to match exact format specification
    */
   normalizeProduct(product) {
-    // Extract brand and model from existing data
-    const { brand, model } = this.extractBrandAndModel(product);
+    const specs = product.specifications || {};
     
-    // Extract variant attributes from existing specification fields
-    const variant = this.extractVariantAttributes(product);
-    
-    // Extract essential specifications only
-    const specifications = this.extractEssentialSpecs(product.specifications);
-    
-    // Normalize price from Amazon data
-    const price = this.normalizePrice(product.price);
-    
-    // Normalize rating from Amazon data
-    const rating = this.normalizeRating(product.rating);
-
-    // Normalize category
-    const category = this.normalizeCategory(product);
+    // Store current title for fallback extractions
+    this.currentTitle = product.title;
 
     return {
-      // Core product identification
-      brand: brand,
-      model: model,
-      title: product.title,
-      
-      // Variant attributes (used for matching same products)
-      variant: {
-        ram_gb: variant.ram_gb,
-        storage_gb: variant.storage_gb,
-        color: variant.color
+      source_details: {
+        source_name: "amazon",
+        url: product.url || null,
+        scraped_at_utc: new Date().toISOString()
       },
       
-      // Product categorization
-      category: category,
+      product_identifiers: {
+        brand: this.extractBrand(product),
+        model_name: this.extractModelName(product),
+        original_title: product.title || null,
+        model_number: this.extractModelNumber(specs)
+      },
       
-      // Essential specifications only
-      specifications: specifications,
+      variant_attributes: {
+        color: this.extractColor(specs),
+        ram: this.extractRAM(specs),
+        storage: this.extractStorage(specs)
+      },
       
-      // Pricing and rating
-      price: price,
-      rating: rating,
+      listing_info: {
+        price: this.normalizePrice(product.price),
+        rating: this.normalizeRating(product.rating),
+        image_url: product.image || null
+      },
       
-      // Metadata
-      source: 'amazon',
-      url: product.url,
-      image: product.image || null,
+      key_specifications: {
+        display: this.extractDisplaySpecs(specs),
+        performance: this.extractPerformanceSpecs(specs),
+        camera: this.extractCameraSpecs(specs),
+        battery: this.extractBatterySpecs(specs),
+        connectivity: this.extractConnectivitySpecs(specs),
+        design: this.extractDesignSpecs(specs)
+      },
       
-      // Original data (for debugging)
-      originalTitle: product.title
+      source_metadata: {
+        category_breadcrumb: product.categories || []
+      }
     };
   }
 
   /**
-   * Extract brand and model from existing specification data and title
+   * Extract brand from product data
    */
-  extractBrandAndModel(product) {
-    // Get brand directly from specifications (Amazon has this field)
-    const brand = product.specifications?.["Brand"] || 
-                  this.extractBrandFromTitle(product.title) || 
-                  'Unknown';
-    
-    // Get model from Item model number or extract from title
-    let model = product.specifications?.["Item model number"] || 'Unknown';
-    
-    // If model is just a code, try to extract from title
-    if (model === 'Unknown' || this.isModelCode(model)) {
-      model = this.extractModelFromTitle(product.title, brand) || model;
+  extractBrand(product) {
+    // First check title for Apple products specifically
+    if (product.title && product.title.toLowerCase().includes('apple')) {
+      return 'Apple';
     }
 
-    return { 
-      brand: this.standardizeBrand(brand), 
-      model: model 
-    };
+    // Then check specifications
+    if (product.specifications?.["Brand"]) {
+      return this.standardizeBrand(product.specifications["Brand"]);
+    }
+
+    // Finally check title for other brands
+    const brandFromTitle = this.extractBrandFromTitle(product.title);
+    return brandFromTitle ? this.standardizeBrand(brandFromTitle) : null;
   }
 
   /**
-   * Check if a model string looks like a model code (e.g., "SM-M055F", "I2404")
+   * Extract model name from product data
    */
-  isModelCode(model) {
-    if (!model || model === 'Unknown') return false;
-    // Model codes are usually short with letters, numbers, and dashes
-    return model.length <= 10 && /^[A-Z0-9\-]+$/i.test(model);
-  }
-
-  /**
-   * Extract model name from title
-   */
-  extractModelFromTitle(title, brand) {
-    if (!title || !brand) return null;
+  extractModelName(product) {
+    const title = product.title || '';
+    const brand = this.extractBrand(product);
+    
+    if (!brand || !title) return null;
     
     // Remove brand from title and extract meaningful model name
     let modelText = title.replace(new RegExp(brand, 'gi'), '').trim();
@@ -144,6 +136,349 @@ class AmazonNormalizer {
     );
     
     return words.slice(0, 3).join(' ').trim() || null;
+  }
+
+  /**
+   * Extract model number from specifications
+   */
+  extractModelNumber(specs) {
+    // Try multiple paths for model number
+    if (specs?.["Technical Details"]?.technicalDetails?.["Item model number"]) {
+      return specs["Technical Details"].technicalDetails["Item model number"];
+    }
+    
+    if (specs?.["Item model number"]) {
+      return specs["Item model number"];
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract color from specifications or title
+   */
+  extractColor(specs) {
+    // Try specifications first
+    if (specs?.["Technical Details"]?.technicalDetails?.["Colour"]) {
+      return specs["Technical Details"].technicalDetails["Colour"];
+    }
+    
+    if (specs?.["Colour"]) {
+      return specs["Colour"];
+    }
+
+    // Try to extract from title
+    if (this.currentTitle) {
+      const colorMatch = this.currentTitle.match(/\(([^,)]+),/);
+      if (colorMatch) {
+        return colorMatch[1].trim();
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract RAM from specifications or title
+   */
+  extractRAM(specs) {
+    let ramValue = null;
+
+    // Try multiple paths for RAM
+    if (specs?.["RAM Memory Installed Size"]) {
+      const ramMatch = specs["RAM Memory Installed Size"].match(/(\d+)\s*GB/i);
+      if (ramMatch) {
+        ramValue = parseInt(ramMatch[1]);
+      }
+    } else if (specs?.["Technical Details"]?.technicalDetails?.["RAM"]) {
+      const ramMatch = specs["Technical Details"].technicalDetails["RAM"].match(/(\d+)\s*GB/i);
+      if (ramMatch) {
+        ramValue = parseInt(ramMatch[1]);
+      }
+    } else if (specs?.["RAM"]) {
+      const ramMatch = specs["RAM"].match(/(\d+)\s*GB/i);
+      if (ramMatch) {
+        ramValue = parseInt(ramMatch[1]);
+      }
+    }
+
+    // Fallback to title extraction
+    if (!ramValue && this.currentTitle) {
+      const titleRamMatch = this.currentTitle.match(/(\d+)\s*GB\s*RAM/i);
+      if (titleRamMatch) {
+        ramValue = parseInt(titleRamMatch[1]);
+      }
+    }
+
+    return ramValue ? ramValue : null;
+  }
+
+  /**
+   * Extract storage from specifications or title
+   */
+  extractStorage(specs) {
+    let storageValue = null;
+
+    // Try specifications first
+    if (specs?.["Product Details"]?.productDetails?.["memory capacity"]) {
+      const storageMatch = specs["Product Details"].productDetails["memory capacity"].match(/(\d+)\s*GB/i);
+      if (storageMatch) {
+        storageValue = parseInt(storageMatch[1]);
+      }
+    } else if (specs?.["Memory Storage Capacity"]) {
+      const storageMatch = specs["Memory Storage Capacity"].match(/(\d+)\s*GB/i);
+      if (storageMatch) {
+        storageValue = parseInt(storageMatch[1]);
+      }
+    }
+
+    // Fallback to title extraction
+    if (!storageValue && this.currentTitle) {
+      const titleStorageMatch = this.currentTitle.match(/(\d+)\s*GB\s*Storage/i);
+      if (titleStorageMatch) {
+        storageValue = parseInt(titleStorageMatch[1]);
+      }
+    }
+
+    return storageValue ? storageValue : null;
+  }
+
+  /**
+   * Normalize price data
+   */
+  normalizePrice(price) {
+    if (!price) return {
+      current: null,
+      original: null,
+      discount_percent: null,
+      currency: "INR"
+    };
+
+    // Clean price strings and convert to numbers
+    const cleanPrice = (priceStr) => {
+      if (!priceStr) return null;
+      // Remove currency symbols, commas, and extra spaces
+      const cleaned = priceStr.replace(/[₹,\s]/g, '').trim();
+      const match = cleaned.match(/(\d+)/);
+      return match ? parseInt(match[1]) : null;
+    };
+
+    // Extract discount percentage
+    let discountPercent = null;
+    if (price.discount) {
+      const discountMatch = price.discount.match(/-?(\d+)%/);
+      if (discountMatch) {
+        discountPercent = parseInt(discountMatch[1]);
+      }
+    }
+
+    return {
+      current: cleanPrice(price.current),
+      original: cleanPrice(price.original),
+      discount_percent: discountPercent,
+      currency: "INR"
+    };
+  }
+
+  /**
+   * Normalize rating data
+   */
+  normalizeRating(rating) {
+    if (!rating) return {
+      score: null,
+      count: null
+    };
+
+    return {
+      score: rating.value || null,
+      count: rating.count || null
+    };
+  }
+
+  /**
+   * Extract display specifications
+   */
+  extractDisplaySpecs(specs) {
+    const display = {};
+
+    // Display size
+    if (specs?.["Product Details"]?.productDetails?.["display size"]) {
+      const sizeMatch = specs["Product Details"].productDetails["display size"].match(/([\d.]+)/);
+      if (sizeMatch) {
+        display.size_in = parseFloat(sizeMatch[1]);
+      }
+    }
+
+    // Resolution
+    if (specs?.["Technical Details"]?.technicalDetails?.["Resolution"]) {
+      display.resolution = specs["Technical Details"].technicalDetails["Resolution"];
+    } else if (specs?.["Resolution"]) {
+      display.resolution = specs["Resolution"];
+    }
+
+    // Display type
+    if (specs?.["Product Details"]?.productDetails?.["display type"]) {
+      display.type = specs["Product Details"].productDetails["display type"];
+    }
+
+    // Calculate PPI if we have resolution and size
+    if (display.resolution && display.size_in) {
+      const resMatch = display.resolution.match(/(\d+)\s*x\s*(\d+)/);
+      if (resMatch) {
+        const width = parseInt(resMatch[1]);
+        const height = parseInt(resMatch[2]);
+        const diagonal = Math.sqrt(width * width + height * height);
+        display.ppi = Math.round(diagonal / display.size_in);
+      }
+    }
+
+    return Object.keys(display).length > 0 ? display : null;
+  }
+
+  /**
+   * Extract performance specifications
+   */
+  extractPerformanceSpecs(specs) {
+    const performance = {};
+
+    // Operating system
+    if (specs?.["Operating System"]) {
+      performance.operating_system = specs["Operating System"];
+    } else if (specs?.["Technical Details"]?.technicalDetails?.["OS"]) {
+      performance.operating_system = specs["Technical Details"].technicalDetails["OS"];
+    }
+
+    // Processor brand and chipset
+    if (specs?.["CPU Model"]) {
+      performance.processor_brand = specs["CPU Model"].split(' ')[0]; // First word as brand
+      performance.processor_chipset = specs["CPU Model"];
+    }
+
+    // CPU Speed
+    if (specs?.["CPU Speed"]) {
+      performance.processor_cores = specs["CPU Speed"];
+    }
+
+    return Object.keys(performance).length > 0 ? performance : null;
+  }
+
+  /**
+   * Extract camera specifications
+   */
+  extractCameraSpecs(specs) {
+    const camera = {};
+
+    // Try to extract camera info from title or specs
+    if (this.currentTitle) {
+      // Look for camera mentions in title
+      const cameraMatch = this.currentTitle.match(/(\d+MP[^|]*)/i);
+      if (cameraMatch) {
+        camera.rear_setup = cameraMatch[1].trim();
+      }
+    }
+
+    // Check technical details for camera features
+    if (specs?.["Technical Details"]?.technicalDetails?.["Other camera features"]) {
+      const features = specs["Technical Details"].technicalDetails["Other camera features"];
+      if (features.includes("Front")) {
+        camera.front_setup = "Front Camera";
+      }
+    }
+
+    return Object.keys(camera).length > 0 ? camera : null;
+  }
+
+  /**
+   * Extract battery specifications
+   */
+  extractBatterySpecs(specs) {
+    const battery = {};
+
+    // Battery capacity
+    if (specs?.["Technical Details"]?.technicalDetails?.["Battery Power Rating"]) {
+      const capacity = specs["Technical Details"].technicalDetails["Battery Power Rating"];
+      battery.capacity_mah = parseInt(capacity);
+    }
+
+    // Quick charging from special features
+    if (specs?.["Technical Details"]?.technicalDetails?.["Special features"]) {
+      const features = specs["Technical Details"].technicalDetails["Special features"];
+      if (features && features.toLowerCase().includes("fast charging")) {
+        battery.quick_charging = true;
+      }
+    }
+
+    return Object.keys(battery).length > 0 ? battery : null;
+  }
+
+  /**
+   * Extract connectivity specifications
+   */
+  extractConnectivitySpecs(specs) {
+    const connectivity = {};
+
+    // Connectivity technologies
+    if (specs?.["Technical Details"]?.technicalDetails?.["Connectivity technologies"]) {
+      const tech = specs["Technical Details"].technicalDetails["Connectivity technologies"];
+      connectivity.network_type = tech;
+    }
+
+    // Wireless communication
+    if (specs?.["Technical Details"]?.technicalDetails?.["Wireless communication technologies"]) {
+      const wireless = specs["Technical Details"].technicalDetails["Wireless communication technologies"];
+      if (wireless.toLowerCase().includes("cellular")) {
+        connectivity.sim_type = "Dual Sim"; // Default assumption
+      }
+    }
+
+    // Audio jack
+    if (specs?.["Technical Details"]?.technicalDetails?.["Audio Jack"]) {
+      connectivity.audio_jack_type = specs["Technical Details"].technicalDetails["Audio Jack"];
+    }
+
+    // GPS
+    if (specs?.["Technical Details"]?.technicalDetails?.["GPS"]) {
+      connectivity.gps = specs["Technical Details"].technicalDetails["GPS"] === "True";
+    }
+
+    return Object.keys(connectivity).length > 0 ? connectivity : null;
+  }
+
+  /**
+   * Extract design specifications
+   */
+  extractDesignSpecs(specs) {
+    const design = {};
+
+    // Product dimensions
+    if (specs?.["Technical Details"]?.technicalDetails?.["Product Dimensions"]) {
+      const dimensions = specs["Technical Details"].technicalDetails["Product Dimensions"];
+      
+      // Parse dimensions like "0.9 x 7.8 x 16.9 cm; 195 g"
+      const dimMatch = dimensions.match(/([\d.]+)\s*x\s*([\d.]+)\s*x\s*([\d.]+)\s*cm/);
+      if (dimMatch) {
+        design.depth_mm = parseFloat(dimMatch[1]) * 10; // Convert cm to mm
+        design.width_mm = parseFloat(dimMatch[2]) * 10;
+        design.height_mm = parseFloat(dimMatch[3]) * 10;
+      }
+
+      // Parse weight
+      const weightMatch = dimensions.match(/([\d.]+)\s*g/);
+      if (weightMatch) {
+        design.weight_g = parseFloat(weightMatch[1]);
+      }
+    }
+
+    // Item weight as fallback
+    if (!design.weight_g && specs?.["Technical Details"]?.technicalDetails?.["Item Weight"]) {
+      const weight = specs["Technical Details"].technicalDetails["Item Weight"];
+      const weightMatch = weight.match(/([\d.]+)\s*g/);
+      if (weightMatch) {
+        design.weight_g = parseFloat(weightMatch[1]);
+      }
+    }
+
+    return Object.keys(design).length > 0 ? design : null;
   }
 
   /**
@@ -213,220 +548,6 @@ class AmazonNormalizer {
   }
 
   /**
-   * Extract variant attributes from existing specification fields
-   */
-  extractVariantAttributes(product) {
-    const attributes = {};
-    const specs = product.specifications || {};
-
-    // Extract RAM from multiple possible fields
-    const ramField = specs['RAM Memory Installed Size'] || specs['RAM'];
-    if (ramField) {
-      // Convert "4 GB" or "6 GB" -> 4, 6
-      const ramMatch = ramField.match(/(\d+)\s*GB/i);
-      if (ramMatch) {
-        attributes.ram_gb = parseInt(ramMatch[1]);
-      }
-    }
-
-    // Extract Storage from title or technical details
-    const storageField = specs['Memory Storage Capacity'];
-    if (storageField) {
-      // Convert "128 GB" -> 128
-      const storageMatch = storageField.match(/(\d+)\s*GB/i);
-      if (storageMatch) {
-        attributes.storage_gb = parseInt(storageMatch[1]);
-      }
-    } else {
-      // Try to extract from title as fallback
-      const title = product.title || '';
-      const titleStorageMatch = title.match(/(\d+)\s*GB\s*Storage/i);
-      if (titleStorageMatch) {
-        attributes.storage_gb = parseInt(titleStorageMatch[1]);
-      }
-    }
-
-    // Extract Color from Colour field or title
-    const colorField = specs['Colour'];
-    if (colorField) {
-      attributes.color = colorField;
-    } else {
-      // Try to extract from title
-      const title = product.title || '';
-      const colorMatch = title.match(/\(([^,)]+),/);
-      if (colorMatch) {
-        attributes.color = colorMatch[1].trim();
-      }
-    }
-
-    return attributes;
-  }
-
-  /**
-   * Create category structure for Amazon using real breadcrumb data
-   */
-  normalizeCategory(product) {
-    const categories = product.categories || [];
-    const brand = product.specifications?.["Brand"] || 'Unknown';
-    
-    if (categories.length === 0) {
-      // Fallback to synthetic categories if no breadcrumb data
-      const genericName = product.specifications?.["Generic Name"] || 'Unknown';
-      return {
-        main: 'Electronics',
-        sub: genericName,
-        specific: `${brand} ${genericName}`,
-        brand: this.standardizeBrand(brand),
-        breadcrumb: ['Electronics', genericName, `${brand} ${genericName}`],
-        full_path: `Electronics > ${genericName} > ${brand} ${genericName}`
-      };
-    }
-    
-    // Use real Amazon breadcrumb categories
-    return {
-      main: categories[0] || 'Electronics',                    // First breadcrumb level
-      sub: categories[1] || 'Unknown',                         // Second breadcrumb level  
-      specific: categories[2] || `${brand} Products`,          // Third breadcrumb level
-      brand: this.standardizeBrand(brand),
-      breadcrumb: categories.slice(0, -1),                     // Exclude last item (usually product name)
-      full_path: categories.join(' > ')                        // Complete Amazon breadcrumb path
-    };
-  }
-
-  /**
-   * Extract only essential specifications
-   */
-  extractEssentialSpecs(specifications) {
-    if (!specifications) return {};
-
-    const essential = {};
-
-    // General info (keep minimal)
-    const general = {};
-    
-    // Extract model number from Technical Details (nested structure)
-    if (specifications["Technical Details"]?.technicalDetails?.["Item model number"]) {
-      general.model_number = specifications["Technical Details"].technicalDetails["Item model number"];
-    } else if (specifications['Item model number']) {
-      general.model_number = specifications['Item model number'];
-    }
-    
-    if (specifications['Operating System']) {
-      general.operating_system = specifications['Operating System'];
-    }
-    if (specifications['Special features']) {
-      general.special_features = specifications['Special features'];
-    }
-    if (Object.keys(general).length > 0) {
-      essential.general = general;
-    }
-
-    // Display
-    const display = {};
-    if (specifications["Technical Details"]?.technicalDetails?.["Resolution"]) {
-      display.resolution = specifications["Technical Details"].technicalDetails["Resolution"];
-    } else if (specifications['Resolution']) {
-      display.resolution = specifications['Resolution'];
-    }
-    if (specifications["Technical Details"]?.technicalDetails?.["Device interface - primary"]) {
-      display.interface = specifications["Technical Details"].technicalDetails["Device interface - primary"];
-    } else if (specifications['Device interface - primary']) {
-      display.interface = specifications['Device interface - primary'];
-    }
-    if (Object.keys(display).length > 0) {
-      essential.display = display;
-    }
-
-    // Processor
-    const processor = {};
-    if (specifications['CPU Model']) {
-      processor.chipset = specifications['CPU Model'];
-    }
-    if (specifications['CPU Speed']) {
-      processor.speed = specifications['CPU Speed'];
-    }
-    if (Object.keys(processor).length > 0) {
-      essential.processor = processor;
-    }
-
-    // Battery
-    const battery = {};
-    if (specifications["Technical Details"]?.technicalDetails?.["Battery Power Rating"]) {
-      battery.capacity = specifications["Technical Details"].technicalDetails["Battery Power Rating"] + ' mAh';
-    } else if (specifications['Battery Power Rating']) {
-      battery.capacity = specifications['Battery Power Rating'] + ' mAh';
-    }
-    if (Object.keys(battery).length > 0) {
-      essential.battery = battery;
-    }
-
-    // Connectivity
-    const connectivity = {};
-    if (specifications["Technical Details"]?.technicalDetails?.["Connectivity technologies"]) {
-      connectivity.technologies = specifications["Technical Details"].technicalDetails["Connectivity technologies"];
-    } else if (specifications['Connectivity technologies']) {
-      connectivity.technologies = specifications['Connectivity technologies'];
-    }
-    if (specifications["Technical Details"]?.technicalDetails?.["Wireless communication technologies"]) {
-      connectivity.wireless = specifications["Technical Details"].technicalDetails["Wireless communication technologies"];
-    } else if (specifications['Wireless communication technologies']) {
-      connectivity.wireless = specifications['Wireless communication technologies'];
-    }
-    if (specifications["Technical Details"]?.technicalDetails?.["GPS"]) {
-      connectivity.gps = specifications["Technical Details"].technicalDetails["GPS"];
-    } else if (specifications['GPS']) {
-      connectivity.gps = specifications['GPS'];
-    }
-    if (Object.keys(connectivity).length > 0) {
-      essential.connectivity = connectivity;
-    }
-
-    return essential;
-  }
-
-  /**
-   * Normalize price data
-   */
-  normalizePrice(price) {
-    if (!price) return {
-      current: null,
-      original: null,
-      discount: null,
-      currency: 'INR'
-    };
-
-    // Clean price strings and convert to numbers
-    const cleanPrice = (priceStr) => {
-      if (!priceStr) return null;
-      const cleaned = priceStr.replace(/[₹,]/g, '').trim();
-      const match = cleaned.match(/(\d+)/);
-      return match ? parseInt(match[1]) : null;
-    };
-
-    return {
-      current: cleanPrice(price.current),
-      original: cleanPrice(price.original),
-      discount: price.discount || null,
-      currency: 'INR'
-    };
-  }
-
-  /**
-   * Normalize rating data
-   */
-  normalizeRating(rating) {
-    if (!rating) return {
-      score: null,
-      count: 0
-    };
-
-    return {
-      score: rating.value || null,
-      count: rating.count || 0
-    };
-  }
-
-  /**
    * Normalize products from file
    */
   async normalizeFromFile(filePath) {
@@ -460,7 +581,7 @@ class AmazonNormalizer {
   }
 }
 
-module.exports = AmazonNormalizer;
+module.exports = AmazonNormalizer; 
 
 // Main execution block - run when file is executed directly
 if (require.main === module) {
