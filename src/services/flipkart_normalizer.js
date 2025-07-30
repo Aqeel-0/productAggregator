@@ -68,6 +68,7 @@ class FlipkartNormalizer {
       
       listing_info: {
         price: this.normalizePrice(product.price),
+        availability: product.availability,
         rating: this.normalizeRating(product.rating),
         image_url: product.image || null
       },
@@ -82,48 +83,52 @@ class FlipkartNormalizer {
       },
       
       source_metadata: {
-        category_breadcrumb: product.category || []
+        category_breadcrumb: this.generateCategoryBreadcrumb(product)
       }
     };
   }
 
-  /**
-   * Extract brand from product data
-   */
+  generateCategoryBreadcrumb(product) {
+    const isSmartphone = this.isSmartphone(product);
+    
+    if (isSmartphone) {
+      return ["Electronics", "Mobiles & Accessories", "Smartphones & Basic Mobiles", "Smartphones"];
+    } else {
+      return ["Electronics", "Mobiles & Accessories", "Smartphones & Basic Mobiles", "Basic Mobiles"];
+    }
+  
+  }
+
+  isSmartphone(product) {
+    
+    const otherDetails = product.specifications?.["Other Details"];
+    if (otherDetails && otherDetails["Smartphone"]) {
+      return otherDetails["Smartphone"].toLowerCase() === "yes";
+    }
+    
+    const general = product.specifications?.["General"];
+    if (general && general["Browse Type"]) {
+      return general["Browse Type"].toLowerCase().includes("smartphone");
+    }
+    
+    // Default to smartphone if we can't determine
+    return true;
+  }
+
+
   extractBrand(product) {
     // First check title for Apple products specifically
     if (product.title && product.title.toLowerCase().includes('apple')) {
       return 'Apple';
-  }
+    }
 
     // First try from category
     if (product.category && Array.isArray(product.category) && product.category[3]) {
       const brandCategory = product.category[3];
-    const brand = brandCategory.replace(/\s+Mobiles?$/i, '').trim();
+      const brand = brandCategory.replace(/\s+Mobiles?$/i, '').trim();
     
-    const brandMappings = {
-        'Samsung': 'Samsung',
-      'realme': 'Realme',
-        'POCO': 'POCO',
-      'Tecno': 'Tecno',
-      'Google': 'Google',
-      'Xiaomi': 'Xiaomi',
-      'Nothing': 'Nothing',
-        'OnePlus': 'OnePlus',
-        'OPPO': 'OPPO',
-        'vivo': 'Vivo',
-        'Motorola': 'Motorola',
-        'Infinix': 'Infinix',
-        'IQOO': 'IQOO',
-        'Apple': 'Apple',
-        'Micromax': 'Micromax',
-        'LAVA': 'LAVA',
-        'Kechaoda': 'Kechaoda'
-    };
+      if(brand) return brand;
     
-      if (brandMappings[brand]) {
-        return brandMappings[brand];
-  }
     }
     
     // Fallback to title extraction
@@ -228,18 +233,7 @@ class FlipkartNormalizer {
       if (titleMatch) {
         return parseInt(titleMatch[1]);
       }
-      // // Pattern 2: For Apple products like "Apple iPhone 16 (Teal, 256 GB)" 
-      // // Default to common iPhone RAM values based on storage
-      // if (this.currentTitle.toLowerCase().includes('iphone')) {
-      //   const storageMatch = this.currentTitle.match(/,\s*(\d+)\s*GB\s*\)/i);
-      //   if (storageMatch) {
-      //     const storage = parseInt(storageMatch[1]);
-      //     // Common iPhone RAM patterns
-      //     if (storage >= 256) return { value: 8 }; // Higher storage usually means more RAM
-      //     if (storage >= 128) return { value: 6 }; // Standard RAM
-      //     return { value: 4 }; // Base model
-      //   }
-      // }
+      
     }
     
     return null;

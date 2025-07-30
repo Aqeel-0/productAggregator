@@ -108,6 +108,18 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
+  normalizeFlipkartUrl(url) {
+    if (!url) return url;
+    
+    try {
+      // Match up to and including the pid parameter value
+      const match = url.match(/^(.*?\?pid=[^&]+)/);
+      return match ? match[1] : url;
+    } catch (error) {
+      return url;
+    }
+  }
+
   saveData(data) {
     try {
       let existingData = [];
@@ -120,24 +132,24 @@ class FlipkartCrawler extends BaseCrawler {
       
       const newData = Array.isArray(data) ? data : [data];
       
-      // Create a URL-based deduplication map
+      // Create a normalized URL-based deduplication map
       const existingUrls = new Set();
       existingData.forEach(product => {
         if (product.url) {
-          const baseUrl = product.url.split('?')[0].split('#')[0];
-          existingUrls.add(baseUrl);
+          const normalizedUrl = this.normalizeFlipkartUrl(product.url);
+          existingUrls.add(normalizedUrl);
         }
       });
       
-      // Filter out products with URLs that already exist
+      // Filter out products with normalized URLs that already exist
       const uniqueNewData = newData.filter(product => {
         if (!product.url) return true; // Keep products without URLs
-        const baseUrl = product.url.split('?')[0].split('#')[0];
-        if (existingUrls.has(baseUrl)) {
-          this.logger.debug(`🔄 Skipping duplicate URL: ${baseUrl.substring(50)}`);
+        const normalizedUrl = this.normalizeFlipkartUrl(product.url);
+        if (existingUrls.has(normalizedUrl)) {
+          this.logger.debug(`🔄 Skipping duplicate URL: ${normalizedUrl.substring(50)}`);
           return false;
         }
-        existingUrls.add(baseUrl);
+        existingUrls.add(normalizedUrl);
         return true;
       });
       
@@ -239,9 +251,6 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  /**
-   * Check if there's a next page available
-   */
   async hasNextPage(page) {
     try {
       const nextButton = await page.evaluate((selector) => {
@@ -276,33 +285,14 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  /**
-   * Determine how many pages to scrape based on configuration
-   */
-  calculatePagesToScrape() {
-    if (this.maxProducts) {
-      // Calculate pages needed for desired number of products
-      const pagesNeeded = Math.ceil(this.maxProducts / this.productsPerPage);
-      this.logger.info(`Target: ${this.maxProducts} products (estimated ${pagesNeeded} pages needed)`);
-      return Math.min(pagesNeeded, this.maxPages || 10); // Cap at maxPages if set
-    } else {
-      // Use maxPages directly
-      this.logger.info(`Target: ${this.maxPages} pages`);
-      return this.maxPages;
-    }
-  }
-
-  /**
-   * Enhanced multi-page product link scraping
-   */
   async scrapeProductLinks() {
     const allProductLinks = [];
-    const targetPages = this.calculatePagesToScrape();
+    const seenUrls = new Set(); // Single deduplication set for entire process
     const startPage = this.checkpoint.lastPageScraped + 1;
     
-    this.logger.info(`🚀 Starting: Pages ${startPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products`);
+    this.logger.info(`🚀 Starting: Pages ${startPage}-${this.maxPages} | Target: ${this.maxProducts || 'ALL'} products`);
     
-    for (let currentPage = startPage; currentPage <= targetPages; currentPage++) {
+    for (let currentPage = startPage; currentPage <= this.maxPages; currentPage++) {
       const page = await this.newPage();
       
       try {
@@ -310,17 +300,12 @@ class FlipkartCrawler extends BaseCrawler {
         await page.setJavaScriptEnabled(true);
         
         const pageUrl = this.buildPageUrl(currentPage);
-        // Scraping page ${currentPage}
-        
         await this.navigate(page, pageUrl);
-        
-        // Wait for page to load
         await page.waitForSelector('body', { timeout: 10000 });
         
         // Extract product links from current page
         const pageLinks = await page.evaluate((xpath) => {
           const links = [];
-          const seenUrls = new Set(); // Track URLs to prevent duplicates within same page
           const result = document.evaluate(
             xpath,
             document,
@@ -332,93 +317,83 @@ class FlipkartCrawler extends BaseCrawler {
           for (let i = 0; i < result.snapshotLength; i++) {
             const element = result.snapshotItem(i);
             if (element.href && element.href.includes('/p/')) {
-              const baseUrl = element.href.split('?')[0].split('#')[0];
-              if (!seenUrls.has(baseUrl)) {
-                seenUrls.add(baseUrl);
-                links.push(element.href);
-              }
+              links.push(element.href);
             }
           }
           
           return links;
         }, CATEGORY_SELECTORS.PRODUCT_LINK);
         
-        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products | Total: ${allProductLinks.length + pageLinks.length}`);
+        // Process and deduplicate links using normalized URLs
+        let newLinksCount = 0;
+        for (const link of pageLinks) {
+          const normalizedUrl = this.normalizeFlipkartUrl(link);
+          
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl);
+            allProductLinks.push(link);
+            newLinksCount++;
+            
+            // Early exit if target reached
+            if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
+              break;
+            }
+          }
+        }
         
-        // Stop if no products found (end of results)
+        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products, ${newLinksCount} new | Total: ${allProductLinks.length}`);
+        
+        // Stop conditions
         if (pageLinks.length === 0) {
           this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
-          await this.returnPageToPool(page);
           break;
         }
         
-        // Add unique links to collection (normalize URLs by removing query parameters)
-        const uniqueLinks = pageLinks.filter(link => {
-          const linkBase = link.split('?')[0]; // Remove query params for comparison
-          return !allProductLinks.some(existingLink => existingLink.split('?')[0] === linkBase);
-        });
-        allProductLinks.push(...uniqueLinks);
-        
-        // Update checkpoint
-        this.checkpoint.lastPageScraped = currentPage;
-        this.checkpoint.pagesScraped.push(currentPage);
-        this.saveCheckpoint();
-        
-        // Total links collected so far
-        
-        // Check if we have enough products
         if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
           this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
-          await this.returnPageToPool(page);
           break;
         }
         
-        // Check for next page (only if we haven't reached our target pages)
-        if (currentPage < targetPages) {
+        // Check for next page availability
+        if (currentPage < this.maxPages) {
           const hasNext = await this.hasNextPage(page);
           if (!hasNext) {
-            // No more pages available
-            await this.returnPageToPool(page);
+            this.logger.info(`✅ Page ${currentPage}: No more pages available`);
             break;
           }
         }
         
-        // Return page to pool
-        await this.returnPageToPool(page);
-        
-        // Delay between pages for respectful scraping
-        if (currentPage < targetPages) {
-          // Waiting between pages
-          await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
-        }
+        // Update checkpoint after successful page
+        this.checkpoint.lastPageScraped = currentPage;
+        this.checkpoint.pagesScraped.push(currentPage);
+        this.saveCheckpoint();
         
       } catch (error) {
         this.logger.error(`Error scraping page ${currentPage}: ${error.message}`);
-        await this.safeClosePage(page);
         
-        // Continue with next page unless it's a critical error
+        // Break on critical errors
         if (error.message.includes('blocked') || error.message.includes('CAPTCHA')) {
           throw error;
         }
+      } finally {
+        // Always return page to pool - single location
+        await this.returnPageToPool(page);
+      }
+      
+      // Respectful delay between pages
+      if (currentPage < this.maxPages && allProductLinks.length < (this.maxProducts || Infinity)) {
+        await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
       }
     }
     
-    // Limit to maxProducts if specified
-    if (this.maxProducts && allProductLinks.length > this.maxProducts) {
-      allProductLinks.splice(this.maxProducts);
-      // Limited to requested product count
-    }
-    
+    // Final processing
     this.productLinks = allProductLinks;
     this.checkpoint.productLinks = this.productLinks;
     this.saveCheckpoint();
     
     this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
   }
-
-  /**
-   * Process single product with retry logic
-   */
+  
   async processProductWithRetry(url, index) {
     let lastError;
     
@@ -559,6 +534,7 @@ class FlipkartCrawler extends BaseCrawler {
       const title = await this._extractTitle(page);
       const pricing = await this._extractPricing(page);
       const rating = await this._extractRating(page);
+      const availability = await this._getAvailability(page);
       const specifications = await this.get_specification(page);
       const categories = await this._extractCategories(page);
       const tags = await this._extractTags(page);
@@ -568,6 +544,7 @@ class FlipkartCrawler extends BaseCrawler {
         title, 
         price: pricing,
         rating,
+        availability,
         specifications, 
         category: categories,
         tags: tags,
@@ -803,6 +780,23 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
+  async _getAvailability(page) {
+    try {
+      const html = await page.content();
+      const $ = cheerio.load(html);
+
+      const availability = $('span.OGrnIL');
+      if (availability.length === 0) {
+        return "Not In Stock";
+      }
+      else return "In Stock";
+    }
+    catch (error) {
+      this.logger.error(`Error extracting availability: ${error.message}`);
+      return "In Stock";
+    }
+  }
+       
   async get_specification(page) {
     this.logger.info('Extracting specifications with Cheerio...');
     try {
@@ -877,8 +871,8 @@ if (require.main === module) {
     },
     maxProducts: 200,
     maxPages: 20,
-    delayBetweenPages: 5000,
-    maxConcurrent: 4,
+    delayBetweenPages: 3000,
+    maxConcurrent: 8,
     maxRetries: 3,
   });
   

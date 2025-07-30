@@ -31,15 +31,15 @@ const PRODUCT_SELECTORS = {
   // Enhanced ORIGINAL_PRICE selectors - Fixed for null values
   ORIGINAL_PRICE: [
     "//div[@class='yRaY8j A6+E6v']",
-    "//div[contains(@class, 'yRaY8j')]",
-    "//div[contains(@class, 'A6+E6v')]"
+    // "//div[contains(@class, 'yRaY8j')]",
+    // "//div[contains(@class, 'A6+E6v')]"
   ],
   // Enhanced DISCOUNT selectors - Fixed for null values  
   DISCOUNT: [
     "//div[@class='UkUFwK WW8yVX']/span",
-    "//div[contains(@class, 'UkUFwK')]//span",
-    "//span[contains(text(), '% off')]",
-    "//span[contains(text(), 'off')]"
+    // "//div[contains(@class, 'UkUFwK')]//span",
+    // "//span[contains(text(), '% off')]",
+    // "//span[contains(text(), 'off')]"
   ],
   
   // Product Rating and Reviews - Generic patterns

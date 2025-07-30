@@ -202,6 +202,18 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
 
+  normalizeAmazonUrl(url) {
+    if (!url) return url;
+    
+    try {
+      // Match up to and including the ASIN (/dp/ASIN/)
+      const match = url.match(/^(.*?\/dp\/[A-Z0-9]{10})/);
+      return match ? match[1] : url;
+    } catch (error) {
+      return url;
+    }
+  }
+
   saveData(data) {
     try {
       let existingData = [];
@@ -214,24 +226,24 @@ class AmazonDetailCrawler extends BaseCrawler {
       
       const newData = Array.isArray(data) ? data : [data];
       
-      // Create a URL-based deduplication map
+      // Create a normalized URL-based deduplication map
       const existingUrls = new Set();
       existingData.forEach(product => {
         if (product.url) {
-          const baseUrl = product.url.split('?')[0].split('#')[0];
-          existingUrls.add(baseUrl);
+          const normalizedUrl = this.normalizeAmazonUrl(product.url);
+          existingUrls.add(normalizedUrl);
         }
       });
       
-      // Filter out products with URLs that already exist
+      // Filter out products with normalized URLs that already exist
       const uniqueNewData = newData.filter(product => {
         if (!product.url) return true; // Keep products without URLs
-        const baseUrl = product.url.split('?')[0].split('#')[0];
-        if (existingUrls.has(baseUrl)) {
-          this.logger.debug(`🔄 Skipping duplicate URL: ${baseUrl.substring(50)}`);
+        const normalizedUrl = this.normalizeAmazonUrl(product.url);
+        if (existingUrls.has(normalizedUrl)) {
+          this.logger.debug(`🔄 Skipping duplicate URL: ${normalizedUrl.substring(50)}`);
           return false;
         }
-        existingUrls.add(baseUrl);
+        existingUrls.add(normalizedUrl);
         return true;
       });
       
@@ -429,7 +441,7 @@ class AmazonDetailCrawler extends BaseCrawler {
           };
           
           const links = [];
-          const seenUrls = new Set(); // Track URLs to prevent duplicates within same page
+          const seenUrls = new Set(); // Track normalized URLs to prevent duplicates within same page
           
           // Try each XPath selector in the array
           if (selectors.PRODUCT_LINK) {
@@ -438,9 +450,12 @@ class AmazonDetailCrawler extends BaseCrawler {
               if (linkElements.length > 0) {
                 linkElements.forEach(element => {
                   if (element.href && element.href.includes('/dp/')) {
-                    const baseUrl = element.href.split('?')[0].split('#')[0];
-                    if (!seenUrls.has(baseUrl)) {
-                      seenUrls.add(baseUrl);
+                    // Extract normalized URL (up to ASIN)
+                    const normalizedUrl = element.href.match(/^(.*?\/dp\/[A-Z0-9]{10})/);
+                    const cleanUrl = normalizedUrl ? normalizedUrl[1] : element.href;
+                    
+                    if (!seenUrls.has(cleanUrl)) {
+                      seenUrls.add(cleanUrl);
                       links.push(element.href);
                     }
                   }
@@ -462,10 +477,15 @@ class AmazonDetailCrawler extends BaseCrawler {
           break;
         }
         
-        // Add unique links to collection (normalize URLs by removing query parameters)
+        // Add unique links to collection (deduplicate by normalized URL)
         const uniqueLinks = pageLinks.filter(link => {
-          const linkBase = link.split('?')[0]; // Remove query params for comparison
-          return !allProductLinks.some(existingLink => existingLink.split('?')[0] === linkBase);
+          const linkNormalized = this.normalizeAmazonUrl(link);
+          if (!linkNormalized) return true; // Keep links without ASIN
+          
+          return !allProductLinks.some(existingLink => {
+            const existingNormalized = this.normalizeAmazonUrl(existingLink);
+            return existingNormalized && existingNormalized === linkNormalized;
+          });
         });
         allProductLinks.push(...uniqueLinks);
         

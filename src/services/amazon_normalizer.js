@@ -62,6 +62,7 @@ class AmazonNormalizer {
       variant_attributes: {
         color: this.extractColor(specs),
         ram: this.extractRAM(specs),
+        availability: product.availability,
         storage: this.extractStorage(specs)
       },
       

@@ -12,10 +12,10 @@ class ProductVariant extends Model {
       as: 'product'
     });
 
-    // A variant has many offers
-    ProductVariant.hasMany(models.Offer, {
+    // A variant has many listings
+    ProductVariant.hasMany(models.Listing, {
       foreignKey: 'variant_id',
-      as: 'offers'
+      as: 'listings'
     });
   }
 
@@ -51,7 +51,7 @@ class ProductVariant extends Model {
     
     if (!product) return 'Unknown Product Variant';
 
-    let name = `${product.brand.name} ${product.name}`;
+    let name = `${product.brand.name} ${product.model_name}`;
     
     if (attributes.color) name += ` - ${attributes.color}`;
     if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
