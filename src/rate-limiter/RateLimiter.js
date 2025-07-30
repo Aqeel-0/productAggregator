@@ -70,6 +70,9 @@ class RateLimiter extends EventEmitter {
       isOpen: false
     };
     
+    // Store interval references for cleanup
+    this.cleanupInterval = null;
+    
     this.initialize();
   }
   
@@ -142,7 +145,7 @@ class RateLimiter extends EventEmitter {
   }
   
   setupCleanup() {
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       this.cleanupMemoryStore();
     }, this.config.cleanupInterval);
   }
@@ -518,10 +521,23 @@ class RateLimiter extends EventEmitter {
   }
   
   async close() {
+    // Clear cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    
+    // Close Redis connection
     if (this.redisClient) {
       await this.redisClient.quit();
+      this.redisClient = null;
     }
+    
+    // Remove all event listeners
     this.removeAllListeners();
+    
+    // Clear memory store
+    this.memoryStore.clear();
   }
 }
 

@@ -8,8 +8,8 @@
 const CATEGORY_SELECTORS = {
   PRODUCT_GRID: '//div[contains(@class, "_1YokD2")]',
   PRODUCT_CARD: '//div[contains(@class, "_2kHMtA")]',
-  PRODUCT_LINK: '//a[contains(@href, "/p/")]',
-  NEXT_PAGE: '//a[contains(@aria-label, "Next")]'
+  PRODUCT_LINK: '//a[contains(@class, "CGtC98")]',
+  NEXT_PAGE: '//a[span[text()="Next"]]'
 };
 
 // Product detail page selectors - Generic patterns for any product
@@ -31,15 +31,15 @@ const PRODUCT_SELECTORS = {
   // Enhanced ORIGINAL_PRICE selectors - Fixed for null values
   ORIGINAL_PRICE: [
     "//div[@class='yRaY8j A6+E6v']",
-    "//div[contains(@class, 'yRaY8j')]",
-    "//div[contains(@class, 'A6+E6v')]"
+    // "//div[contains(@class, 'yRaY8j')]",
+    // "//div[contains(@class, 'A6+E6v')]"
   ],
   // Enhanced DISCOUNT selectors - Fixed for null values  
   DISCOUNT: [
     "//div[@class='UkUFwK WW8yVX']/span",
-    "//div[contains(@class, 'UkUFwK')]//span",
-    "//span[contains(text(), '% off')]",
-    "//span[contains(text(), 'off')]"
+    // "//div[contains(@class, 'UkUFwK')]//span",
+    // "//span[contains(text(), '% off')]",
+    // "//span[contains(text(), 'off')]"
   ],
   
   // Product Rating and Reviews - Generic patterns

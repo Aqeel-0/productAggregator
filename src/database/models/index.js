@@ -5,7 +5,7 @@ const Brand = require('./Brand');
 const Category = require('./Category');
 const Product = require('./Product');
 const ProductVariant = require('./ProductVariant');
-const Offer = require('./Offer');
+const Listing = require('./Listing');
 
 // Store models in an object for easy access
 const models = {
@@ -13,7 +13,7 @@ const models = {
   Category,
   Product,
   ProductVariant,
-  Offer
+  Listing
 };
 
 // Set up associations

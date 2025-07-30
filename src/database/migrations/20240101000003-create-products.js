@@ -4,13 +4,12 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('products', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+        primaryKey: true
       },
       brand_id: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: false,
         references: {
           model: 'brands',
@@ -20,7 +19,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       category_id: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         allowNull: true,
         references: {
           model: 'categories',
@@ -33,6 +32,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
+      model_number: {
+        type: Sequelize.STRING(100),
+        allowNull: true
+      },
       slug: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -42,11 +45,42 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
-      features: {
+      specifications: {
         type: Sequelize.JSONB,
         allowNull: true
       },
-      release_date: {
+      status: {
+        type: Sequelize.ENUM('active', 'discontinued', 'coming_soon'),
+        allowNull: false,
+        defaultValue: 'active'
+      },
+      variant_count: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+        allowNull: false
+      },
+      min_price: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true
+      },
+      max_price: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true
+      },
+      avg_price: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true
+      },
+      rating: {
+        type: Sequelize.DECIMAL(3, 2),
+        allowNull: true
+      },
+      is_featured: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        allowNull: false
+      },
+      launch_date: {
         type: Sequelize.DATE,
         allowNull: true
       },
@@ -69,7 +103,12 @@ module.exports = {
     await queryInterface.addIndex('products', ['brand_id']);
     await queryInterface.addIndex('products', ['category_id']);
     await queryInterface.addIndex('products', ['model_name']);
+    await queryInterface.addIndex('products', ['model_number']);
     await queryInterface.addIndex('products', ['slug'], { unique: true });
+    await queryInterface.addIndex('products', ['status']);
+    await queryInterface.addIndex('products', ['is_featured']);
+    await queryInterface.addIndex('products', ['min_price', 'max_price']);
+    await queryInterface.addIndex('products', ['rating']);
   },
 
   down: async (queryInterface, Sequelize) => {

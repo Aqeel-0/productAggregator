@@ -52,10 +52,10 @@ class Product extends Model {
       return { product, created: false };
     }
 
-    // If not found by slug, try to find by name and brand
+    // If not found by slug, try to find by model_name and brand
     product = await Product.findOne({
       where: { 
-        name: name.trim(),
+        model_name: name.trim(),
         brand_id: brandId
       }
     });
@@ -70,7 +70,7 @@ class Product extends Model {
 
     // Create new product if not found
     product = await Product.create({
-        name: name.trim(),
+        model_name: name.trim(),
         slug: slug,
         brand_id: brandId,
         category_id: categoryId,
@@ -89,7 +89,7 @@ class Product extends Model {
     };
 
     if (query) {
-      whereClause.name = {
+      whereClause.model_name = {
         [Op.iLike]: `%${query}%`
       };
     }
@@ -303,7 +303,7 @@ Product.init({
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  name: {
+  model_name: {
     type: DataTypes.STRING(255),
     allowNull: false,
     validate: {
@@ -349,6 +349,10 @@ Product.init({
     allowNull: false,
     defaultValue: 'active'
   },
+  model_number: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   variant_count: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
@@ -356,6 +360,40 @@ Product.init({
     validate: {
       min: 0
     }
+  },
+  min_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  max_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  avg_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  rating: {
+    type: DataTypes.DECIMAL(3, 2),
+    allowNull: true,
+    validate: {
+      min: 0,
+      max: 5
+    }
+  },
+  is_featured: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
   }
 }, {
   sequelize,

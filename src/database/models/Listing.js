@@ -542,8 +542,8 @@ Listing.init({
   ],
   hooks: {
     beforeSave: (listing) => {
-      // Auto-calculate discount percentage
-      if (listing.original_price && listing.price) {
+      // Only auto-calculate discount percentage if it's not already provided
+      if (listing.original_price && listing.price && listing.discount_percentage === null) {
         listing.discount_percentage = listing.calculateDiscount();
       }
     }
