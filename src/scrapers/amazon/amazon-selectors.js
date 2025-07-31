@@ -26,6 +26,8 @@ const PRODUCT_SELECTORS = {
     '#titleSection h1',              
     '.product-title-word-break'   
   ],
+
+  PRODUCT_NAME: ['#prodDetails h2'],
   
   PRICE: [
     "#corePriceDisplay_desktop_feature_div .priceToPay .a-price-whole", // The most specific path to the final price.

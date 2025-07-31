@@ -1,3 +1,5 @@
+const { title } = require('process');
+
 // Try to import logger, fall back to console if not available
 let logger;
 try {
@@ -110,33 +112,43 @@ class AmazonNormalizer {
    * Extract model name from product data
    */
   extractModelName(product) {
-    const title = product.title || '';
-    const brand = this.extractBrand(product);
-    
-    if (!brand || !title) return null;
-    
-    // Remove brand from title and extract meaningful model name
-    let modelText = title.replace(new RegExp(brand, 'gi'), '').trim();
-    
-    // Remove variant info and extract first few words as model
-    modelText = modelText
-      .replace(/\(.*?\)/g, '') // Remove parentheses content
-      .replace(/\|.*$/, '') // Remove everything after |
-      .replace(/\b\d+\s*GB\s*(RAM|Storage)\b/gi, '') // Remove RAM/Storage info
-      .replace(/\b\d+\s*GB\b/g, '') // Remove GB references
-      .replace(/\b(Black|White|Blue|Red|Green|Silver|Gold|Gray|Grey|Rose|Pink|Purple|Yellow|Orange|Titanium|Mint|Ultramarine|Glacial)\b/gi, '') // Remove colors
-      .replace(/[-,]/g, ' ') // Replace separators
-      .replace(/\s+/g, ' ') // Clean spaces
-      .trim();
+    const {brand, model} = this.extractBrandAndModelName(product.productName);
+    return model;
+  }
 
-    // Take first 3-4 meaningful words
-    const words = modelText.split(' ').filter(word => 
-      word.length > 1 && 
-      !word.match(/^\d+$/) && // Not just numbers
-      word.length < 15 // Not too long
-    );
-    
-    return words.slice(0, 3).join(' ').trim() || null;
+  extractBrandAndModelName(fullProductName) {
+    // Remove trailing suffixes like "Mobile Phone Information", "Smartphone Mobile Phone Information", "AI Smartphone", etc.
+    const suffixPattern = /\s*(Mobile Phone Information|Smartphone Mobile Phone Information|Mobile Phone|AI Smartphone|AI|Smartphone|Phone Information|Mobile).*$/i;
+    const cleanedName = fullProductName.replace(suffixPattern, '').trim();
+  
+    // Split by spaces assuming first word is brand
+    const parts = cleanedName.split(/\s+/, 2);
+  
+    let brand = '';
+    let model = '';
+  
+    if (parts.length === 1) {
+      brand = parts[0];
+      model = '';
+    } else {
+      brand = parts[0];
+      model = parts[1];
+    }
+  
+    // To get the model including everything after the brand (except suffixes),
+    // we take substring after first space to include multi-word models.
+    if (cleanedName.indexOf(' ') !== -1) {
+      model = cleanedName.substring(cleanedName.indexOf(' ') + 1).trim();
+    } else {
+      model = '';
+    }
+  
+    // Remove anything after a comma in the model to exclude colors or extras
+    if (model.includes(',')) {
+      model = model.split(',')[0].trim();
+    }
+  
+    return { brand, model };
   }
 
   /**
@@ -179,9 +191,7 @@ class AmazonNormalizer {
     return null;
   }
 
-  /**
-   * Extract RAM from specifications or title
-   */
+
   extractRAM(specs) {
     let ramValue = null;
 
@@ -224,24 +234,45 @@ class AmazonNormalizer {
     if (specs?.["Product Details"]?.productDetails?.["memory capacity"]) {
       const storageMatch = specs["Product Details"].productDetails["memory capacity"].match(/(\d+)\s*GB/i);
       if (storageMatch) {
-        storageValue = parseInt(storageMatch[1]);
+        return parseInt(storageMatch[1]);
       }
     } else if (specs?.["Memory Storage Capacity"]) {
       const storageMatch = specs["Memory Storage Capacity"].match(/(\d+)\s*GB/i);
       if (storageMatch) {
-        storageValue = parseInt(storageMatch[1]);
+        return parseInt(storageMatch[1]);
       }
     }
-
-    // Fallback to title extraction
-    if (!storageValue && this.currentTitle) {
-      const titleStorageMatch = this.currentTitle.match(/(\d+)\s*GB\s*Storage/i);
-      if (titleStorageMatch) {
-        storageValue = parseInt(titleStorageMatch[1]);
+    
+    if (this.currentTitle) {
+      const cleanTitle = this.currentTitle.toLowerCase();
+      
+      // Common mobile phone storage capacities
+      const storageValues = ['32', '64', '128', '256', '512', '1024', '1', '2'];
+      
+      // Look for these specific values followed by GB/TB
+      for (const value of storageValues) {
+        let pattern;
+        
+        if (value === '1' || value === '2') {
+          // For TB values
+          pattern = new RegExp(`\\b${value}\\s*tb\\b`, 'i');
+          const match = cleanTitle.match(pattern);
+          if (match) {
+            return parseInt(value);
+          }
+        } else {
+          // For GB values
+          pattern = new RegExp(`\\b${value}\\s*gb\\b`, 'i');
+          const match = cleanTitle.match(pattern);
+          if (match && !cleanTitle.match(new RegExp(`${value}\\s*gb\\s*ram`, 'i'))) {
+            // Found storage value, but make sure it's not RAM
+            return  parseInt(value);
+          }
+        }
       }
     }
-
-    return storageValue ? storageValue : null;
+ 
+    return null;
   }
 
   /**

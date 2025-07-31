@@ -456,7 +456,7 @@ class AmazonDetailCrawler extends BaseCrawler {
                     
                     if (!seenUrls.has(cleanUrl)) {
                       seenUrls.add(cleanUrl);
-                      links.push(element.href);
+                      links.push(cleanUrl); // Store normalized URL directly
                     }
                   }
                 });
@@ -479,14 +479,10 @@ class AmazonDetailCrawler extends BaseCrawler {
         
         // Add unique links to collection (deduplicate by normalized URL)
         const uniqueLinks = pageLinks.filter(link => {
-          const linkNormalized = this.normalizeAmazonUrl(link);
-          if (!linkNormalized) return true; // Keep links without ASIN
-          
-          return !allProductLinks.some(existingLink => {
-            const existingNormalized = this.normalizeAmazonUrl(existingLink);
-            return existingNormalized && existingNormalized === linkNormalized;
-          });
+          // Since we're already storing normalized URLs, just check for duplicates
+          return !allProductLinks.includes(link);
         });
+        
         allProductLinks.push(...uniqueLinks);
         
         // Update checkpoint
@@ -718,6 +714,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       
       // Pass $ (Cheerio object) to all extraction methods
       const title = await this._extractTitle($);
+      const productName = await this._extractProductName($);
       const pricing = await this._extractPricing($);
       const rating = await this._extractRating($);
       const images = await this._extractImages($);
@@ -730,6 +727,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       
       return {
         title,
+        productName,
         price: pricing,
         rating,
         image: images.main,
@@ -788,6 +786,25 @@ class AmazonDetailCrawler extends BaseCrawler {
           if (title && title.length > 10 && title.length < 250) {
             return title;
           }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error(`Error extracting title: ${error.message}`);
+      return null;
+    }
+  }
+  
+  async _extractProductName($) {
+    try {
+      for (const selector of PRODUCT_SELECTORS.PRODUCT_NAME) {
+        const nameElement = $(selector).first();
+        
+        // Check if element exists and has text
+        if (nameElement.length > 0) {
+          const name = nameElement.text().replace(/\s+/g, ' ').trim();
+          return name;
         }
       }
       

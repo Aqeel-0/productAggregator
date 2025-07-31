@@ -331,7 +331,7 @@ class FlipkartCrawler extends BaseCrawler {
           
           if (!seenUrls.has(normalizedUrl)) {
             seenUrls.add(normalizedUrl);
-            allProductLinks.push(link);
+            allProductLinks.push(normalizedUrl); // Store normalized URL instead of original
             newLinksCount++;
             
             // Early exit if target reached
