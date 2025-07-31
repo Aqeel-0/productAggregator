@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const fuzz = require('fuzzball');
 const { sequelize, Brand, Category, Product, ProductVariant, Listing } = require('./src/database/models');
 
 class DatabaseInserter {
@@ -14,6 +15,13 @@ class DatabaseInserter {
       products: { created: 0, existing: 0 },
       variants: { created: 0, existing: 0 },
       listings: { created: 0, existing: 0 },
+      deduplication: {
+        model_number_matches: 0,
+        cross_field_matches: 0,
+        fuzzy_name_matches: 0,
+        new_products: 0,
+        apple_variants: 0
+      },
       errors: []
     };
   }
@@ -26,18 +34,8 @@ class DatabaseInserter {
     const breadcrumbStr = breadcrumb.join(' -> ').toLowerCase();
     
     // Determine if it's a smartphone or basic phone
-    let targetCategoryName;
-    
-    if (breadcrumbStr.includes('basic') || breadcrumbStr.includes('feature')) {
-      targetCategoryName = 'Basic Phones';
-    } else if (breadcrumbStr.includes('accessories') || breadcrumbStr.includes('cases') || 
-               breadcrumbStr.includes('chargers') || breadcrumbStr.includes('headphones')) {
-      targetCategoryName = 'Accessories';
-    } else {
-      // Default to smartphones for mobile products
-      targetCategoryName = 'Smartphones';
-    }
-    
+    let targetCategoryName = breadcrumb[3];
+     
     // Find the category in our predefined structure
     const cacheKey = `category:${targetCategoryName}`;
     if (this.categoryCache.has(cacheKey)) {
@@ -95,7 +93,8 @@ class DatabaseInserter {
   }
 
   /**
-   * Get or create product
+   * Enhanced deduplication logic for products
+   * Phase 1: Model number exact match -> Fuzzy model name match -> Create new product
    */
   async getOrCreateProduct(productData, brandId, categoryId) {
     const { model_name, model_number } = productData.product_identifiers;
@@ -109,46 +108,262 @@ class DatabaseInserter {
     }
 
     try {
-      const { product, created } = await Product.findOrCreateByDetails(model_name, brandId, categoryId);
-      
-      // Update product with additional data
-      const updateData = {
-        model_number: model_number || null,
-        specifications: key_specifications,
-        status: 'active'
-      };
+      let matchedProduct = null;
+      let matchType = 'none';
 
-      if (created || !product.model_number) {
-        await product.update(updateData);
+      // Phase 1: Model Number Exact Match (highest priority)
+      if (model_number && model_number.trim() !== '') {
+        matchedProduct = await this.findByModelNumber(model_number, brandId);
+        if (matchedProduct) {
+          matchType = 'model_number';
+          this.stats.deduplication.model_number_matches++;
+          console.log(`🔍 Found existing product by model number: ${model_number} -> ${matchedProduct.model_name}`);
+        }
       }
 
-      this.productCache.set(cacheKey, product.id);
-      
-      if (created) {
-        this.stats.products.created++;
-        console.log(`✅ Created product: ${model_name} (${model_number || 'No model number'})`);
+      // Phase 2: Optimized Multi-Step Fuzzy Search (fallback)
+      if (!matchedProduct) {
+        const fuzzyResult = await this.findByOptimizedFuzzySearch(model_name, model_number, brandId, categoryId);
+        if (fuzzyResult) {
+          matchedProduct = fuzzyResult.product;
+          matchType = fuzzyResult.matchType;
+          
+          // Update appropriate statistics
+          if (fuzzyResult.matchType === 'cross_field_fuzzy') {
+            this.stats.deduplication.cross_field_matches = (this.stats.deduplication.cross_field_matches || 0) + 1;
+          } else if (fuzzyResult.matchType === 'fuzzy_model_name') {
+            this.stats.deduplication.fuzzy_name_matches++;
+          }
+          
+          console.log(`🔍 Found existing product by ${fuzzyResult.matchType}: similarity ${(fuzzyResult.similarity * 100).toFixed(1)}%`);
+        }
+      }
+
+      // Phase 3: Create New Product (if no matches found)
+      if (!matchedProduct) {
+        const { product, created } = await Product.findOrCreateByDetails(model_name, brandId, categoryId);
+        
+        // Update product with additional data
+        const updateData = {
+          model_number: model_number || null,
+          specifications: key_specifications,
+          status: 'active'
+        };
+
+        if (created || !product.model_number) {
+          await product.update(updateData);
+        }
+
+        matchedProduct = product;
+        matchType = created ? 'created' : 'existing';
+        
+        if (created) {
+          this.stats.products.created++;
+          this.stats.deduplication.new_products++;
+          console.log(`✅ Created new product: ${model_name} (${model_number || 'No model number'})`);
+        } else {
+          this.stats.products.existing++;
+        }
       } else {
+        // Update existing product with model number if it was missing
+        if (model_number && !matchedProduct.model_number) {
+          await matchedProduct.update({ model_number: model_number });
+          console.log(`📝 Updated existing product with model number: ${model_number}`);
+        }
         this.stats.products.existing++;
       }
+
+      // Cache the result
+      this.productCache.set(cacheKey, matchedProduct.id);
       
-      return product.id;
+      return matchedProduct.id;
     } catch (error) {
-      console.error(`❌ Error creating product "${model_name}":`, error.message);
+      console.error(`❌ Error in enhanced product deduplication "${model_name}":`, error.message);
       this.stats.errors.push(`Product: ${model_name} - ${error.message}`);
       return null;
     }
   }
 
   /**
-   * Get or create product variant
+   * Find product by exact model number match
    */
-  async getOrCreateVariant(productData, productId) {
+  async findByModelNumber(modelNumber, brandId) {
+    try {
+      const product = await Product.findOne({
+        where: {
+          model_number: modelNumber,
+          brand_id: brandId
+        }
+      });
+      return product;
+    } catch (error) {
+      console.error(`❌ Error finding product by model number "${modelNumber}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Optimized multi-step fuzzy matching using PostgreSQL trigrams
+   * Step 1: Model number vs model number (exact)
+   * Step 2: Model number vs model name (cross-field fuzzy)
+   * Step 3: Model name vs model name (fuzzy)
+   */
+  async findByOptimizedFuzzySearch(modelName, modelNumber, brandId, categoryId) {
+    try {
+      const SIMILARITY_THRESHOLD = 0.3; // PostgreSQL similarity threshold (30%)
+      
+      // Step 1: If we have a model number, try exact model number match first
+      if (modelNumber && modelNumber.trim() !== '') {
+        const exactMatch = await this.findByModelNumber(modelNumber, brandId);
+        if (exactMatch) {
+          console.log(`🎯 Exact model number match: ${modelNumber}`);
+          return { product: exactMatch, matchType: 'exact_model_number', similarity: 1.0 };
+        }
+      }
+
+      // Step 2: Cross-field fuzzy search - model number against model names
+      if (modelNumber && modelNumber.trim() !== '') {
+        const crossFieldMatch = await this.findByModelNumberVsModelName(modelNumber, brandId, categoryId);
+        if (crossFieldMatch) {
+          console.log(`🎯 Cross-field match: model number "${modelNumber}" -> model name "${crossFieldMatch.product.model_name}" (${crossFieldMatch.similarity})`);
+          return crossFieldMatch;
+        }
+      }
+
+      // Step 3: Fuzzy model name search using PostgreSQL trigrams
+      const fuzzyMatch = await this.findByFuzzyModelNameOptimized(modelName, brandId, categoryId);
+      if (fuzzyMatch) {
+        console.log(`🎯 Fuzzy model name match: "${modelName}" -> "${fuzzyMatch.product.model_name}" (${fuzzyMatch.similarity})`);
+        return fuzzyMatch;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in optimized fuzzy search for "${modelName}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Cross-field search: model number vs model names using trigrams
+   */
+  async findByModelNumberVsModelName(modelNumber, brandId, categoryId) {
+    try {
+      const SIMILARITY_THRESHOLD = 0.3;
+      
+      const result = await sequelize.query(`
+        SELECT 
+          id, 
+          model_name, 
+          model_number,
+          similarity(:modelNumber, model_name) as sim_score
+        FROM products 
+        WHERE brand_id = :brandId 
+          AND category_id = :categoryId
+          AND model_name % :modelNumber
+        ORDER BY sim_score DESC 
+        LIMIT 1
+      `, {
+        replacements: { modelNumber, brandId, categoryId },
+        type: sequelize.QueryTypes.SELECT
+      });
+
+      if (result.length > 0 && result[0].sim_score >= SIMILARITY_THRESHOLD) {
+        const product = await Product.findByPk(result[0].id);
+        return {
+          product,
+          matchType: 'cross_field_fuzzy',
+          similarity: result[0].sim_score
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in cross-field fuzzy search:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Optimized fuzzy model name search using PostgreSQL trigrams
+   */
+  async findByFuzzyModelNameOptimized(modelName, brandId, categoryId) {
+    try {
+      const SIMILARITY_THRESHOLD = 0.3;
+      
+      // Use PostgreSQL's trigram similarity for efficient fuzzy search
+      const result = await sequelize.query(`
+        SELECT 
+          id, 
+          model_name, 
+          model_number,
+          similarity(:modelName, model_name) as sim_score
+        FROM products 
+        WHERE brand_id = :brandId 
+          AND category_id = :categoryId
+          AND model_name % :modelName
+        ORDER BY sim_score DESC 
+        LIMIT 1
+      `, {
+        replacements: { modelName, brandId, categoryId },
+        type: sequelize.QueryTypes.SELECT
+      });
+
+      if (result.length > 0 && result[0].sim_score >= SIMILARITY_THRESHOLD) {
+        const product = await Product.findByPk(result[0].id);
+        return {
+          product,
+          matchType: 'fuzzy_model_name',
+          similarity: result[0].sim_score
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in optimized fuzzy model name search:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Normalize model name for better fuzzy matching
+   */
+  normalizeModelName(modelName) {
+    if (!modelName) return '';
+    
+    return modelName
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, ' ')                    // Normalize spaces
+      .replace(/[^\w\s]/g, '')                 // Remove special characters
+      .replace(/\b(5g|4g|lte)\b/g, '')         // Remove network tech
+      .replace(/\b(gb|tb)\b/g, '')             // Remove storage units
+      .replace(/\b(ram|storage)\b/g, '')       // Remove tech terms
+      .trim();
+  }
+
+  /**
+   * Get or create product variant with smart Apple handling
+   */
+  async getOrCreateVariant(productData, productId, brandName = null) {
     const variant_attributes = productData.variant_attributes || {};
     const { ram, storage, color } = variant_attributes;
     
     if (!productId) return null;
 
-    const variantKey = `${productId}:${ram || 0}:${storage || 0}:${color || 'default'}`;
+    // Smart variant key generation based on brand
+    const isApple = brandName && brandName.toLowerCase() === 'apple';
+    let variantKey;
+    
+    if (isApple && (ram === null || ram === undefined)) {
+      // For Apple products with missing RAM, use only storage and color
+      variantKey = `${productId}:apple:${storage || 0}:${color || 'default'}`;
+      console.log(`🍎 Apple product detected - creating variant with storage + color only`);
+    } else {
+      // Standard variant key for all other products
+      variantKey = `${productId}:${ram || 0}:${storage || 0}:${color || 'default'}`;
+    }
+
     if (this.variantCache.has(variantKey)) {
       return this.variantCache.get(variantKey);
     }
@@ -165,7 +380,12 @@ class DatabaseInserter {
       
       if (created) {
         this.stats.variants.created++;
-        console.log(`✅ Created variant: ${ram || 0}GB RAM, ${storage || 0}GB Storage, ${color || 'Default'}`);
+        if (isApple && (ram === null || ram === undefined)) {
+          this.stats.deduplication.apple_variants++;
+          console.log(`✅ Created Apple variant: ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
+        } else {
+          console.log(`✅ Created variant: ${ram || 'Unknown'}GB RAM, ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
+        }
       } else {
         this.stats.variants.existing++;
       }
@@ -293,7 +513,7 @@ class DatabaseInserter {
       }
 
       // Step 4: Create/Get Variant
-      const variantId = await this.getOrCreateVariant(productData, productId);
+      const variantId = await this.getOrCreateVariant(productData, productId, brand_name);
       if (!variantId) {
         console.log(`⚠️  Skipping product ${index + 1}: Could not create variant`);
         return null;
@@ -393,6 +613,22 @@ class DatabaseInserter {
     console.log(`   Created: ${this.stats.listings.created}`);
     console.log(`   Updated: ${this.stats.listings.existing}`);
     console.log(`   Total: ${this.stats.listings.created + this.stats.listings.existing}`);
+
+    console.log(`\n🔍 Enhanced Deduplication:`);
+    console.log(`   Model Number Matches: ${this.stats.deduplication.model_number_matches}`);
+    console.log(`   Cross-Field Matches (Model# → Model Name): ${this.stats.deduplication.cross_field_matches || 0}`);
+    console.log(`   Fuzzy Name Matches: ${this.stats.deduplication.fuzzy_name_matches}`);
+    console.log(`   New Products Created: ${this.stats.deduplication.new_products}`);
+    console.log(`   Apple Variants (Storage+Color): ${this.stats.deduplication.apple_variants}`);
+    
+    const totalMatches = this.stats.deduplication.model_number_matches + 
+                        (this.stats.deduplication.cross_field_matches || 0) + 
+                        this.stats.deduplication.fuzzy_name_matches;
+    const totalProcessed = totalMatches + this.stats.deduplication.new_products;
+    if (totalProcessed > 0) {
+      const deduplicationRate = ((totalMatches / totalProcessed) * 100).toFixed(1);
+      console.log(`   Deduplication Rate: ${deduplicationRate}%`);
+    }
 
     if (this.stats.errors.length > 0) {
       console.log(`\n❌ Errors (${this.stats.errors.length}):`);

@@ -32,7 +32,7 @@ const PRODUCT_SELECTORS = {
   ORIGINAL_PRICE: [
     "//div[@class='yRaY8j A6+E6v']",
     // "//div[contains(@class, 'yRaY8j')]",
-    // "//div[contains(@class, 'A6+E6v')]"
+    "//div[contains(@class, 'A6+E6v')]"
   ],
   // Enhanced DISCOUNT selectors - Fixed for null values  
   DISCOUNT: [
