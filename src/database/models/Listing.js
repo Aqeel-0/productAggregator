@@ -233,27 +233,8 @@ class Listing extends Model {
     });
   }
 
-  /**
-   * Calculate discount percentage
-   */
-  calculateDiscount() {
-    if (this.original_price && this.price) {
-      const discount = ((this.original_price - this.price) / this.original_price) * 100;
-      return Math.round(discount * 100) / 100; // Round to 2 decimal places
-    }
-    return 0;
-  }
 
-  /**
-   * Check if listing has good deal (high discount)
-   */
-  isGoodDeal(threshold = 20) {
-    return this.discount_percentage && this.discount_percentage >= threshold;
-  }
 
-  /**
-   * Get formatted price with currency
-   */
   getFormattedPrice() {
     const currencySymbols = {
       'INR': '₹',
@@ -329,6 +310,70 @@ class Listing extends Model {
     if (newPrice > oldPrice) return 'up';
     if (newPrice < oldPrice) return 'down';
     return 'stable';
+  }
+
+  /**
+   * Map availability text to stock status enum
+   */
+  static mapAvailabilityToStockStatus(availability) {
+    if (!availability) return 'in_stock';
+    
+    const availabilityLower = availability.toLowerCase();
+    
+    if (availabilityLower.includes('out of stock') || availabilityLower.includes('unavailable')) {
+      return 'out_of_stock';
+    } else if (availabilityLower.includes('limited') || availabilityLower.includes('few left')) {
+      return 'limited_stock';
+    } else if (availabilityLower.includes('pre-order') || availabilityLower.includes('coming soon')) {
+      return 'pre_order';
+    } else {
+      return 'in_stock';
+    }
+  }
+
+  /**
+   * Enhanced listing creation with statistics
+   * Used by DatabaseInserter for optimized listing creation
+   */
+  static async insertWithStats(productData, variantId, stats) {
+    if (!variantId) return null;
+
+    const source_details = productData.source_details || {};
+    const listing_info = productData.listing_info || {};
+    const product_identifiers = productData.product_identifiers || {};
+
+    try {
+      const listingData = {
+        store_name: source_details.source_name || 'unknown',
+        title: product_identifiers.original_title || 'Unknown Product',
+        url: source_details.url || '',
+        price: listing_info.price?.current || 0,
+        original_price: listing_info.price?.original || null,
+        discount_percentage: listing_info.price?.discount_percent || null,
+        currency: listing_info.price?.currency || 'INR',
+        rating: listing_info.rating?.score || null,
+        review_count: listing_info.rating?.count || 0,
+        images: listing_info.image_url ? [listing_info.image_url] : null,
+        stock_status: this.mapAvailabilityToStockStatus(listing_info.availability),
+        scraped_at: source_details.scraped_at_utc ? new Date(source_details.scraped_at_utc) : new Date()
+      };
+
+      const { listing, created } = await Listing.createOrUpdate(variantId, listingData);
+      
+      if (created) {
+        stats.listings.created++;
+        console.log(`✅ Created listing: ${listingData.store_name} - ₹${listingData.price} (${listingData.stock_status})`);
+      } else {
+        stats.listings.existing++;
+        console.log(`🔄 Updated listing: ${listingData.store_name} - ₹${listingData.price} (${listingData.stock_status})`);
+      }
+      
+      return listing.id;
+    } catch (error) {
+      console.error(`❌ Error creating listing:`, error.message);
+      stats.errors.push(`Listing: ${source_details.url} - ${error.message}`);
+      return null;
+    }
   }
 }
 
@@ -541,12 +586,7 @@ Listing.init({
     }
   ],
   hooks: {
-    beforeSave: (listing) => {
-      // Only auto-calculate discount percentage if it's not already provided
-      if (listing.original_price && listing.price && listing.discount_percentage === null) {
-        listing.discount_percentage = listing.calculateDiscount();
-      }
-    }
+    // No automatic discount calculation - frontend will handle this
   }
 });
 

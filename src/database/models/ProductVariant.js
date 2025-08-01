@@ -225,6 +225,63 @@ class ProductVariant extends Model {
     
     return formatted;
   }
+
+  /**
+   * Enhanced variant insertion with caching and statistics
+   * Used by DatabaseInserter for optimized variant creation
+   */
+  static async insertWithCache(productData, productId, brandName, cache, stats) {
+    const variant_attributes = productData.variant_attributes || {};
+    const { ram, storage, color } = variant_attributes;
+    
+    if (!productId) return null;
+
+    // Smart variant key generation based on brand
+    const isApple = brandName && brandName.toLowerCase() === 'apple';
+    let variantKey;
+    
+    if (isApple && (ram === null || ram === undefined)) {
+      // For Apple products with missing RAM, use only storage and color
+      variantKey = `${productId}:apple:${storage || 0}:${color || 'default'}`;
+      console.log(`🍎 Apple product detected - creating variant with storage + color only`);
+    } else {
+      // Standard variant key for all other products
+      variantKey = `${productId}:${ram || 0}:${storage || 0}:${color || 'default'}`;
+    }
+
+    if (cache.has(variantKey)) {
+      return cache.get(variantKey);
+    }
+
+    try {
+      const attributes = {
+        ram_gb: ram || null,
+        storage_gb: storage || null,
+        color: color || null
+      };
+
+      const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes);
+      cache.set(variantKey, variant.id);
+      
+      if (created) {
+        stats.variants.created++;
+        if (isApple && (ram === null || ram === undefined)) {
+          stats.deduplication.apple_variants++;
+          console.log(`✅ Created Apple variant: ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
+        } else {
+          console.log(`✅ Created variant: ${ram || 'Unknown'}GB RAM, ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
+        }
+      } else {
+        stats.variants.existing++;
+      }
+      
+      return variant.id;
+    } catch (error) {
+      console.error(`❌ Error creating variant:`, error.message);
+      stats.errors.push(`Variant: ${variantKey} - ${error.message}`);
+      return null;
+    }
+  }
 }
 
 ProductVariant.init({

@@ -114,6 +114,37 @@ class Brand extends Model {
     this.is_active = true;
     await this.save();
   }
+
+  /**
+   * Enhanced insertion method with caching and statistics
+   * Used by DatabaseInserter for optimized brand creation
+   */
+  static async insertWithCache(brandName, cache, stats) {
+    if (!brandName) return null;
+
+    const normalizedName = brandName.trim();
+    if (cache.has(normalizedName)) {
+      return cache.get(normalizedName);
+    }
+
+    try {
+      const { brand, created } = await Brand.findOrCreateByName(normalizedName);
+      cache.set(normalizedName, brand.id);
+      
+      if (created) {
+        stats.brands.created++;
+        console.log(`✅ Created brand: ${normalizedName}`);
+      } else {
+        stats.brands.existing++;
+      }
+      
+      return brand.id;
+    } catch (error) {
+      console.error(`❌ Error creating brand "${normalizedName}":`, error.message);
+      stats.errors.push(`Brand: ${normalizedName} - ${error.message}`);
+      return null;
+    }
+  }
 }
 
 Brand.init({

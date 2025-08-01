@@ -295,6 +295,215 @@ class Product extends Model {
     this.status = 'discontinued';
     await this.save();
   }
+
+  /**
+   * Find product by exact model number match
+   */
+  static async findByModelNumber(modelNumber, brandId) {
+    try {
+      const product = await Product.findOne({
+        where: {
+          model_number: modelNumber,
+          brand_id: brandId
+        }
+      });
+      return product;
+    } catch (error) {
+      console.error(`❌ Error finding product by model number "${modelNumber}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Cross-field fuzzy search - model number against model names
+   */
+  static async findByModelNumberVsModelName(modelNumber, brandId, categoryId, threshold = 0.4) {
+    try {
+      const query = `
+        SELECT p.*, similarity(p.model_name, $1) as similarity_score
+        FROM products p
+        WHERE p.brand_id = $2 
+          AND ($3::uuid IS NULL OR p.category_id = $3)
+          AND similarity(p.model_name, $1) > $4
+        ORDER BY similarity_score DESC
+        LIMIT 1;
+      `;
+      
+      const results = await sequelize.query(query, {
+        bind: [modelNumber, brandId, categoryId, threshold],
+        type: sequelize.QueryTypes.SELECT
+      });
+      
+      if (results.length > 0) {
+        const productData = results[0];
+        const product = await Product.findByPk(productData.id);
+        return {
+          product,
+          similarity: productData.similarity_score,
+          matchType: 'cross_field_fuzzy'
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in cross-field fuzzy search for "${modelNumber}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Optimized fuzzy model name search using PostgreSQL trigrams
+   */
+  static async findByFuzzyModelNameOptimized(modelName, brandId, categoryId, threshold = 0.4) {
+    try {
+      const query = `
+        SELECT p.*, similarity(p.model_name, $1) as similarity_score
+        FROM products p
+        WHERE p.brand_id = $2 
+          AND ($3::uuid IS NULL OR p.category_id = $3)
+          AND similarity(p.model_name, $1) > $4
+        ORDER BY similarity_score DESC
+        LIMIT 1;
+      `;
+      
+      const results = await sequelize.query(query, {
+        bind: [modelName, brandId, categoryId, threshold],
+        type: sequelize.QueryTypes.SELECT
+      });
+      
+      if (results.length > 0) {
+        const productData = results[0];
+        const product = await Product.findByPk(productData.id);
+        return {
+          product,
+          similarity: productData.similarity_score,
+          matchType: 'fuzzy_model_name'
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in fuzzy model name search for "${modelName}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Optimized multi-step fuzzy matching using PostgreSQL trigrams
+   */
+  static async findByOptimizedFuzzySearch(modelName, modelNumber, brandId, categoryId) {
+    try {     
+      // Step 1: If we have a model number, try exact model number match first
+      if (modelNumber && modelNumber.trim() !== '') {
+        const exactMatch = await this.findByModelNumber(modelNumber, brandId);
+        if (exactMatch) {
+          console.log(`🎯 Exact model number match: ${modelNumber}`);
+          return { product: exactMatch, matchType: 'exact_model_number', similarity: 1.0 };
+        }
+      }
+
+      // Step 2: Cross-field fuzzy search - model number against model names
+      if (modelNumber && modelNumber.trim() !== '') {
+        const crossFieldMatch = await this.findByModelNumberVsModelName(modelNumber, brandId, categoryId);
+        if (crossFieldMatch) {
+          console.log(`🎯 Cross-field match: model number "${modelNumber}" -> model name "${crossFieldMatch.product.model_name}" (${crossFieldMatch.similarity})`);
+          return crossFieldMatch;
+        }
+      }
+
+      // Step 3: Fuzzy model name search using PostgreSQL trigrams
+      const fuzzyMatch = await this.findByFuzzyModelNameOptimized(modelName, brandId, categoryId);
+      if (fuzzyMatch) {
+        console.log(`🎯 Fuzzy model name match: "${modelName}" -> "${fuzzyMatch.product.model_name}" (${fuzzyMatch.similarity})`);
+        return fuzzyMatch;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in optimized fuzzy search for "${modelName}":`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Enhanced product insertion with deduplication, caching and statistics
+   */
+  static async insertWithCache(productData, brandId, categoryId, cache, stats) {
+    const { model_name, model_number } = productData.product_identifiers;
+    const key_specifications = productData.key_specifications || {};
+    
+    if (!model_name) return null;
+
+    const cacheKey = `${brandId}:${model_name}:${model_number || ''}`;
+    if (cache.has(cacheKey)) {
+      return cache.get(cacheKey);
+    }
+
+    try {
+      let matchedProduct = null;
+      let matchType = 'none';
+    
+      if (!matchedProduct) {
+        const fuzzyResult = await this.findByOptimizedFuzzySearch(model_name, model_number, brandId, categoryId);
+        if (fuzzyResult) {
+          matchedProduct = fuzzyResult.product;
+          matchType = fuzzyResult.matchType;
+          
+          // Update appropriate statistics
+          if (fuzzyResult.matchType === 'cross_field_fuzzy') {
+            stats.deduplication.cross_field_matches = (stats.deduplication.cross_field_matches || 0) + 1;
+          } else if (fuzzyResult.matchType === 'fuzzy_model_name') {
+            stats.deduplication.fuzzy_name_matches++;
+          }
+          
+          console.log(`🔍 Found existing product by ${fuzzyResult.matchType}: similarity ${(fuzzyResult.similarity * 100).toFixed(1)}%`);
+        }
+      }
+
+      // Phase 3: Create New Product (if no matches found)
+      if (!matchedProduct) {
+        const { product, created } = await Product.findOrCreateByDetails(model_name, brandId, categoryId);
+        
+        // Update product with additional data
+        const updateData = {
+          model_number: model_number || null,
+          specifications: key_specifications,
+          status: 'active'
+        };
+
+        if (created || !product.model_number) {
+          await product.update(updateData);
+        }
+
+        matchedProduct = product;
+        matchType = created ? 'created' : 'existing';
+        
+        if (created) {
+          stats.products.created++;
+          stats.deduplication.new_products++;
+          console.log(`✅ Created new product: ${model_name} (${model_number || 'No model number'})`);
+        } else {
+          stats.products.existing++;
+        }
+      } else {
+        // Update existing product with model number if it was missing
+        if (model_number && !matchedProduct.model_number) {
+          await matchedProduct.update({ model_number: model_number });
+          console.log(`📝 Updated existing product with model number: ${model_number}`);
+        }
+        stats.products.existing++;
+      }
+
+      // Cache the result
+      cache.set(cacheKey, matchedProduct.id);
+      
+      return matchedProduct.id;
+    } catch (error) {
+      console.error(`❌ Error in enhanced product deduplication "${model_name}":`, error.message);
+      stats.errors.push(`Product: ${model_name} - ${error.message}`);
+      return null;
+    }
+  }
 }
 
 Product.init({

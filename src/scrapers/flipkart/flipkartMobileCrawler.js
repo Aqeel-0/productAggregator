@@ -531,12 +531,14 @@ class FlipkartCrawler extends BaseCrawler {
 
   async _extractProductData(page) {
     try {
+      const html = await page.content();
+      const $ = cheerio.load(html);
       const title = await this._extractTitle(page);
       const pricing = await this._extractPricing(page);
       const rating = await this._extractRating(page);
-      const availability = await this._getAvailability(page);
-      const specifications = await this.get_specification(page);
-      const categories = await this._extractCategories(page);
+      const availability = await this._getAvailability($);
+      const specifications = await this._getspecification($);
+      const categories = await this._extractCategories($);
       const tags = await this._extractTags(page);
       const images = await this._extractImages(page);
       
@@ -698,10 +700,8 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  async _extractCategories(page) {
+  async _extractCategories($) {
     try {
-      const html = await page.content();
-      const $ = cheerio.load(html);
       
       const categories = [];
       
@@ -780,11 +780,8 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  async _getAvailability(page) {
+  async _getAvailability($) {
     try {
-      const html = await page.content();
-      const $ = cheerio.load(html);
-
       const availability = $('span.OGrnIL');
       if (availability.length === 0) {
         return "Not In Stock";
@@ -797,12 +794,9 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
        
-  async get_specification(page) {
+  async _getspecification($) {
     this.logger.info('Extracting specifications with Cheerio...');
     try {
-      const html = await page.content();
-      const $ = cheerio.load(html);
-
       const specifications = {};
       const mainContainer = $('div._1OjC5I');
 
@@ -869,7 +863,7 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 200,
+    maxProducts: 1,
     maxPages: 20,
     delayBetweenPages: 3000,
     maxConcurrent: 8,
