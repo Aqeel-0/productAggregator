@@ -353,7 +353,6 @@ class Listing extends Model {
         currency: listing_info.price?.currency || 'INR',
         rating: listing_info.rating?.score || null,
         review_count: listing_info.rating?.count || 0,
-        images: listing_info.image_url ? [listing_info.image_url] : null,
         stock_status: this.mapAvailabilityToStockStatus(listing_info.availability),
         scraped_at: source_details.scraped_at_utc ? new Date(source_details.scraped_at_utc) : new Date()
       };
@@ -473,10 +472,6 @@ Listing.init({
     }
   },
   shipping_info: {
-    type: DataTypes.JSONB,
-    allowNull: true
-  },
-  images: {
     type: DataTypes.JSONB,
     allowNull: true
   },

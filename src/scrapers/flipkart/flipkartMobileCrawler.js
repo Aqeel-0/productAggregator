@@ -33,7 +33,7 @@ class FlipkartCrawler extends BaseCrawler {
     };
     
     super({ ...defaultConfig, ...config });
-    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree';
+    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock';
     this.checkpointFile = path.join(__dirname, 'checkpoint-rate-limited.json');
     this.outputFile = path.join(__dirname, 'flipkart_scraped_data_rate_limited.json');
     this.productLinks = [];
@@ -551,7 +551,7 @@ class FlipkartCrawler extends BaseCrawler {
         category: categories,
         tags: tags,
         image: images.main,
-        //images: images.all
+        // images: images.all
       };
     } catch (error) {
       this.logger.error(`Error extracting product data: ${error.message}`);
@@ -766,12 +766,21 @@ class FlipkartCrawler extends BaseCrawler {
           }
         }
 
-        const imageElements = getAllElementsByXPath('//img[contains(@src, "rukminim")]');
-        allImages = imageElements.map(img => img.src).filter(src => src);
+        // const imageElements = $("img._0DkuPH");
+
+        // imageElements.each((_, img) => {
+        //   const $img = $(img);
+        //   const srcset = $img.attr('srcset');
+        //   if (srcset) {
+        //     // Extract the first URL from srcset
+        //     const firstUrl = srcset.split(',')[0].trim().split(' ')[0];
+        //     allImages.push(firstUrl);
+        //   }
+        // });
 
         return {
           main: mainImage,
-          all: allImages
+          // all: allImages
         };
       }, PRODUCT_SELECTORS);
     } catch (error) {
@@ -863,10 +872,10 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 1,
-    maxPages: 20,
+    maxProducts: 800,
+    maxPages: 60,
     delayBetweenPages: 3000,
-    maxConcurrent: 8,
+    maxConcurrent: 4,
     maxRetries: 3,
   });
   

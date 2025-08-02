@@ -354,7 +354,7 @@ class Product extends Model {
   /**
    * Optimized fuzzy model name search using PostgreSQL trigrams
    */
-  static async findByFuzzyModelNameOptimized(modelName, brandId, categoryId, threshold = 0.4) {
+  static async findByFuzzyModelNameOptimized(modelName, brandId, categoryId, incomingModelNumber = null, threshold = 0.92) {
     try {
       const query = `
         SELECT p.*, similarity(p.model_name, $1) as similarity_score
@@ -374,6 +374,16 @@ class Product extends Model {
       if (results.length > 0) {
         const productData = results[0];
         const product = await Product.findByPk(productData.id);
+        
+        // Model number validation: If both products have model numbers and they're different,
+        // treat them as different products regardless of name similarity
+        if (incomingModelNumber && product.model_number && 
+            incomingModelNumber.trim() !== '' && product.model_number.trim() !== '' &&
+            incomingModelNumber.trim() !== product.model_number.trim()) {
+          console.log(`🚫 Model number mismatch: "${incomingModelNumber}" vs "${product.model_number}" - treating as different products`);
+          return null;
+        }
+        
         return {
           product,
           similarity: productData.similarity_score,
@@ -411,8 +421,8 @@ class Product extends Model {
         }
       }
 
-      // Step 3: Fuzzy model name search using PostgreSQL trigrams
-      const fuzzyMatch = await this.findByFuzzyModelNameOptimized(modelName, brandId, categoryId);
+      // Step 3: Fuzzy model name search using PostgreSQL trigrams with model number validation
+      const fuzzyMatch = await this.findByFuzzyModelNameOptimized(modelName, brandId, categoryId, modelNumber);
       if (fuzzyMatch) {
         console.log(`🎯 Fuzzy model name match: "${modelName}" -> "${fuzzyMatch.product.model_name}" (${fuzzyMatch.similarity})`);
         return fuzzyMatch;

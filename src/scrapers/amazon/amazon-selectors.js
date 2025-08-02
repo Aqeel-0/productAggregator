@@ -69,6 +69,9 @@ const PRODUCT_SELECTORS = {
   MAIN_IMAGE: [
     '#landingImage', '.a-dynamic-image', '#imageBlock img', '.imgTagWrapper img'
   ],
+  OTHER_IMAGES: [
+    "li.imageThumbnail .a-button-text img"
+  ],
   
   // Availability XPaths - ADD YOUR XPATHS HERE
   AVAILABILITY: [

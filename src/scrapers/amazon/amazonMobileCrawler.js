@@ -918,7 +918,6 @@ class AmazonDetailCrawler extends BaseCrawler {
           }
         }
       }
-
       return {
         main: mainImage,
         all: [] // Can be expanded later if needed
@@ -1147,9 +1146,9 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 200,
+    maxProducts: 500,
     maxConcurrent: 10,
-    maxPages: 20,
+    maxPages: 50,
     delayBetweenPages: 3000
   });
   

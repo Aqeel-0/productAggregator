@@ -232,6 +232,7 @@ class ProductVariant extends Model {
    */
   static async insertWithCache(productData, productId, brandName, cache, stats) {
     const variant_attributes = productData.variant_attributes || {};
+    const listing_info = productData.listing_info || {};
     const { ram, storage, color } = variant_attributes;
     
     if (!productId) return null;
@@ -260,7 +261,33 @@ class ProductVariant extends Model {
         color: color || null
       };
 
+      // Prepare images array from listing info
+      const images = [];
+      if (listing_info.image_url) {
+        images.push({
+          url: listing_info.image_url,
+          type: 'main',
+          source: productData.source_details?.source_name || 'unknown',
+          scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
+        });
+      }
+
       const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes);
+      
+      // Update images if we have new image data
+      if (images.length > 0) {
+        const existingImages = variant.images || [];
+        const imageUrls = existingImages.map(img => img.url);
+        
+        // Add new images that don't already exist
+        const newImages = images.filter(img => !imageUrls.includes(img.url));
+        if (newImages.length > 0) {
+          const updatedImages = [...existingImages, ...newImages];
+          await variant.update({ images: updatedImages });
+          console.log(`📸 Added ${newImages.length} new image(s) to variant`);
+        }
+      }
+      
       cache.set(variantKey, variant.id);
       
       if (created) {

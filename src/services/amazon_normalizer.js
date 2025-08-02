@@ -112,6 +112,33 @@ class AmazonNormalizer {
    * Extract model name from product data
    */
   extractModelName(product) {
+    // Check if productName is "Product information" and productDetails has model name
+    if (product.productName === "Product information") {
+      const productDetails = product.specifications?.["Product Details"]?.productDetails;
+      
+      if (productDetails && Object.keys(productDetails).length > 0) {
+        const modelNameFromDetails = productDetails["model name"];
+        if (modelNameFromDetails && modelNameFromDetails.trim() !== '' && modelNameFromDetails !== '—') {
+          // Extract model name from the details (remove brand if present)
+          const brand = this.extractBrand(product);
+          let modelName = modelNameFromDetails;
+          
+          // Remove brand name from model name if it starts with it
+          if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+            modelName = modelName.substring(brand.length).trim();
+          }
+          
+          if (modelName && modelName.length > 1) {
+            return modelName;
+          }
+        }
+      }
+      
+      // If productDetails is empty, extract from title using regex
+      return this.extractModelNameFromTitle(product.title, product);
+    }
+    
+    // Use existing logic for other cases
     const {brand, model} = this.extractBrandAndModelName(product.productName);
     return model;
   }
@@ -149,6 +176,83 @@ class AmazonNormalizer {
     }
   
     return { brand, model };
+  }
+
+  /**
+   * Extract model name from title using regex patterns
+   */
+  extractModelNameFromTitle(title, product) {
+    if (!title) return '';
+    
+    const brand = this.extractBrand(product);
+    
+    // Comprehensive regex patterns for different model name formats
+    const modelPatterns = [
+      // Pattern 1: Brand + Model + Number (e.g., "Redmi 13 5G Prime Edition")
+      new RegExp(`(${brand}\\s+)([A-Za-z0-9]+\\s*[0-9]*[A-Za-z]*\\s*[0-9]*[A-Za-z]*)`, 'i'),
+      
+      // Pattern 2: Specific brand patterns with model extraction
+      /(Redmi\s+)([A-Za-z0-9]+)/i,
+      /(POCO\s+)([A-Za-z0-9]+)/i,
+      /(OnePlus\s+)([A-Za-z0-9]+)/i,
+      /(Nothing\s+Phone\s*)([0-9]*)/i,
+      /(Motorola\s+)([A-Za-z0-9]+)/i,
+      /(Vivo\s+)([A-Za-z0-9]+)/i,
+      /(Oppo\s+)([A-Za-z0-9]+)/i,
+      /(Realme\s+)([A-Za-z0-9]+)/i,
+      /(iQOO\s+)([A-Za-z0-9]+)/i,
+      /(Samsung\s+Galaxy\s+)([A-Za-z0-9]+)/i,
+      /(Apple\s+iPhone\s+)([0-9]+[A-Za-z]*)/i,
+      
+      // Pattern 3: Generic model patterns
+      /([A-Za-z]+[\s-]*[0-9]+[A-Za-z]*)/g,
+      /([A-Za-z]+\s+[A-Za-z]+\s*[0-9]*)/g
+    ];
+    
+    for (const pattern of modelPatterns) {
+      const matches = title.match(pattern);
+      if (matches) {
+        // For patterns with capture groups, use the second group (model part)
+        let modelName = matches.length > 1 ? matches[2] : matches[0];
+        
+        // Remove brand name if it's at the start
+        if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+          modelName = modelName.substring(brand.length).trim();
+        }
+        
+        // Clean the model name
+        modelName = this.cleanModelName(modelName);
+        
+        if (modelName && modelName.length > 1) {
+          return modelName;
+        }
+      }
+    }
+    
+    return '';
+  }
+
+  /**
+   * Clean model name by removing color, storage, and other irrelevant information
+   */
+  cleanModelName(modelName) {
+    if (!modelName) return '';
+    
+    let cleaned = modelName;
+    
+    // Remove color information (usually in parentheses or after comma)
+    cleaned = cleaned.replace(/\([^)]*\)/g, '').trim();
+    cleaned = cleaned.replace(/,[^,]*$/g, '').trim();
+    
+    // Remove storage information
+    cleaned = cleaned.replace(/\d+GB\s*RAM?/gi, '').trim();
+    cleaned = cleaned.replace(/\d+GB\s*Storage?/gi, '').trim();
+    cleaned = cleaned.replace(/\d+GB\s*ROM?/gi, '').trim();
+    cleaned = cleaned.replace(/\+\d+GB/gi, '').trim();
+    cleaned = cleaned.replace(/\s+(Mobile|Phone|Smartphone)$/i, '').trim();
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    return cleaned;
   }
 
   /**
