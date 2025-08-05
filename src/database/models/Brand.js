@@ -133,7 +133,6 @@ class Brand extends Model {
       
       if (created) {
         stats.brands.created++;
-        console.log(`✅ Created brand: ${normalizedName}`);
       } else {
         stats.brands.existing++;
       }

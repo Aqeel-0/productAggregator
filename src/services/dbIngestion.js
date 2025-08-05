@@ -9,6 +9,10 @@ class DatabaseInserter {
     this.categoryCache = new Map();
     this.productCache = new Map();
     this.variantCache = new Map();
+    this.currentPlatform = null;
+    this.platformStats = new Map(); // Track stats per platform
+    this.crossPlatformProducts = new Map(); // Track products found on multiple platforms with details
+    this.productPlatformMap = new Map(); // Track which platforms each product appears on
     this.stats = {
       brands: { created: 0, existing: 0 },
       categories: { created: 0, existing: 0 },
@@ -18,9 +22,16 @@ class DatabaseInserter {
       deduplication: {
         model_number_matches: 0,
         cross_field_matches: 0,
-        fuzzy_name_matches: 0,
         new_products: 0,
-        apple_variants: 0
+        apple_variants: 0,
+        cross_platform_merges: 0
+      },
+      crossPlatform: {
+        commonProducts: 0,
+        platformSpecificProducts: 0,
+        totalUniqueProducts: 0,
+        variantMerges: 0,
+        newVariantsOnExistingProducts: 0
       },
       errors: []
     };
@@ -44,15 +55,45 @@ class DatabaseInserter {
   }
 
   /**
-   * Get or create product using model method
+   * Get or create product using model method with dual model names
    */
   async getOrCreateProduct(productData, brandId, categoryId) {
-    return await Product.insertWithCache(productData, brandId, categoryId, this.productCache, this.stats);
+    // Initialize dual cache system if not already done
+    if (!this.modelNumberCache) {
+      const cacheSystem = Product.createDualCache();
+      this.modelNumberCache = cacheSystem.modelNumberCache;
+      this.modelNameCache = cacheSystem.modelNameCache;
+      this.dualCacheStats = cacheSystem.stats;
+      // Initialize deduplication stats if they don't exist
+      if (!this.stats.deduplication.exact_name_matches) {
+        this.stats.deduplication.exact_name_matches = 0;
+      }
+      if (!this.stats.deduplication.variant_5g_matches) {
+        this.stats.deduplication.variant_5g_matches = 0;
+      }
+    }
+
+    const result = await Product.insertWithCache(
+      productData,
+      brandId,
+      categoryId,
+      this.modelNumberCache,
+      this.modelNameCache,
+      this.dualCacheStats
+    );
+
+    // Merge updated statistics from dual cache system
+    this.stats.deduplication.model_number_matches = this.dualCacheStats.deduplication.model_number_matches;
+    this.stats.deduplication.exact_name_matches = this.dualCacheStats.deduplication.exact_name_matches;
+    this.stats.deduplication.variant_5g_matches = this.dualCacheStats.deduplication.variant_5g_matches;
+    this.stats.deduplication.new_products = this.dualCacheStats.deduplication.new_products;
+    
+    // Merge product creation statistics
+    this.stats.products.created = this.dualCacheStats.products.created;
+    this.stats.products.existing = this.dualCacheStats.products.existing;
+
+    return result;
   }
-
-
-
-
 
   /**
    * Get or create product variant using model method
@@ -69,76 +110,86 @@ class DatabaseInserter {
   }
 
   /**
-   * Process single product data with detailed logging
+   * Track cross-platform product information
    */
-  async processProduct(productData, index, showDetailedLog = false) {
+  trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant) {
+    const productKey = `${productData.product_identifiers?.brand}_${productData.product_identifiers?.model_name}`;
+
+    if (!this.productPlatformMap.has(productKey)) {
+      this.productPlatformMap.set(productKey, {
+        platforms: new Set(),
+        productId: productId,
+        modelName: productData.product_identifiers?.model_name,
+        brand: productData.product_identifiers?.brand,
+        wasNewProduct: wasNewProduct,
+        variants: new Set()
+      });
+    }
+
+    const productInfo = this.productPlatformMap.get(productKey);
+    productInfo.platforms.add(this.currentPlatform);
+
+    // Track variant information
+    const variantKey = `${productData.variant_attributes?.ram || 0}_${productData.variant_attributes?.storage || 0}_${productData.variant_attributes?.color || 'default'}`;
+    productInfo.variants.add(`${this.currentPlatform}:${variantKey}`);
+
+    // Update cross-platform stats
+    if (productInfo.platforms.size > 1) {
+      this.stats.crossPlatform.commonProducts++;
+      if (!wasNewProduct && wasNewVariant) {
+        this.stats.crossPlatform.newVariantsOnExistingProducts++;
+      }
+    }
+  }
+
+  /**
+   * Process single product data with minimal logging
+   */
+  async processProduct(productData, index) {
     try {
       const productName = productData.product_identifiers?.model_name || 'Unknown Product';
-      console.log(`\n📱 Processing product ${index + 1}: ${productName}`);
-      
-      if (showDetailedLog) {
-        console.log(`📋 Original breadcrumb: [${productData.source_metadata?.category_breadcrumb?.join(' -> ') || 'None'}]`);
-      }
-      
+
       // Extract data
       const brand_name = productData.product_identifiers?.brand;
-      const breadcrumb = productData.source_metadata?.category_breadcrumb;
 
       if (!brand_name) {
-        console.log(`⚠️  Skipping product ${index + 1}: No brand name`);
+        this.stats.errors.push(`Product ${index + 1}: No brand name`);
         return null;
       }
 
       // Step 1: Create/Get Brand
       const brandId = await this.getOrCreateBrand(brand_name);
       if (!brandId) {
-        console.log(`⚠️  Skipping product ${index + 1}: Could not create brand`);
+        this.stats.errors.push(`Product ${index + 1}: Could not create brand`);
         return null;
-      }
-      
-      if (showDetailedLog) {
-        console.log(`🏷️  Brand: ${brand_name} (ID: ${brandId})`);
       }
 
       // Step 2: Get Category based on product type
       const categoryId = await this.getCategoryForProduct(productData);
-      if (showDetailedLog && categoryId) {
-        const category = await Category.findByPk(categoryId);
-        console.log(`📂 Category: ${category?.name} (Path: ${category?.path})`);
-      }
 
       // Step 3: Create/Get Product
+      const productCacheKey = `${brand_name}_${productName}`;
+      const wasNewProduct = !this.productCache.has(productCacheKey);
       const productId = await this.getOrCreateProduct(productData, brandId, categoryId);
       if (!productId) {
-        console.log(`⚠️  Skipping product ${index + 1}: Could not create product`);
+        this.stats.errors.push(`Product ${index + 1}: Could not create product`);
         return null;
-      }
-      
-      if (showDetailedLog) {
-        console.log(`📱 Product: ${productName} (ID: ${productId})`);
       }
 
       // Step 4: Create/Get Variant
+      const variantKey = `${productId}_${productData.variant_attributes?.ram || 0}_${productData.variant_attributes?.storage || 0}_${productData.variant_attributes?.color || 'default'}`;
+      const wasNewVariant = !this.variantCache.has(variantKey);
       const variantId = await this.getOrCreateVariant(productData, productId, brand_name);
       if (!variantId) {
-        console.log(`⚠️  Skipping product ${index + 1}: Could not create variant`);
+        this.stats.errors.push(`Product ${index + 1}: Could not create variant`);
         return null;
-      }
-      
-      if (showDetailedLog) {
-        const variant = productData.variant_attributes;
-        console.log(`🔧 Variant: ${variant?.ram || 0}GB RAM, ${variant?.storage || 0}GB Storage, ${variant?.color || 'Default'} (ID: ${variantId})`);
       }
 
       // Step 5: Create Listing
       const listingId = await this.createListing(productData, variantId);
-      
-      if (showDetailedLog && listingId) {
-        const price = productData.listing_info?.price?.current || 0;
-        const store = productData.source_details?.source_name || 'unknown';
-        console.log(`🛒 Listing: ${store} - ₹${price} (ID: ${listingId})`);
-        console.log(`✅ Complete data flow: Brand -> Category -> Product -> Variant -> Listing`);
-      }
+
+      // Track cross-platform information
+      this.trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant);
 
       return {
         brandId,
@@ -149,7 +200,6 @@ class DatabaseInserter {
       };
 
     } catch (error) {
-      console.error(`❌ Error processing product ${index + 1}:`, error.message);
       this.stats.errors.push(`Product ${index + 1}: ${error.message}`);
       return null;
     }
@@ -159,194 +209,193 @@ class DatabaseInserter {
    * Update product variant counts (removed price stats as they belong to listings)
    */
   async updateProductStats() {
-    console.log('\n📊 Updating product variant counts...');
-    
     try {
       const products = await Product.findAll();
       let updated = 0;
 
       for (const product of products) {
         const variantCount = await ProductVariant.count({
-          where: { 
+          where: {
             product_id: product.id,
-            is_active: true 
+            is_active: true
           }
         });
-        
+
         await product.update({ variant_count: variantCount });
         updated++;
-        
-        if (updated % 10 === 0) {
-          console.log(`Updated ${updated}/${products.length} products...`);
-        }
       }
 
-      console.log(`✅ Updated variant counts for ${updated} products`);
     } catch (error) {
       console.error('❌ Error updating product statistics:', error.message);
     }
   }
 
   /**
-   * Print final statistics
+   * Analyze cross-platform data and update stats
    */
-  printStats() {
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 INSERTION STATISTICS');
-    console.log('='.repeat(50));
-    
-    console.log(`\n🏷️  Brands:`);
-    console.log(`   Created: ${this.stats.brands.created}`);
-    console.log(`   Existing: ${this.stats.brands.existing}`);
-    console.log(`   Total: ${this.stats.brands.created + this.stats.brands.existing}`);
+  analyzeCrossPlatformData() {
+    let commonProducts = 0;
+    let platformSpecificProducts = 0;
+    const platformBreakdown = new Map();
+    const commonProductsList = [];
+    const variantOverlapStats = {
+      totalVariantOverlaps: 0,
+      uniqueVariantsPerPlatform: new Map()
+    };
 
-    console.log(`\n📂 Categories:`);
-    console.log(`   Created: ${this.stats.categories.created}`);
-    console.log(`   Existing: ${this.stats.categories.existing}`);
-    console.log(`   Total: ${this.stats.categories.created + this.stats.categories.existing}`);
+    for (const [productKey, productInfo] of this.productPlatformMap) {
+      if (productInfo.platforms.size > 1) {
+        commonProducts++;
+        commonProductsList.push({
+          brand: productInfo.brand,
+          model: productInfo.modelName,
+          platforms: Array.from(productInfo.platforms),
+          variantCount: productInfo.variants.size
+        });
 
-    console.log(`\n📱 Products:`);
-    console.log(`   Created: ${this.stats.products.created}`);
-    console.log(`   Existing: ${this.stats.products.existing}`);
-    console.log(`   Total: ${this.stats.products.created + this.stats.products.existing}`);
+        // Analyze variant overlaps for common products
+        const platformVariants = new Map();
+        for (const variantKey of productInfo.variants) {
+          const [platform, variant] = variantKey.split(':');
+          if (!platformVariants.has(platform)) {
+            platformVariants.set(platform, new Set());
+          }
+          platformVariants.get(platform).add(variant);
+        }
 
-    console.log(`\n🔧 Variants:`);
-    console.log(`   Created: ${this.stats.variants.created}`);
-    console.log(`   Existing: ${this.stats.variants.existing}`);
-    console.log(`   Total: ${this.stats.variants.created + this.stats.variants.existing}`);
+        // Count unique variants per platform for this product
+        for (const [platform, variants] of platformVariants) {
+          const currentCount = variantOverlapStats.uniqueVariantsPerPlatform.get(platform) || 0;
+          variantOverlapStats.uniqueVariantsPerPlatform.set(platform, currentCount + variants.size);
+        }
 
-    console.log(`\n🛒 Listings:`);
-    console.log(`   Created: ${this.stats.listings.created}`);
-    console.log(`   Updated: ${this.stats.listings.existing}`);
-    console.log(`   Total: ${this.stats.listings.created + this.stats.listings.existing}`);
-
-    console.log(`\n🔍 Enhanced Deduplication:`);
-    console.log(`   Model Number Matches: ${this.stats.deduplication.model_number_matches}`);
-    console.log(`   Cross-Field Matches (Model# → Model Name): ${this.stats.deduplication.cross_field_matches || 0}`);
-    console.log(`   Fuzzy Name Matches: ${this.stats.deduplication.fuzzy_name_matches}`);
-    console.log(`   New Products Created: ${this.stats.deduplication.new_products}`);
-    console.log(`   Apple Variants (Storage+Color): ${this.stats.deduplication.apple_variants}`);
-    
-    const totalMatches = this.stats.deduplication.model_number_matches + 
-                        (this.stats.deduplication.cross_field_matches || 0) + 
-                        this.stats.deduplication.fuzzy_name_matches;
-    const totalProcessed = totalMatches + this.stats.deduplication.new_products;
-    if (totalProcessed > 0) {
-      const deduplicationRate = ((totalMatches / totalProcessed) * 100).toFixed(1);
-      console.log(`   Deduplication Rate: ${deduplicationRate}%`);
-    }
-
-    if (this.stats.errors.length > 0) {
-      console.log(`\n❌ Errors (${this.stats.errors.length}):`);
-      this.stats.errors.slice(0, 10).forEach(error => {
-        console.log(`   - ${error}`);
-      });
-      if (this.stats.errors.length > 10) {
-        console.log(`   ... and ${this.stats.errors.length - 10} more errors`);
+      } else {
+        platformSpecificProducts++;
+        const platform = Array.from(productInfo.platforms)[0];
+        platformBreakdown.set(platform, (platformBreakdown.get(platform) || 0) + 1);
       }
     }
+
+    this.stats.crossPlatform.commonProducts = commonProducts;
+    this.stats.crossPlatform.platformSpecificProducts = platformSpecificProducts;
+    this.stats.crossPlatform.totalUniqueProducts = this.productPlatformMap.size;
+
+    return {
+      platformBreakdown,
+      commonProductsList: commonProductsList.slice(0, 10), // Show top 10 common products
+      variantOverlapStats
+    };
   }
 
   /**
-   * Test single product insertion with detailed logging
+   * Print comprehensive statistics with cross-platform insights
    */
-  async testSingleProductInsertion(productData) {
-    try {
-      console.log('🧪 TESTING SINGLE PRODUCT INSERTION');
-      console.log('='.repeat(60));
-      
-      // Test database connection
-      await sequelize.authenticate();
-      console.log('✅ Database connection established');
+  printStats() {
+    console.log('\n' + '='.repeat(60));
+    console.log('📊 DATABASE INGESTION SUMMARY');
+    console.log('='.repeat(60));
 
-      console.log('\n📋 INPUT DATA:');
-      console.log('Source:', productData.source_details?.source_name);
-      console.log('Brand:', productData.product_identifiers?.brand);
-      console.log('Model:', productData.product_identifiers?.model_name);
-      console.log('Original Breadcrumb:', productData.source_metadata?.category_breadcrumb?.join(' -> '));
-      console.log('Variant:', `${productData.variant_attributes?.ram || 0}GB RAM, ${productData.variant_attributes?.storage || 0}GB Storage, ${productData.variant_attributes?.color || 'Default'}`);
-      console.log('Price:', `₹${productData.listing_info?.price?.current || 0}`);
+    // Analyze cross-platform data
+    const { platformBreakdown, commonProductsList, variantOverlapStats } = this.analyzeCrossPlatformData();
 
-      console.log('\n🔄 PROCESSING STEPS:');
-      const result = await this.processProduct(productData, 0, true);
+    console.log(`\n🔄 CROSS-PLATFORM ANALYSIS:`);
+    console.log(`   Total Unique Products: ${this.stats.crossPlatform.totalUniqueProducts}`);
+    console.log(`   Common Products (Multi-Platform): ${this.stats.crossPlatform.commonProducts}`);
+    console.log(`   Platform-Specific Products: ${this.stats.crossPlatform.platformSpecificProducts}`);
 
-      if (result) {
-        console.log('\n📊 FINAL DATABASE RECORDS:');
-        
-        // Show the actual database records created
-        const brand = await Brand.findByPk(result.brandId);
-        const category = await Category.findByPk(result.categoryId);
-        const product = await Product.findByPk(result.productId);
-        const variant = await ProductVariant.findByPk(result.variantId);
-        const listing = await Listing.findByPk(result.listingId);
-
-        console.log(`\n🏷️  BRANDS TABLE:`);
-        console.log(`   ID: ${brand?.id}`);
-        console.log(`   Name: ${brand?.name}`);
-        console.log(`   Slug: ${brand?.slug}`);
-
-        console.log(`\n📂 CATEGORIES TABLE:`);
-        console.log(`   ID: ${category?.id}`);
-        console.log(`   Name: ${category?.name}`);
-        console.log(`   Path: ${category?.path}`);
-        console.log(`   Level: ${category?.level}`);
-
-        console.log(`\n📱 PRODUCTS TABLE:`);
-        console.log(`   ID: ${product?.id}`);
-        console.log(`   Model Name: ${product?.model_name}`);
-        console.log(`   Model Number: ${product?.model_number}`);
-        console.log(`   Brand ID: ${product?.brand_id}`);
-        console.log(`   Category ID: ${product?.category_id}`);
-        console.log(`   Status: ${product?.status}`);
-
-        console.log(`\n🔧 PRODUCT_VARIANTS TABLE:`);
-        console.log(`   ID: ${variant?.id}`);
-        console.log(`   Product ID: ${variant?.product_id}`);
-        console.log(`   Name: ${variant?.name}`);
-        console.log(`   Attributes: ${JSON.stringify(variant?.attributes)}`);
-        console.log(`   RAM: ${variant?.attributes?.ram_gb || 'N/A'}GB`);
-        console.log(`   Storage: ${variant?.attributes?.storage_gb || 'N/A'}GB`);
-        console.log(`   Color: ${variant?.attributes?.color || 'N/A'}`);
-
-        console.log(`\n🛒 LISTINGS TABLE:`);
-        console.log(`   ID: ${listing?.id}`);
-        console.log(`   Variant ID: ${listing?.variant_id}`);
-        console.log(`   Store: ${listing?.store_name}`);
-        console.log(`   Price: ₹${listing?.price}`);
-        console.log(`   Original Price: ₹${listing?.original_price}`);
-        console.log(`   Discount: ${listing?.discount_percentage}%`);
-        console.log(`   Rating: ${listing?.rating}`);
-        console.log(`   Availability: ${listing?.availability}`);
-        console.log(`   Stock Status: ${listing?.stock_status}`);
-        console.log(`   URL: ${listing?.url?.substring(0, 50)}...`);
-
-        console.log('\n✅ Single product insertion test completed successfully!');
-        return result;
-      } else {
-        console.log('\n❌ Single product insertion test failed!');
-        return null;
-      }
-
-    } catch (error) {
-      console.error('\n❌ Single product test failed:', error.message);
-      throw error;
+    if (this.stats.crossPlatform.totalUniqueProducts > 0) {
+      const commonRate = ((this.stats.crossPlatform.commonProducts / this.stats.crossPlatform.totalUniqueProducts) * 100).toFixed(1);
+      console.log(`   Cross-Platform Coverage: ${commonRate}%`);
     }
+
+    if (platformBreakdown.size > 0) {
+      console.log(`\n   Platform-Specific Breakdown:`);
+      for (const [platform, count] of platformBreakdown) {
+        console.log(`     ${platform}: ${count} exclusive products`);
+      }
+    }
+
+    if (commonProductsList.length > 0) {
+      console.log(`\n   Sample Common Products:`);
+      commonProductsList.slice(0, 5).forEach(product => {
+        console.log(`     ${product.brand} ${product.model} (${product.platforms.join(', ')}) - ${product.variantCount} variants`);
+      });
+      if (commonProductsList.length > 5) {
+        console.log(`     ... and ${commonProductsList.length - 5} more common products`);
+      }
+    }
+
+    console.log(`\n📱 PRODUCTS:`);
+    console.log(`   New Products Created: ${this.stats.products.created}`);
+    console.log(`   Existing Products Found: ${this.stats.products.existing}`);
+    console.log(`   Total Products Processed: ${this.stats.products.created + this.stats.products.existing}`);
+
+    console.log(`\n🔧 VARIANTS:`);
+    console.log(`   New Variants Created: ${this.stats.variants.created}`);
+    console.log(`   Existing Variants Found: ${this.stats.variants.existing}`);
+    console.log(`   New Variants on Existing Products: ${this.stats.crossPlatform.newVariantsOnExistingProducts}`);
+    console.log(`   Total Variants Processed: ${this.stats.variants.created + this.stats.variants.existing}`);
+
+    if (variantOverlapStats.uniqueVariantsPerPlatform.size > 0) {
+      console.log(`\n   Variant Distribution for Common Products:`);
+      for (const [platform, count] of variantOverlapStats.uniqueVariantsPerPlatform) {
+        console.log(`     ${platform}: ${count} variants across common products`);
+      }
+    }
+
+    console.log(`\n🛒 LISTINGS:`);
+    console.log(`   New Listings Created: ${this.stats.listings.created}`);
+    console.log(`   Existing Listings Updated: ${this.stats.listings.existing}`);
+    console.log(`   Total Listings Processed: ${this.stats.listings.created + this.stats.listings.existing}`);
+
+    console.log(`\n🏷️  BRANDS & CATEGORIES:`);
+    console.log(`   New Brands: ${this.stats.brands.created} | Existing: ${this.stats.brands.existing}`);
+    console.log(`   New Categories: ${this.stats.categories.created} | Existing: ${this.stats.categories.existing}`);
+
+    console.log(`\n🔍 DEDUPLICATION PERFORMANCE:`);
+    console.log(`   Model Number Matches: ${this.stats.deduplication.model_number_matches}`);
+    console.log(`   Exact Model Name Matches: ${this.stats.deduplication.exact_name_matches || 0}`);
+    console.log(`   5G Variant Matches: ${this.stats.deduplication.variant_5g_matches || 0}`);
+    console.log(`   Fuzzy Name Matches: ${this.stats.deduplication.fuzzy_name_matches || 0}`);
+    console.log(`   Apple Variants (Storage+Color): ${this.stats.deduplication.apple_variants || 0}`);
+
+    const totalMatches = this.stats.deduplication.model_number_matches +
+      (this.stats.deduplication.exact_name_matches || 0) +
+      (this.stats.deduplication.variant_5g_matches || 0) +
+      (this.stats.deduplication.fuzzy_name_matches || 0);
+    const totalProcessed = totalMatches + (this.stats.deduplication.new_products || 0);
+    if (totalProcessed > 0) {
+      const deduplicationRate = ((totalMatches / totalProcessed) * 100).toFixed(1);
+      console.log(`   Overall Deduplication Rate: ${deduplicationRate}%`);
+    }
+
+    if (this.stats.errors.length > 0) {
+      console.log(`\n❌ PROCESSING ERRORS (${this.stats.errors.length}):`);
+      this.stats.errors.slice(0, 5).forEach(error => {
+        console.log(`   - ${error}`);
+      });
+      if (this.stats.errors.length > 5) {
+        console.log(`   ... and ${this.stats.errors.length - 5} more errors`);
+      }
+    }
+
+    console.log('\n' + '='.repeat(60));
   }
+
 
   /**
    * Process single normalized data file
    */
   async insertDataFromFile(dataFile, sourceName = 'unknown') {
     try {
-      console.log(`🚀 Starting insertion for ${sourceName}...`);
-      
+      this.currentPlatform = sourceName;
+      console.log(`🚀 Processing ${sourceName} data...`);
+
       // Test database connection
       await sequelize.authenticate();
-      console.log('✅ Database connection established');
 
       // Sync models (create tables if they don't exist)
       await sequelize.sync();
-      console.log('✅ Database models synchronized');
 
       // Load data file
       if (!fs.existsSync(dataFile)) {
@@ -356,24 +405,42 @@ class DatabaseInserter {
       const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
       console.log(`📊 Loaded ${data.length} ${sourceName} products`);
 
-      // Process data
-      console.log(`\n📱 Processing ${sourceName} data...`);
+      // Store initial counts for platform-specific stats
+      const initialStats = {
+        products: this.stats.products.created + this.stats.products.existing,
+        variants: this.stats.variants.created + this.stats.variants.existing,
+        listings: this.stats.listings.created + this.stats.listings.existing
+      };
+
+      // Process data with minimal logging
+      let processed = 0;
+      let skipped = 0;
+
       for (let i = 0; i < data.length; i++) {
-        await this.processProduct(data[i], i);
-        
-        // Progress indicator
-        if ((i + 1) % 25 === 0) {
-          console.log(`\n📈 Progress: ${i + 1}/${data.length} ${sourceName} products processed`);
+        const result = await this.processProduct(data[i], i);
+        if (result) {
+          processed++;
+        } else {
+          skipped++;
+        }
+
+        // Progress indicator every 50 products
+        if ((i + 1) % 50 === 0) {
+          console.log(`📈 Progress: ${i + 1}/${data.length} processed (${processed} successful, ${skipped} skipped)`);
         }
       }
 
-      // Update product statistics
-      await this.updateProductStats();
+      // Calculate platform-specific stats
+      const platformStats = {
+        products: (this.stats.products.created + this.stats.products.existing) - initialStats.products,
+        variants: (this.stats.variants.created + this.stats.variants.existing) - initialStats.variants,
+        listings: (this.stats.listings.created + this.stats.listings.existing) - initialStats.listings,
+        processed: processed,
+        skipped: skipped
+      };
 
-      // Print final statistics
-      this.printStats();
-
-      console.log(`\n✅ ${sourceName} insertion completed successfully!`);
+      console.log(`\n✅ ${sourceName} completed: ${platformStats.processed} products processed, ${platformStats.skipped} skipped`);
+      console.log(`   Products: ${platformStats.products} | Variants: ${platformStats.variants} | Listings: ${platformStats.listings}`);
 
     } catch (error) {
       console.error(`\n❌ ${sourceName} insertion failed:`, error.message);
@@ -382,7 +449,7 @@ class DatabaseInserter {
   }
 
   /**
-   * Process multiple normalized data files
+   * Process multiple normalized data files with comprehensive cross-platform analysis
    */
   async insertAllNormalizedData() {
     const normalizedFiles = [
@@ -390,37 +457,57 @@ class DatabaseInserter {
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' }
     ];
 
-    console.log('🚀 Starting batch insertion for all normalized data...\n');
+    console.log('🚀 Starting cross-platform database ingestion...\n');
 
-    for (const { file, source } of normalizedFiles) {
-      if (fs.existsSync(file)) {
-        console.log(`\n${'='.repeat(60)}`);
-        console.log(`📂 Processing ${source} data from: ${file}`);
-        console.log('='.repeat(60));
-        
-        try {
-          await this.insertDataFromFile(file, source);
-        } catch (error) {
-          console.error(`❌ Failed to process ${source} data:`, error.message);
-          // Continue with next file instead of stopping
-        }
-      } else {
-        console.log(`⚠️  ${source} file not found: ${file}`);
+    // Test database connection once
+    await sequelize.authenticate();
+    console.log('✅ Database connection established');
+    await sequelize.sync();
+    console.log('✅ Database models synchronized\n');
+
+    const availableFiles = normalizedFiles.filter(({ file }) => fs.existsSync(file));
+
+    if (availableFiles.length === 0) {
+      console.log('❌ No normalized data files found');
+      return;
+    }
+
+    console.log(`📂 Found ${availableFiles.length} data files to process:`);
+    availableFiles.forEach(({ source, file }) => {
+      console.log(`   - ${source}: ${path.basename(file)}`);
+    });
+    console.log();
+
+    // Process each platform
+    for (const { file, source } of availableFiles) {
+      console.log(`${'─'.repeat(50)}`);
+      try {
+        await this.insertDataFromFile(file, source);
+      } catch (error) {
+        console.error(`❌ Failed to process ${source} data:`, error.message);
+        // Continue with next file instead of stopping
       }
     }
 
-    console.log('\n🎉 Batch insertion completed!');
+    // Update product statistics
+    console.log('\n📊 Updating product variant counts...');
+    await this.updateProductStats();
+
+    // Print comprehensive final statistics
+    this.printStats();
+
+    console.log('🎉 Cross-platform ingestion completed successfully!');
   }
 }
 
 // Main execution functions
 async function main() {
   const inserter = new DatabaseInserter();
-  
+
   try {
     // Check command line arguments
     const args = process.argv.slice(2);
-    
+
     if (args.length === 0) {
       // No arguments - process all normalized files
       await inserter.insertAllNormalizedData();

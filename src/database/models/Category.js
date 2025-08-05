@@ -253,7 +253,6 @@ class Category extends Model {
     
     // Handle undefined category name
     if (!targetCategoryName) {
-      console.warn(`⚠️  No category found in breadcrumb position 3. Using default category.`);
       // Default to smartphones category for mobile devices
       targetCategoryName = 'Smartphones';
     }

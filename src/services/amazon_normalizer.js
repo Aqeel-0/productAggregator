@@ -19,22 +19,25 @@ class AmazonNormalizer {
    */
   normalizeProducts(products) {
     const normalized = [];
-    
+
     for (const product of products) {
       try {
         // Skip products with null or empty titles
-        if (!product.title || product.title.trim() === '') {
-          console.error(`Error normalizing product: Product has null or empty title - skipping`, product.title);
+        if (!product || !product.title || typeof product.title !== 'string' || product.title.trim() === '') {
+          console.error(`Error normalizing product: Product has null or empty title - skipping`, product?.title || 'No title');
           continue;
         }
 
         const normalizedProduct = this.normalizeProduct(product);
-        normalized.push(normalizedProduct);
+        if (normalizedProduct) {
+          normalized.push(normalizedProduct);
+        }
       } catch (error) {
-        console.error(`Error normalizing product: ${error.message}`, product.title);
+        console.error(`Error normalizing product: ${error.message}`, product?.title || 'Unknown product');
+        // Continue processing other products instead of failing completely
       }
     }
-    
+
     return normalized;
   }
 
@@ -43,7 +46,7 @@ class AmazonNormalizer {
    */
   normalizeProduct(product) {
     const specs = product.specifications || {};
-    
+
     // Store current title for fallback extractions
     this.currentTitle = product.title;
 
@@ -53,27 +56,27 @@ class AmazonNormalizer {
         url: product.url || null,
         scraped_at_utc: new Date().toISOString()
       },
-      
+
       product_identifiers: {
         brand: this.extractBrand(product),
-        model_name: this.extractModelName(product),
+        ...this.extractModelName(product), // This now returns { model_name, model_name_with_5g }
         original_title: product.title || null,
         model_number: this.extractModelNumber(specs)
       },
-      
+
       variant_attributes: {
         color: this.extractColor(specs),
         ram: this.extractRAM(specs),
         availability: product.availability,
         storage: this.extractStorage(specs)
       },
-      
+
       listing_info: {
         price: this.normalizePrice(product.price),
         rating: this.normalizeRating(product.rating),
         image_url: product.image || null
       },
-      
+
       key_specifications: {
         display: this.extractDisplaySpecs(specs),
         performance: this.extractPerformanceSpecs(specs),
@@ -82,7 +85,7 @@ class AmazonNormalizer {
         connectivity: this.extractConnectivitySpecs(specs),
         design: this.extractDesignSpecs(specs)
       },
-      
+
       source_metadata: {
         category_breadcrumb: product.categories || []
       }
@@ -93,8 +96,10 @@ class AmazonNormalizer {
    * Extract brand from product data
    */
   extractBrand(product) {
+    if (!product) return null;
+
     // First check title for Apple products specifically
-    if (product.title && product.title.toLowerCase().includes('apple')) {
+    if (product.title && typeof product.title === 'string' && product.title.toLowerCase().includes('apple')) {
       return 'Apple';
     }
 
@@ -109,51 +114,336 @@ class AmazonNormalizer {
   }
 
   /**
-   * Extract model name from product data
+   * Validate model name against product title with 80% similarity threshold
    */
-  extractModelName(product) {
-    // Check if productName is "Product information" and productDetails has model name
-    if (product.productName === "Product information") {
-      const productDetails = product.specifications?.["Product Details"]?.productDetails;
-      
-      if (productDetails && Object.keys(productDetails).length > 0) {
-        const modelNameFromDetails = productDetails["model name"];
-        if (modelNameFromDetails && modelNameFromDetails.trim() !== '' && modelNameFromDetails !== '—') {
-          // Extract model name from the details (remove brand if present)
-          const brand = this.extractBrand(product);
-          let modelName = modelNameFromDetails;
-          
-          // Remove brand name from model name if it starts with it
-          if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
-            modelName = modelName.substring(brand.length).trim();
-          }
-          
-          if (modelName && modelName.length > 1) {
-            return modelName;
-          }
+  validateModelNameAgainstTitle(modelName, title) {
+    if (!modelName || !title) return false;
+
+    // Normalize strings for comparison
+    const normalizedModel = modelName.toLowerCase().trim();
+    const normalizedTitle = title.toLowerCase();
+
+    // Split model name into words for better matching
+    const modelWords = normalizedModel.split(/\s+/).filter(word => word.length > 0);
+
+    if (modelWords.length === 0) return false;
+
+    // Count how many model words appear in the title
+    let matchedWords = 0;
+
+    modelWords.forEach(word => {
+      // Check if word appears in title (allowing for partial matches for very short words)
+      if (word.length <= 2) {
+        // For very short words (like "13", "S24"), require exact word boundary match
+        const wordPattern = new RegExp(`\\b${this.escapeRegex(word)}\\b`, 'i');
+        if (wordPattern.test(title)) {
+          matchedWords++;
+        }
+      } else {
+        // For longer words, allow substring matching
+        if (normalizedTitle.includes(word)) {
+          matchedWords++;
         }
       }
-      
-      // If productDetails is empty, extract from title using regex
-      return this.extractModelNameFromTitle(product.title, product);
+    });
+
+    // Calculate similarity percentage
+    const similarity = matchedWords / modelWords.length;
+
+    // Return true if 80% or more of the model name words are found in title
+    return similarity >= 0.8;
+  }
+
+  /**
+   * Enhanced model name extraction with dual model name generation
+   */
+  extractModelName(product) {
+    const candidates = [];
+
+    // PHASE 1: Enhanced Specs Validation (NEW APPROACH)
+    const specModelName = this.getModelFromSpecs(product);
+    if (specModelName && this.isValidSpecModelName(specModelName, product)) {
+
+      // Validate against title with 80% threshold
+      if (this.validateModelNameAgainstTitle(specModelName, product.title)) {
+        const brand = this.extractBrand(product);
+        const cleanedSpecModel = this.cleanModelNameFromBrand(specModelName, brand);
+        const finalCleanedModel = this.cleanModelName(cleanedSpecModel);
+
+        candidates.push({
+          source: 'specs_validated',
+          value: finalCleanedModel,
+          confidence: 0.9, // Higher confidence due to title validation
+          validation: 'title_validated'
+        });
+      } else {
+        // Still include as candidate but with lower confidence
+        const brand = this.extractBrand(product);
+        const cleanedSpecModel = this.cleanModelNameFromBrand(specModelName, brand);
+        candidates.push({
+          source: 'specs_unvalidated',
+          value: cleanedSpecModel,
+          confidence: 0.5, // Lower confidence due to failed validation
+          validation: 'title_failed'
+        });
+      }
     }
-    
-    // Use existing logic for other cases
-    const {brand, model} = this.extractBrandAndModelName(product.productName);
-    return model;
+
+    // Candidate 2: Model name from productName
+    if (product.productName && product.productName !== "Product information") {
+      const { brand, model } = this.extractBrandAndModelName(product.productName);
+      if (model && this.isValidModelName(model)) {
+        candidates.push({
+          source: 'productName',
+          value: model,
+          confidence: 0.8 // Higher confidence as it's usually more accurate
+        });
+      }
+    }
+
+    // Candidate 3: Model name from title
+    const titleModel = this.extractModelNameFromTitle(product.title, product);
+    if (titleModel && this.isValidModelName(titleModel)) {
+      candidates.push({
+        source: 'title',
+        value: titleModel,
+        confidence: 0.6 // Lower confidence due to parsing complexity
+      });
+    }
+
+    // Cross-validate and select best candidate
+    const bestModelName = this.selectBestModelNameCandidate(candidates, product);
+
+    // Process the model name through color removal and dual name generation
+    return this.processModelNameWithDualGeneration(bestModelName, product);
+  }
+
+  /**
+   * Process model name with color removal and dual model name generation
+   */
+  processModelNameWithDualGeneration(modelName, product) {
+    if (!modelName) return { model_name: null, model_name_with_5g: null };
+
+    // Step 1: Remove color from model name if present
+    const colorRemovedModelName = this.removeColorFromModelName(modelName, product);
+
+    // Step 2: Generate dual model names (base and 5G variant)
+    const dualModelNames = this.generateDualModelNames(colorRemovedModelName);
+
+    return dualModelNames;
+  }
+
+  /**
+   * Generate dual model names - base model name and network variant (4G/5G)
+   */
+  generateDualModelNames(originalModelName) {
+    if (!originalModelName || typeof originalModelName !== 'string') {
+      return { model_name: null, model_name_with_5g: null };
+    }
+
+    const trimmedModel = originalModelName.trim();
+
+    // Check if the model name contains 4G or 5G
+    const has4G = this.contains4G(trimmedModel);
+    const has5G = this.contains5G(trimmedModel);
+
+    let baseModelName, modelNameWithNetwork;
+
+    if (has4G) {
+      // If model name has 4G, create base without 4G and variant with 4G
+      baseModelName = this.remove4GFromModelName(trimmedModel);
+      modelNameWithNetwork = trimmedModel; // Keep original as 4G variant
+    } else if (has5G) {
+      // If model name has 5G, create base without 5G and variant with 5G
+      baseModelName = this.remove5GFromModelName(trimmedModel);
+      modelNameWithNetwork = trimmedModel; // Keep original as 5G variant
+    } else {
+      // If model name has neither 4G nor 5G, use original as base and add 5G for variant
+      baseModelName = trimmedModel; // Keep original as base
+      modelNameWithNetwork = this.add5GToModelName(trimmedModel);
+    }
+
+    return {
+      model_name: baseModelName,
+      model_name_with_5g: modelNameWithNetwork // Keep same field name for compatibility
+    };
+  }
+
+  /**
+   * Check if model name contains 4G designation
+   */
+  contains4G(modelName) {
+    if (!modelName || typeof modelName !== 'string') return false;
+    modelName = modelName.toLowerCase();
+    // Pattern to match various 4G formats
+    const fourGPatterns = [
+      /\b4g\b/i,           // Lowercase 4g
+      /\s+4g$/i,           // 4G at the end
+      /^4g\s+/i,           // 4G at the beginning
+      /\s+4g\s+/i          // 4G in the middle
+    ];
+
+    return fourGPatterns.some(pattern => pattern.test(modelName));
+  }
+
+  /**
+   * Check if model name contains 5G designation
+   */
+  contains5G(modelName) {
+    if (!modelName || typeof modelName !== 'string') return false;
+    modelName = modelName.toLowerCase();
+    // Pattern to match various 5G formats
+    const fiveGPatterns = [
+      /\b5g\b/i,           // Lowercase 5g
+      /\s+5g$/i,           // 5G at the end
+      /^5g\s+/i,           // 5G at the beginning
+      /\s+5g\s+/i          // 5G in the middle
+    ];
+
+    return fiveGPatterns.some(pattern => pattern.test(modelName));
+  }
+
+  /**
+   * Remove 4G designation from model name
+   */
+  remove4GFromModelName(modelName) {
+    if (!modelName || typeof modelName !== 'string') return modelName;
+    modelName = modelName.toLowerCase();
+    let cleaned = modelName;
+
+    // Remove various 4G patterns
+    const fourGPatterns = [
+      /\s+4g$/i,           // 4G at the end (most common)
+      /^4g\s+/i,           // 4G at the beginning
+      /\s+4g\s+/i,         // 4G in the middle
+      /\b4g\b/i            // Any standalone 4G
+    ];
+
+    // Apply removal patterns in order of specificity
+    for (const pattern of fourGPatterns) {
+      cleaned = cleaned.replace(pattern, ' ');
+    }
+
+    // Clean up extra spaces and return
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    // If cleaning resulted in empty or very short string, return original
+    if (cleaned.length < 2) {
+      return modelName;
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Remove 5G designation from model name
+   */
+  remove5GFromModelName(modelName) {
+    if (!modelName || typeof modelName !== 'string') return modelName;
+    modelName = modelName.toLowerCase();
+    let cleaned = modelName;
+
+    // Remove various 5G patterns
+    const fiveGPatterns = [
+      /\s+5g$/i,           // 5G at the end (most common)
+      /^5g\s+/i,           // 5G at the beginning
+      /\s+5g\s+/i,         // 5G in the middle
+      /\b5g\b/i            // Any standalone 5G
+    ];
+
+    // Apply removal patterns in order of specificity
+    for (const pattern of fiveGPatterns) {
+      cleaned = cleaned.replace(pattern, ' ');
+    }
+
+    // Clean up extra spaces and return
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    // If cleaning resulted in empty or very short string, return original
+    if (cleaned.length < 2) {
+      return modelName;
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Add 5G designation to model name
+   */
+  add5GToModelName(modelName) {
+    if (!modelName || typeof modelName !== 'string') return modelName;
+
+    const trimmed = modelName.trim();
+
+    // Don't add 5G if it already exists
+    if (this.contains5G(trimmed)) {
+      return trimmed;
+    }
+
+    // Add 5G at the end with proper spacing
+    return `${trimmed} 5g`;
+  }
+
+  /**
+   * Remove color from model name if it matches the extracted color
+   */
+  /**
+   * Remove color from model name if it matches the extracted color (simplified approach)
+   */
+  removeColorFromModelName(modelName, product) {
+    if (!modelName) return modelName;
+
+    // Extract color from specifications
+    const extractedColor = this.extractColor(product.specifications || {});
+    if (!extractedColor) return modelName;
+
+    // Normalize both model name and color to lowercase for case-insensitive matching
+    const lowerModelName = modelName.toLowerCase();
+    const lowerColor = extractedColor.toLowerCase().trim();
+
+    // Remove common color prefixes/suffixes that might not be in model names
+    const cleanColor = lowerColor
+      .replace(/\s*(color|colour)\s*$/i, '')
+      .replace(/^(color|colour)\s*/i, '')
+      .trim();
+
+    if (!cleanColor || cleanColor.length < 2) return modelName;
+
+    // Check if the color exists in the model name and remove it
+    let cleanedModelName = modelName;
+
+    // Simple case-insensitive replacement using word boundaries
+    const colorPattern = new RegExp(`\\b${this.escapeRegex(cleanColor)}\\b`, 'gi');
+
+    if (colorPattern.test(lowerModelName)) {
+      cleanedModelName = modelName.replace(colorPattern, '').trim();
+
+      // Clean up extra spaces
+      cleanedModelName = cleanedModelName.replace(/\s+/g, ' ').trim();
+
+      // If the cleaned name is too short or empty, return original
+      if (cleanedModelName.length < 2) {
+        return modelName;
+      }
+
+      return cleanedModelName;
+    }
+
+    // If no color match found, return original model name
+    return modelName;
   }
 
   extractBrandAndModelName(fullProductName) {
     // Remove trailing suffixes like "Mobile Phone Information", "Smartphone Mobile Phone Information", "AI Smartphone", etc.
     const suffixPattern = /\s*(Mobile Phone Information|Smartphone Mobile Phone Information|Mobile Phone|AI Smartphone|AI|Smartphone|Phone Information|Mobile).*$/i;
     const cleanedName = fullProductName.replace(suffixPattern, '').trim();
-  
+
     // Split by spaces assuming first word is brand
     const parts = cleanedName.split(/\s+/, 2);
-  
+
     let brand = '';
     let model = '';
-  
+
     if (parts.length === 1) {
       brand = parts[0];
       model = '';
@@ -161,7 +451,7 @@ class AmazonNormalizer {
       brand = parts[0];
       model = parts[1];
     }
-  
+
     // To get the model including everything after the brand (except suffixes),
     // we take substring after first space to include multi-word models.
     if (cleanedName.indexOf(' ') !== -1) {
@@ -169,12 +459,12 @@ class AmazonNormalizer {
     } else {
       model = '';
     }
-  
+
     // Remove anything after a comma in the model to exclude colors or extras
     if (model.includes(',')) {
       model = model.split(',')[0].trim();
     }
-  
+
     return { brand, model };
   }
 
@@ -183,14 +473,19 @@ class AmazonNormalizer {
    */
   extractModelNameFromTitle(title, product) {
     if (!title) return '';
-    
+
     const brand = this.extractBrand(product);
-    
+
+    // Special handling for Nothing Phone models
+    if (brand === 'Nothing' && title.toLowerCase().includes('nothing phone')) {
+      return this.extractNothingPhoneModel(title);
+    }
+
     // Comprehensive regex patterns for different model name formats
     const modelPatterns = [
       // Pattern 1: Brand + Model + Number (e.g., "Redmi 13 5G Prime Edition")
       new RegExp(`(${brand}\\s+)([A-Za-z0-9]+\\s*[0-9]*[A-Za-z]*\\s*[0-9]*[A-Za-z]*)`, 'i'),
-      
+
       // Pattern 2: Specific brand patterns with model extraction
       /(Redmi\s+)([A-Za-z0-9]+)/i,
       /(POCO\s+)([A-Za-z0-9]+)/i,
@@ -203,33 +498,404 @@ class AmazonNormalizer {
       /(iQOO\s+)([A-Za-z0-9]+)/i,
       /(Samsung\s+Galaxy\s+)([A-Za-z0-9]+)/i,
       /(Apple\s+iPhone\s+)([0-9]+[A-Za-z]*)/i,
-      
+
       // Pattern 3: Generic model patterns
       /([A-Za-z]+[\s-]*[0-9]+[A-Za-z]*)/g,
       /([A-Za-z]+\s+[A-Za-z]+\s*[0-9]*)/g
     ];
-    
+
     for (const pattern of modelPatterns) {
       const matches = title.match(pattern);
       if (matches) {
         // For patterns with capture groups, use the second group (model part)
         let modelName = matches.length > 1 ? matches[2] : matches[0];
-        
+
         // Remove brand name if it's at the start
-        if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+        if (brand && modelName && typeof modelName === 'string' && typeof brand === 'string' &&
+          modelName.toLowerCase().startsWith(brand.toLowerCase())) {
           modelName = modelName.substring(brand.length).trim();
         }
-        
+
         // Clean the model name
         modelName = this.cleanModelName(modelName);
-        
+
         if (modelName && modelName.length > 1) {
           return modelName;
         }
       }
     }
-    
+
     return '';
+  }
+
+  /**
+   * Extract Nothing Phone model with proper parenthetical handling
+   */
+  extractNothingPhoneModel(title) {
+    if (!title) return '';
+
+    const titleLower = title && typeof title === 'string' ? title.toLowerCase() : '';
+
+    // Pattern for Nothing Phone models with parenthetical identifiers
+    // Examples: "Nothing Phone (3a)", "Nothing Phone (2a) Plus", "Nothing Phone (3a) Pro 5G"
+    const nothingPatterns = [
+      // Pattern 1: Phone (identifier) Pro/Plus/5G variations
+      /nothing\s+phone\s*\(([^)]+)\)\s*(pro|plus)?\s*(5g)?/i,
+      // Pattern 2: Phone (identifier) with additional descriptors
+      /nothing\s+phone\s*\(([^)]+)\)([^|]*?)(?:\s*\||$)/i
+    ];
+
+    for (const pattern of nothingPatterns) {
+      const match = titleLower.match(pattern);
+      if (match) {
+        let modelName = `Phone (${match[1]})`;
+
+        // Add Pro/Plus if present
+        if (match[2]) {
+          modelName += ` ${match[2].charAt(0).toUpperCase() + match[2].slice(1).toLowerCase()}`;
+        }
+
+        // Add 5G if present and not already included
+        if (match[3] && !modelName.includes('5G')) {
+          modelName += ' 5G';
+        }
+
+        return modelName;
+      }
+    }
+
+    // Fallback: try to extract any parenthetical content after "Phone"
+    const fallbackMatch = titleLower.match(/nothing\s+phone\s*\(([^)]+)\)/i);
+    if (fallbackMatch) {
+      return `Phone (${fallbackMatch[1]})`;
+    }
+
+    return '';
+  }
+
+  /**
+   * Get model name from specifications
+   */
+  getModelFromSpecs(product) {
+    const productDetails = product.specifications?.["Product Details"]?.productDetails;
+
+    if (productDetails && productDetails["model name"]) {
+      return productDetails["model name"];
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if model name is valid (not empty, not dash, not generic terms)
+   */
+  isValidModelName(modelName) {
+    if (!modelName || typeof modelName !== 'string') {
+      return false;
+    }
+
+    const trimmed = modelName.trim();
+
+    // Check for empty or dash
+    if (trimmed === '' || trimmed === '—' || trimmed === '-') {
+      return false;
+    }
+
+    // Check for generic invalid terms
+    const invalidTerms = [
+      'product information',
+      'mobile phone information',
+      'smartphone',
+      'mobile phone',
+      'phone',
+      'mobile'
+    ];
+
+    const lowerTrimmed = trimmed.toLowerCase();
+    if (invalidTerms.some(term => lowerTrimmed === term)) {
+      return false;
+    }
+
+    // Must have at least 2 characters
+    return trimmed.length >= 2;
+  }
+
+  /**
+   * Enhanced check if the value is a model number rather than a model name
+   * Based on analysis of 500 Amazon products:
+   * - Model numbers: RMX3940, SM-A145F, CPH2345, I2410, MTP03HN/A, etc.
+   * - Model names: iPhone 15, Galaxy S24, iQOO Neo 10R 5G, etc.
+   */
+  isModelNumber(value) {
+    if (!value || typeof value !== 'string') {
+      return false;
+    }
+
+    const trimmed = value.trim();
+
+    // If it's too short (1-2 chars), it's likely not a proper model name
+    if (trimmed.length <= 2) {
+      return true;
+    }
+
+    // Enhanced model number patterns based on Amazon data analysis
+    const modelNumberPatterns = [
+      // Brand-specific patterns
+      /^RMX\d{4}$/i,                    // Realme: RMX3940, RMX5313
+      /^SM-[A-Z]\d{3}[A-Z]?$/i,        // Samsung: SM-M055F, SM-M066B
+      /^CPH\d{4}$/i,                    // OnePlus: CPH2345, CPH2619, CPH2739
+      /^I\d{4}$/i,                      // iQOO: I2410, I2221, I2409, I2404, I2407
+      /^MTP\d{2}[A-Z]{2}\/[A-Z]$/i,    // Apple: MTP03HN/A, MTP43HN/A
+      /^S\d{3}[A-Z]{1,2}$/i,           // Samsung: S928BZ
+
+      // Generic technical code patterns
+      /^[A-Z]{2,4}\d{3,5}[A-Z]?$/i,    // Generic: KL4h, 60515
+      /^[A-Z]\d{4}[A-Z]?$/i,           // Single letter + 4 digits: I2410
+      /^\d{5,}$/i,                      // Pure numbers: 60515, 24116RNC1I
+      /^[A-Z]{2,3}\d{4}[A-Z]{1,3}$/i,  // Complex codes: 24116RNC1I, 24040RN64Y
+      /^[A-Z]{3,4}\d{2,4}[A-Z]{2,4}$/i, // Mixed patterns: various technical codes
+
+      // Patterns that are clearly technical identifiers
+      /^[A-Z0-9]{6,}$/i,               // Long alphanumeric codes without spaces
+      /^[A-Z]+\d+[A-Z]+\d*$/i,         // Alternating letters and numbers
+      /^\d+[A-Z]+\d+[A-Z]*$/i          // Numbers, letters, numbers pattern
+    ];
+
+    // Check if it matches any model number pattern
+    if (modelNumberPatterns.some(pattern => pattern.test(trimmed))) {
+      return true;
+    }
+
+    // Additional heuristics based on analysis
+
+    // If it contains no spaces and is all uppercase with numbers, likely a model number
+    if (!/\s/.test(trimmed) && /^[A-Z0-9]+$/i.test(trimmed) && /\d/.test(trimmed) && trimmed.length > 4) {
+      // But exclude valid short model names like "M05", "A55", "Z10"
+      if (!/^[A-Z]\d{1,3}[A-Z]?$/i.test(trimmed)) {
+        return true;
+      }
+    }
+
+    // If it's a single word with mixed case and numbers but no spaces, might be model number
+    if (!/\s/.test(trimmed) && /[A-Z]/.test(trimmed) && /[a-z]/.test(trimmed) && /\d/.test(trimmed)) {
+      // Examples: "Reno14Pro" - this is likely a model number masquerading as model name
+      if (trimmed.length > 8) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Enhanced validation to check if extracted spec model name is actually a valid model name
+   * This addresses the issue where Amazon specs sometimes contain model numbers instead of model names
+   */
+  isValidSpecModelName(specModelName, product) {
+    if (!specModelName || typeof specModelName !== 'string') {
+      return false;
+    }
+
+    const trimmed = specModelName.trim();
+
+    // First check if it's obviously a model number
+    if (this.isModelNumber(trimmed)) {
+      return false;
+    }
+
+    // Check if it's a valid model name format
+    if (!this.isValidModelName(trimmed)) {
+      return false;
+    }
+
+    // Additional validation: check if it appears in the title
+    // Valid model names usually appear in product titles
+    if (product.title && this.validateModelNameAgainstTitle(trimmed, product.title)) {
+      return true;
+    }
+
+    // If it contains brand name + model pattern, it's likely valid
+    const brand = this.extractBrand(product);
+    if (brand && trimmed.toLowerCase().includes(brand.toLowerCase())) {
+      return true;
+    }
+
+    // If it contains common model name patterns, it's likely valid
+    const modelNamePatterns = [
+      /^(iPhone|Galaxy|OnePlus|Redmi|iQOO|realme|POCO|Vivo|Oppo|Nothing)\s+/i,
+      /^[A-Za-z]+\s+[A-Za-z0-9]+/,     // Brand + Model pattern
+      /\s+5G$/i,                        // Ends with 5G
+      /\s+(Pro|Max|Ultra|Lite|Plus)(\s|$)/i // Contains model variants
+    ];
+
+    if (modelNamePatterns.some(pattern => pattern.test(trimmed))) {
+      return true;
+    }
+
+    // If none of the above, it's questionable - return false to be safe
+    return false;
+  }
+
+  /**
+   * Remove brand name from model name if present
+   */
+  cleanModelNameFromBrand(modelName, brand) {
+    if (!modelName || !brand) {
+      return this.cleanModelName(modelName);
+    }
+
+    let cleaned = modelName;
+
+    // Remove brand name if it starts with it (case insensitive)
+    if (cleaned && brand && typeof cleaned === 'string' && typeof brand === 'string' &&
+      cleaned.toLowerCase().startsWith(brand.toLowerCase())) {
+      cleaned = cleaned.substring(brand.length).trim();
+    }
+
+    // Remove brand variations
+    if (brand && typeof brand === 'string') {
+      const brandVariations = this.getBrandVariations(brand);
+      for (const variation of brandVariations) {
+        if (cleaned && typeof cleaned === 'string' && typeof variation === 'string' &&
+          cleaned.toLowerCase().startsWith(variation.toLowerCase())) {
+          cleaned = cleaned.substring(variation.length).trim();
+          break;
+        }
+      }
+    }
+
+    return this.cleanModelName(cleaned);
+  }
+
+  /**
+   * Get brand variations for better brand removal
+   */
+  getBrandVariations(brand) {
+    const variations = {
+      'Samsung': ['Samsung', 'Galaxy'],
+      'Apple': ['Apple', 'iPhone'],
+      'Xiaomi': ['Xiaomi', 'Mi', 'Redmi'],
+      'Realme': ['Realme', 'realme'],
+      'OnePlus': ['OnePlus', 'One Plus'],
+      'iQOO': ['iQOO', 'IQOO'],
+      'Vivo': ['Vivo', 'VIVO'],
+      'Oppo': ['Oppo', 'OPPO'],
+      'Nothing': ['Nothing', 'CMF BY NOTHING']
+    };
+
+    return variations[brand] || [brand];
+  }
+
+  /**
+   * Select the best model name candidate using cross-validation
+   */
+  selectBestModelNameCandidate(candidates, product) {
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    if (candidates.length === 1) {
+      return candidates[0].value;
+    }
+
+    // Cross-validate candidates against title for accuracy
+    const title = product.title?.toLowerCase() || '';
+    const brandObj = this.extractBrand(product);
+    const brand = brandObj ? brandObj.toLowerCase() : '';
+
+    // Score each candidate based on title validation
+    const scoredCandidates = candidates.map(candidate => {
+      let score = candidate.confidence;
+      const modelLower = candidate.value && typeof candidate.value === 'string' ? candidate.value.toLowerCase() : '';
+
+      // Check if the model name appears in the title
+      if (title.includes(modelLower)) {
+        score += 0.3;
+      }
+
+      // Check if brand + model appears in title (e.g., "Galaxy F05")
+      if (brand && typeof brand === 'string' && title.includes(`${brand} ${modelLower}`)) {
+        score += 0.2;
+      }
+
+      // Check for exact model pattern in title (e.g., "F05" in "Galaxy F05")
+      const modelPattern = new RegExp(`\\b${this.escapeRegex(candidate.value)}\\b`, 'i');
+      if (modelPattern.test(title)) {
+        score += 0.25;
+      }
+
+      // Penalize if model name contradicts title
+      // For example, if specs say "M05" but title clearly says "F05"
+      if (this.hasModelContradiction(candidate.value, title, brand)) {
+        score -= 0.4;
+      }
+
+      return {
+        ...candidate,
+        finalScore: score
+      };
+    });
+
+    // Sort by final score and return the best candidate
+    scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
+
+    const bestCandidate = scoredCandidates[0];
+
+    // If the best candidate has a very low score, it might be unreliable
+    if (bestCandidate.finalScore < 0.5) {
+      // Log for manual review
+      console.warn(`Low confidence model name for: ${product.title}`);
+      console.warn(`Best candidate: ${bestCandidate.value} (score: ${bestCandidate.finalScore})`);
+    }
+
+    return bestCandidate.value;
+  }
+
+  /**
+   * Check if there's a contradiction between model name and title
+   */
+  hasModelContradiction(modelName, title, brand) {
+    if (!brand || !title || !modelName) return false;
+
+    const titleLower = title && typeof title === 'string' ? title.toLowerCase() : '';
+    const brandLower = brand && typeof brand === 'string' ? brand.toLowerCase() : '';
+    const modelLower = modelName && typeof modelName === 'string' ? modelName.toLowerCase() : '';
+
+    // Look for clear model indicators in title that contradict the model name
+    // For Samsung Galaxy series
+    if (brandLower === 'samsung' && titleLower.includes('galaxy')) {
+      // Extract the model part after "Galaxy"
+      const galaxyMatch = titleLower.match(/galaxy\s+([a-z]\d+)/);
+      if (galaxyMatch) {
+        const titleModel = galaxyMatch[1];
+        // If title says "F05" but model name is "M05", that's a contradiction
+        if (titleModel !== modelLower && titleModel.slice(1) === modelLower.slice(1)) {
+          return true;
+        }
+      }
+    }
+
+    // For other brands, check for similar patterns
+    const modelNumberPattern = /([a-z]\d+)/gi;
+    const titleModels = titleLower.match(modelNumberPattern) || [];
+
+    for (const titleModel of titleModels) {
+      // If we find a model in title that's very similar but different (like F05 vs M05)
+      if (titleModel.length === modelLower.length &&
+        titleModel.slice(1) === modelLower.slice(1) &&
+        titleModel[0] !== modelLower[0]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Escape special regex characters
+   */
+  escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
@@ -237,21 +903,64 @@ class AmazonNormalizer {
    */
   cleanModelName(modelName) {
     if (!modelName) return '';
-    
+
     let cleaned = modelName;
-    
+
     // Remove color information (usually in parentheses or after comma)
     cleaned = cleaned.replace(/\([^)]*\)/g, '').trim();
     cleaned = cleaned.replace(/,[^,]*$/g, '').trim();
-    
+
+    // Remove embedded colors that appear directly in model names
+    const commonColors = [
+      // Basic colors
+      'Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Purple', 'Pink',
+      'Gray', 'Grey', 'Brown', 'Silver', 'Gold', 'Rose', 'Coral', 'Mint', 'Aqua',
+
+      // Color variations
+      'Midnight', 'Space', 'Jet', 'Pearl', 'Matte', 'Glossy', 'Metallic', 'Satin',
+      'Deep', 'Light', 'Dark', 'Bright', 'Pale', 'Vivid', 'Rich', 'Soft',
+
+      // Specific color names commonly used in phones
+      'Panda', 'Just', 'Mystic', 'Phantom', 'Cosmic', 'Aurora', 'Ocean', 'Sky',
+      'Forest', 'Desert', 'Arctic', 'Lunar', 'Solar', 'Stellar', 'Nebula',
+      'Diamond', 'Crystal', 'Platinum', 'Titanium', 'Chrome', 'Bronze', 'Copper',
+      'Obsidian', 'Emerald', 'Ruby', 'Sapphire', 'Onyx', 'Jade', 'Amber',
+
+      // Color combinations (will be handled as single words)
+      'Starlight', 'Graphite', 'Magsafe', 'Alpine', 'Sierra', 'Pacific', 'Ceramic',
+      'Frosted', 'Gradient', 'Prism', 'Spectrum', 'Iridescent', 'Holographic'
+    ];
+
+    // Remove colors that appear as separate words (with word boundaries)
+    const colorPattern = new RegExp(`\\s+(${commonColors.join('|')})\\b`, 'gi');
+    cleaned = cleaned.replace(colorPattern, '');
+
+    // Remove common color combinations that might appear together
+    const colorCombinations = [
+      'Midnight Black', 'Space Gray', 'Space Grey', 'Jet Black', 'Pearl White',
+      'Rose Gold', 'Matte Black', 'Glossy White', 'Deep Blue', 'Light Blue',
+      'Dark Green', 'Bright Red', 'Pale Pink', 'Vivid Purple', 'Rich Brown',
+      'Soft Silver', 'Mystic Black', 'Phantom Silver', 'Cosmic Gray', 'Aurora Green',
+      'Ocean Blue', 'Sky Blue', 'Forest Green', 'Desert Gold', 'Arctic White',
+      'Lunar Silver', 'Solar Red', 'Stellar Blue', 'Nebula Purple', 'Diamond Black',
+      'Crystal White', 'Platinum Silver', 'Titanium Gray', 'Chrome Silver',
+      'Panda White', 'Just Black', 'Satin Black', 'Aqua Blue'
+    ];
+
+    // Remove color combinations first (more specific matches)
+    const combinationPattern = new RegExp(`\\s+(${colorCombinations.join('|')})\\b`, 'gi');
+    cleaned = cleaned.replace(combinationPattern, '');
+
     // Remove storage information
     cleaned = cleaned.replace(/\d+GB\s*RAM?/gi, '').trim();
     cleaned = cleaned.replace(/\d+GB\s*Storage?/gi, '').trim();
     cleaned = cleaned.replace(/\d+GB\s*ROM?/gi, '').trim();
     cleaned = cleaned.replace(/\+\d+GB/gi, '').trim();
     cleaned = cleaned.replace(/\s+(Mobile|Phone|Smartphone)$/i, '').trim();
+
+    // Clean up extra spaces
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
-    
+
     return cleaned;
   }
 
@@ -263,7 +972,7 @@ class AmazonNormalizer {
     if (specs?.["Technical Details"]?.technicalDetails?.["Item model number"]) {
       return specs["Technical Details"].technicalDetails["Item model number"];
     }
-    
+
     if (specs?.["Item model number"]) {
       return specs["Item model number"];
     }
@@ -279,7 +988,7 @@ class AmazonNormalizer {
     if (specs?.["Technical Details"]?.technicalDetails?.["Colour"]) {
       return specs["Technical Details"].technicalDetails["Colour"];
     }
-    
+
     if (specs?.["Colour"]) {
       return specs["Colour"];
     }
@@ -346,17 +1055,17 @@ class AmazonNormalizer {
         return parseInt(storageMatch[1]);
       }
     }
-    
+
     if (this.currentTitle) {
       const cleanTitle = this.currentTitle.toLowerCase();
-      
+
       // Common mobile phone storage capacities
       const storageValues = ['32', '64', '128', '256', '512', '1024', '1', '2'];
-      
+
       // Look for these specific values followed by GB/TB
       for (const value of storageValues) {
         let pattern;
-        
+
         if (value === '1' || value === '2') {
           // For TB values
           pattern = new RegExp(`\\b${value}\\s*tb\\b`, 'i');
@@ -370,12 +1079,12 @@ class AmazonNormalizer {
           const match = cleanTitle.match(pattern);
           if (match && !cleanTitle.match(new RegExp(`${value}\\s*gb\\s*ram`, 'i'))) {
             // Found storage value, but make sure it's not RAM
-            return  parseInt(value);
+            return parseInt(value);
           }
         }
       }
     }
- 
+
     return null;
   }
 
@@ -589,7 +1298,7 @@ class AmazonNormalizer {
     // Product dimensions
     if (specs?.["Technical Details"]?.technicalDetails?.["Product Dimensions"]) {
       const dimensions = specs["Technical Details"].technicalDetails["Product Dimensions"];
-      
+
       // Parse dimensions like "0.9 x 7.8 x 16.9 cm; 195 g"
       const dimMatch = dimensions.match(/([\d.]+)\s*x\s*([\d.]+)\s*x\s*([\d.]+)\s*cm/);
       if (dimMatch) {
@@ -640,8 +1349,8 @@ class AmazonNormalizer {
       'huawei': 'Huawei',
       'google': 'Google'
     };
-    
-    return brandMappings[brand.toLowerCase()] || brand;
+
+    return brandMappings[brand && typeof brand === 'string' ? brand.toLowerCase() : ''] || brand;
   }
 
   /**
@@ -670,8 +1379,8 @@ class AmazonNormalizer {
       { brand: 'iQOO', patterns: ['iqoo'] }
     ];
 
-    const titleLower = title.toLowerCase();
-    
+    const titleLower = title && typeof title === 'string' ? title.toLowerCase() : '';
+
     for (const brandInfo of brandPatterns) {
       for (const pattern of brandInfo.patterns) {
         if (titleLower.includes(pattern)) {
@@ -679,7 +1388,7 @@ class AmazonNormalizer {
         }
       }
     }
-    
+
     return null;
   }
 
@@ -690,10 +1399,10 @@ class AmazonNormalizer {
     try {
       const fs = require('fs');
       const rawData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      
+
       console.log(`Normalizing ${rawData.length} Amazon products...`);
       const normalized = this.normalizeProducts(rawData);
-      
+
       console.log(`Successfully normalized ${normalized.length} products`);
       return normalized;
     } catch (error) {
@@ -717,26 +1426,26 @@ class AmazonNormalizer {
   }
 }
 
-module.exports = AmazonNormalizer; 
+module.exports = AmazonNormalizer;
 
 // Main execution block - run when file is executed directly
 if (require.main === module) {
   const path = require('path');
-  
+
   async function main() {
     try {
       console.log('🚀 Starting Amazon Normalizer...\n');
-      
+
       // Initialize normalizer
       const normalizer = new AmazonNormalizer();
-      
+
       // Define input and output paths
       const inputPath = path.join(__dirname, '../scrapers/amazon/amazon_scraped_data.json');
       const outputPath = path.join(__dirname, '../../parsed_data/amazon_normalized_data.json');
-      
+
       console.log(`📁 Input file: ${inputPath}`);
       console.log(`📁 Output file: ${outputPath}\n`);
-      
+
       // Check if input file exists
       const fs = require('fs');
       if (!fs.existsSync(inputPath)) {
@@ -744,22 +1453,22 @@ if (require.main === module) {
         console.log('💡 Please run the Amazon crawler first to generate scraped data.');
         process.exit(1);
       }
-      
+
       // Normalize the data
       const normalizedData = await normalizer.normalizeFromFile(inputPath);
-      
+
       // Save normalized data
       await normalizer.saveNormalizedData(normalizedData, outputPath);
-      
+
       console.log('\n✅ Amazon normalization completed successfully!');
       console.log(`📊 Normalized ${normalizedData.length} products`);
-      
+
     } catch (error) {
       console.error('\n❌ Normalization failed:', error.message);
       process.exit(1);
     }
   }
-  
+
   // Run the main function
   main();
 } 

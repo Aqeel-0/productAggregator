@@ -230,6 +230,59 @@ class ProductVariant extends Model {
    * Enhanced variant insertion with caching and statistics
    * Used by DatabaseInserter for optimized variant creation
    */
+  /**
+   * Normalize color names to prevent duplicates
+   */
+  static normalizeColor(color) {
+    if (!color) return null;
+    
+    return color
+      .toLowerCase()
+      .replace(/\s+color\s*$/i, '') // Remove trailing "color" word
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .trim();
+  }
+
+  /**
+   * Find similar colors using fuzzy matching with PostgreSQL trigrams
+   */
+  static async findSimilarColor(color, productId, threshold = 0.90) {
+    if (!color) return null;
+    
+    try {
+      const query = `
+        SELECT pv.*, similarity(pv.attributes->>'color', $1) as similarity_score
+        FROM product_variants pv
+        WHERE pv.product_id = $2 
+          AND pv.attributes->>'color' IS NOT NULL
+          AND similarity(pv.attributes->>'color', $1) > $3
+        ORDER BY similarity_score DESC
+        LIMIT 1;
+      `;
+      
+      const results = await sequelize.query(query, {
+        bind: [color, productId, threshold],
+        type: sequelize.QueryTypes.SELECT
+      });
+      
+      if (results.length > 0) {
+        const variantData = results[0];
+        const variant = await ProductVariant.findByPk(variantData.id);
+        
+        return {
+          variant,
+          similarity: variantData.similarity_score,
+          matchType: 'fuzzy_color'
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`❌ Error in fuzzy color search for "${color}":`, error.message);
+      return null;
+    }
+  }
+
   static async insertWithCache(productData, productId, brandName, cache, stats) {
     const variant_attributes = productData.variant_attributes || {};
     const listing_info = productData.listing_info || {};
@@ -237,28 +290,54 @@ class ProductVariant extends Model {
     
     if (!productId) return null;
 
+    // Normalize color to prevent duplicates
+    const normalizedColor = this.normalizeColor(color);
+
     // Smart variant key generation based on brand
     const isApple = brandName && brandName.toLowerCase() === 'apple';
     let variantKey;
     
     if (isApple && (ram === null || ram === undefined)) {
       // For Apple products with missing RAM, use only storage and color
-      variantKey = `${productId}:apple:${storage || 0}:${color || 'default'}`;
-      console.log(`🍎 Apple product detected - creating variant with storage + color only`);
+      variantKey = `${productId}:apple:${storage || 0}:${normalizedColor || 'default'}`;
     } else {
       // Standard variant key for all other products
-      variantKey = `${productId}:${ram || 0}:${storage || 0}:${color || 'default'}`;
+      variantKey = `${productId}:${ram || 0}:${storage || 0}:${normalizedColor || 'default'}`;
     }
 
     if (cache.has(variantKey)) {
       return cache.get(variantKey);
     }
 
+    // Check for fuzzy color match if we have a color
+    if (normalizedColor) {
+      const similarColorMatch = await this.findSimilarColor(normalizedColor, productId, 0.90);
+      if (similarColorMatch && similarColorMatch.similarity >= 0.90) {
+        // Use the existing variant's color for consistency
+        const existingColor = similarColorMatch.variant.attributes.color;
+        
+        // Update the variant key to use the existing color
+        if (isApple && (ram === null || ram === undefined)) {
+          variantKey = `${productId}:apple:${storage || 0}:${existingColor || 'default'}`;
+        } else {
+          variantKey = `${productId}:${ram || 0}:${storage || 0}:${existingColor || 'default'}`;
+        }
+        
+        // Check if this exact combination already exists
+        if (cache.has(variantKey)) {
+          return cache.get(variantKey);
+        }
+        
+        // Use the existing color for the new variant
+        const finalColor = existingColor;
+      }
+    }
+
     try {
       const attributes = {
         ram_gb: ram || null,
         storage_gb: storage || null,
-        color: color || null
+        color: (typeof finalColor !== 'undefined' ? finalColor : normalizedColor) || null // Use fuzzy matched color or normalized color
       };
 
       // Prepare images array from listing info
@@ -284,7 +363,6 @@ class ProductVariant extends Model {
         if (newImages.length > 0) {
           const updatedImages = [...existingImages, ...newImages];
           await variant.update({ images: updatedImages });
-          console.log(`📸 Added ${newImages.length} new image(s) to variant`);
         }
       }
       
@@ -294,9 +372,6 @@ class ProductVariant extends Model {
         stats.variants.created++;
         if (isApple && (ram === null || ram === undefined)) {
           stats.deduplication.apple_variants++;
-          console.log(`✅ Created Apple variant: ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
-        } else {
-          console.log(`✅ Created variant: ${ram || 'Unknown'}GB RAM, ${storage || 'Unknown'}GB Storage, ${color || 'Default'} color`);
         }
       } else {
         stats.variants.existing++;

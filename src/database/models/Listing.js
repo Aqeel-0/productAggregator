@@ -361,7 +361,6 @@ class Listing extends Model {
       
       if (created) {
         stats.listings.created++;
-        console.log(`✅ Created listing: ${listingData.store_name} - ₹${listingData.price} (${listingData.stock_status})`);
       } else {
         stats.listings.existing++;
         console.log(`🔄 Updated listing: ${listingData.store_name} - ₹${listingData.price} (${listingData.stock_status})`);
