@@ -42,7 +42,7 @@ class Product extends Model {
    */
   static async findOrCreateByDetails(name, brandId, categoryId) {
     const slug = this.generateSlug(name);
-    
+
     // First try to find by slug (most reliable for variants)
     let product = await Product.findOne({
       where: { slug: slug }
@@ -53,8 +53,9 @@ class Product extends Model {
     }
 
     // If not found by slug, try to find by model_name and brand
+    // Note: name is already normalized to lowercase when passed to this method
     product = await Product.findOne({
-      where: { 
+      where: {
         model_name: name.trim(),
         brand_id: brandId
       }
@@ -69,12 +70,13 @@ class Product extends Model {
     }
 
     // Create new product if not found
+    // Store model name in lowercase for consistent case-insensitive matching
     product = await Product.create({
-        model_name: name.trim(),
-        slug: slug,
-        brand_id: brandId,
-        category_id: categoryId,
-        status: 'active'
+      model_name: name.trim(), // Already normalized to lowercase
+      slug: slug,
+      brand_id: brandId,
+      category_id: categoryId,
+      status: 'active'
     });
 
     return { product, created: true };
@@ -141,7 +143,7 @@ class Product extends Model {
    */
   static async getFeaturedProducts(limit = 10) {
     return await Product.findAll({
-      where: { 
+      where: {
         is_featured: true,
         status: 'active'
       },
@@ -167,9 +169,9 @@ class Product extends Model {
    */
   static async getByCategory(categoryId, page = 1, limit = 20) {
     const offset = (page - 1) * limit;
-    
+
     return await Product.findAndCountAll({
-      where: { 
+      where: {
         category_id: categoryId,
         status: 'active'
       },
@@ -196,7 +198,7 @@ class Product extends Model {
    */
   async updatePriceStats() {
     const variants = await sequelize.models.ProductVariant.findAll({
-      where: { 
+      where: {
         product_id: this.id,
         is_active: true
       }
@@ -259,7 +261,7 @@ class Product extends Model {
    */
   async getBestPrice() {
     const result = await sequelize.models.ProductVariant.findOne({
-      where: { 
+      where: {
         product_id: this.id,
         is_active: true,
         min_price: {
@@ -297,183 +299,155 @@ class Product extends Model {
   }
 
   /**
-   * Find product by exact model number match
+   * Initialize dual cache system for product insertion
    */
-  static async findByModelNumber(modelNumber, brandId) {
-    try {
-      const product = await Product.findOne({
-        where: {
-          model_number: modelNumber,
-          brand_id: brandId
-        }
-      });
-      return product;
-    } catch (error) {
-      console.error(`❌ Error finding product by model number "${modelNumber}":`, error.message);
-      return null;
-    }
+  static createDualCache() {
+    return {
+      modelNumberCache: new Map(),
+      modelNameCache: new Map(),
+      stats: {
+        products: {
+          created: 0,
+          existing: 0,
+          total: 0
+        },
+        deduplication: {
+          model_number_matches: 0,
+          exact_name_matches: 0,
+          variant_5g_matches: 0,
+          new_products: 0,
+          total_matches: 0
+        },
+        errors: []
+      }
+    };
   }
 
   /**
-   * Cross-field fuzzy search - model number against model names
+   * Clear both caches
    */
-  static async findByModelNumberVsModelName(modelNumber, brandId, categoryId, threshold = 0.4) {
-    try {
-      const query = `
-        SELECT p.*, similarity(p.model_name, $1) as similarity_score
-        FROM products p
-        WHERE p.brand_id = $2 
-          AND ($3::uuid IS NULL OR p.category_id = $3)
-          AND similarity(p.model_name, $1) > $4
-        ORDER BY similarity_score DESC
-        LIMIT 1;
-      `;
-      
-      const results = await sequelize.query(query, {
-        bind: [modelNumber, brandId, categoryId, threshold],
-        type: sequelize.QueryTypes.SELECT
-      });
-      
-      if (results.length > 0) {
-        const productData = results[0];
-        const product = await Product.findByPk(productData.id);
-        return {
-          product,
-          similarity: productData.similarity_score,
-          matchType: 'cross_field_fuzzy'
-        };
-      }
-      
-      return null;
-    } catch (error) {
-      console.error(`❌ Error in cross-field fuzzy search for "${modelNumber}":`, error.message);
-      return null;
-    }
+  static clearDualCache(cacheSystem) {
+    cacheSystem.modelNumberCache.clear();
+    cacheSystem.modelNameCache.clear();
   }
 
   /**
-   * Optimized fuzzy model name search using PostgreSQL trigrams
+   * Get cache statistics
    */
-  static async findByFuzzyModelNameOptimized(modelName, brandId, categoryId, incomingModelNumber = null, threshold = 0.92) {
-    try {
-      const query = `
-        SELECT p.*, similarity(p.model_name, $1) as similarity_score
-        FROM products p
-        WHERE p.brand_id = $2 
-          AND ($3::uuid IS NULL OR p.category_id = $3)
-          AND similarity(p.model_name, $1) > $4
-        ORDER BY similarity_score DESC
-        LIMIT 1;
-      `;
-      
-      const results = await sequelize.query(query, {
-        bind: [modelName, brandId, categoryId, threshold],
-        type: sequelize.QueryTypes.SELECT
-      });
-      
-      if (results.length > 0) {
-        const productData = results[0];
-        const product = await Product.findByPk(productData.id);
-        
-        // Model number validation: If both products have model numbers and they're different,
-        // treat them as different products regardless of name similarity
-        if (incomingModelNumber && product.model_number && 
-            incomingModelNumber.trim() !== '' && product.model_number.trim() !== '' &&
-            incomingModelNumber.trim() !== product.model_number.trim()) {
-          console.log(`🚫 Model number mismatch: "${incomingModelNumber}" vs "${product.model_number}" - treating as different products`);
-          return null;
-        }
-        
-        return {
-          product,
-          similarity: productData.similarity_score,
-          matchType: 'fuzzy_model_name'
-        };
+  static getCacheStats(cacheSystem) {
+    const stats = cacheSystem.stats;
+    stats.products.total = stats.products.created + stats.products.existing;
+    stats.deduplication.total_matches =
+      stats.deduplication.model_number_matches +
+      stats.deduplication.exact_name_matches +
+      stats.deduplication.variant_5g_matches;
+
+    return {
+      ...stats,
+      cache_sizes: {
+        model_number_cache: cacheSystem.modelNumberCache.size,
+        model_name_cache: cacheSystem.modelNameCache.size
       }
-      
-      return null;
-    } catch (error) {
-      console.error(`❌ Error in fuzzy model name search for "${modelName}":`, error.message);
-      return null;
-    }
+    };
   }
 
   /**
-   * Optimized multi-step fuzzy matching using PostgreSQL trigrams
+   * Simplified product insertion with exact matching and dual model names
+   * Model names are normalized to lowercase for consistent storage and matching
    */
-  static async findByOptimizedFuzzySearch(modelName, modelNumber, brandId, categoryId) {
-    try {     
-      // Step 1: If we have a model number, try exact model number match first
-      if (modelNumber && modelNumber.trim() !== '') {
-        const exactMatch = await this.findByModelNumber(modelNumber, brandId);
-        if (exactMatch) {
-          console.log(`🎯 Exact model number match: ${modelNumber}`);
-          return { product: exactMatch, matchType: 'exact_model_number', similarity: 1.0 };
-        }
-      }
-
-      // Step 2: Cross-field fuzzy search - model number against model names
-      if (modelNumber && modelNumber.trim() !== '') {
-        const crossFieldMatch = await this.findByModelNumberVsModelName(modelNumber, brandId, categoryId);
-        if (crossFieldMatch) {
-          console.log(`🎯 Cross-field match: model number "${modelNumber}" -> model name "${crossFieldMatch.product.model_name}" (${crossFieldMatch.similarity})`);
-          return crossFieldMatch;
-        }
-      }
-
-      // Step 3: Fuzzy model name search using PostgreSQL trigrams with model number validation
-      const fuzzyMatch = await this.findByFuzzyModelNameOptimized(modelName, brandId, categoryId, modelNumber);
-      if (fuzzyMatch) {
-        console.log(`🎯 Fuzzy model name match: "${modelName}" -> "${fuzzyMatch.product.model_name}" (${fuzzyMatch.similarity})`);
-        return fuzzyMatch;
-      }
-
-      return null;
-    } catch (error) {
-      console.error(`❌ Error in optimized fuzzy search for "${modelName}":`, error.message);
-      return null;
-    }
-  }
-
-  /**
-   * Enhanced product insertion with deduplication, caching and statistics
-   */
-  static async insertWithCache(productData, brandId, categoryId, cache, stats) {
-    const { model_name, model_number } = productData.product_identifiers;
+  static async insertWithCache(productData, brandId, categoryId, modelNumberCache, modelNameCache, stats) {
+    const { model_name, model_number, model_name_with_5g } = productData.product_identifiers;
     const key_specifications = productData.key_specifications || {};
-    
+
     if (!model_name) return null;
 
-    const cacheKey = `${brandId}:${model_name}:${model_number || ''}`;
-    if (cache.has(cacheKey)) {
-      return cache.get(cacheKey);
-    }
+    // Normalize model names to lowercase for consistent storage and matching
+    const normalizedModelName = model_name.toLowerCase().trim();
+    const normalizedModelNameWith5G = model_name_with_5g ? model_name_with_5g.toLowerCase().trim() : null;
 
     try {
       let matchedProduct = null;
       let matchType = 'none';
-    
-      if (!matchedProduct) {
-        const fuzzyResult = await this.findByOptimizedFuzzySearch(model_name, model_number, brandId, categoryId);
-        if (fuzzyResult) {
-          matchedProduct = fuzzyResult.product;
-          matchType = fuzzyResult.matchType;
-          
-          // Update appropriate statistics
-          if (fuzzyResult.matchType === 'cross_field_fuzzy') {
-            stats.deduplication.cross_field_matches = (stats.deduplication.cross_field_matches || 0) + 1;
-          } else if (fuzzyResult.matchType === 'fuzzy_model_name') {
-            stats.deduplication.fuzzy_name_matches++;
+
+      // Phase 1: Check model number cache first
+      if (model_number) {
+        const modelNumberKey = `${brandId}:${model_number}`;
+        if (modelNumberCache.has(modelNumberKey)) {
+          const productId = modelNumberCache.get(modelNumberKey);
+          stats.deduplication.model_number_matches++;
+          stats.products.existing++;
+          return productId;
+        }
+
+        // Try exact model number match in database
+        matchedProduct = await Product.findOne({
+          where: {
+            model_number: model_number,
+            brand_id: brandId
           }
-          
-          console.log(`🔍 Found existing product by ${fuzzyResult.matchType}: similarity ${(fuzzyResult.similarity * 100).toFixed(1)}%`);
+        });
+
+        if (matchedProduct) {
+          matchType = 'model_number';
+          stats.deduplication.model_number_matches++;
+          modelNumberCache.set(modelNumberKey, matchedProduct.id);
         }
       }
 
-      // Phase 3: Create New Product (if no matches found)
+      // Phase 2: Check base model name cache (exact match with normalized lowercase)
       if (!matchedProduct) {
-        const { product, created } = await Product.findOrCreateByDetails(model_name, brandId, categoryId);
-        
+        const modelNameKey = `${brandId}:${normalizedModelName}`;
+        if (modelNameCache.has(modelNameKey)) {
+          const productId = modelNameCache.get(modelNameKey);
+          stats.deduplication.exact_name_matches++;
+          stats.products.existing++;
+          return productId;
+        }
+
+        // Try exact base model name match in database (stored in lowercase)
+        matchedProduct = await Product.findOne({
+          where: {
+            model_name: normalizedModelName,
+            brand_id: brandId
+          }
+        });
+
+        if (matchedProduct) {
+          matchType = 'model_name';
+          stats.deduplication.exact_name_matches++;
+          modelNameCache.set(modelNameKey, matchedProduct.id);
+        }
+      }
+
+      // Phase 3: Check 5G variant model name cache (exact match with normalized lowercase, if provided)
+      if (!matchedProduct && normalizedModelNameWith5G) {
+        const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
+        if (modelNameCache.has(modelName5GKey)) {
+          const productId = modelNameCache.get(modelName5GKey);
+          stats.deduplication.variant_5g_matches++;
+          stats.products.existing++;
+          return productId;
+        }
+
+        // Try exact 5G variant model name match in database (stored in lowercase)
+        matchedProduct = await Product.findOne({
+          where: {
+            model_name: normalizedModelNameWith5G,
+            brand_id: brandId
+          }
+        });
+
+        if (matchedProduct) {
+          matchType = '5g_variant';
+          stats.deduplication.variant_5g_matches++;
+          modelNameCache.set(modelName5GKey, matchedProduct.id);
+        }
+      }
+
+      // Phase 4: Create new product if no matches found
+      if (!matchedProduct) {
+        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, brandId, categoryId);
+
         // Update product with additional data
         const updateData = {
           model_number: model_number || null,
@@ -487,29 +461,56 @@ class Product extends Model {
 
         matchedProduct = product;
         matchType = created ? 'created' : 'existing';
-        
+
         if (created) {
           stats.products.created++;
           stats.deduplication.new_products++;
-          console.log(`✅ Created new product: ${model_name} (${model_number || 'No model number'})`);
         } else {
           stats.products.existing++;
+        }
+
+        // Cache the new product with both normalized model names
+        const modelNameKey = `${brandId}:${normalizedModelName}`;
+        modelNameCache.set(modelNameKey, matchedProduct.id);
+
+        if (normalizedModelNameWith5G) {
+          const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
+          modelNameCache.set(modelName5GKey, matchedProduct.id);
+        }
+
+        if (model_number) {
+          const modelNumberKey = `${brandId}:${model_number}`;
+          modelNumberCache.set(modelNumberKey, matchedProduct.id);
         }
       } else {
         // Update existing product with model number if it was missing
         if (model_number && !matchedProduct.model_number) {
           await matchedProduct.update({ model_number: model_number });
-          console.log(`📝 Updated existing product with model number: ${model_number}`);
+
+          // Add to model number cache
+          const modelNumberKey = `${brandId}:${model_number}`;
+          modelNumberCache.set(modelNumberKey, matchedProduct.id);
         }
+
+        // Cache both normalized model names for the matched product
+        const modelNameKey = `${brandId}:${normalizedModelName}`;
+        if (!modelNameCache.has(modelNameKey)) {
+          modelNameCache.set(modelNameKey, matchedProduct.id);
+        }
+
+        if (normalizedModelNameWith5G) {
+          const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
+          if (!modelNameCache.has(modelName5GKey)) {
+            modelNameCache.set(modelName5GKey, matchedProduct.id);
+          }
+        }
+
         stats.products.existing++;
       }
 
-      // Cache the result
-      cache.set(cacheKey, matchedProduct.id);
-      
       return matchedProduct.id;
     } catch (error) {
-      console.error(`❌ Error in enhanced product deduplication "${model_name}":`, error.message);
+      console.error(`❌ Error in product insertion "${model_name}":`, error.message);
       stats.errors.push(`Product: ${model_name} - ${error.message}`);
       return null;
     }
