@@ -1,8 +1,12 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const UserAgent = require('user-agents');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+// Use puppeteer-extra with stealth plugin
+puppeteer.use(StealthPlugin());
 
 class BaseCrawler {
   constructor(config = {}) {
@@ -44,12 +48,12 @@ class BaseCrawler {
       pagesDestroyed: 0,
       gcForced: 0
     };
-    
+
     // Memory monitoring intervals
     this.memoryMonitorInterval = null;
     this.cleanupInterval = null;
     this.forceGCInterval = null;
-    
+
     // Initialize memory management
     if (this.config.memoryManagement.enabled) {
       this.initializeMemoryManagement();
@@ -120,7 +124,7 @@ class BaseCrawler {
   async close() {
     try {
       this.logger.debug('Starting comprehensive cleanup...');
-      
+
       // Clean up intervals first
       if (this.memoryMonitorInterval) {
         clearInterval(this.memoryMonitorInterval);
@@ -148,7 +152,7 @@ class BaseCrawler {
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Browser close timeout')), 10000)
           );
-          
+
           await Promise.race([closePromise, timeoutPromise]);
           this.browser = null;
           this.logger.debug('Browser closed successfully');
@@ -168,7 +172,7 @@ class BaseCrawler {
 
       this.logger.info(`Memory stats - Peak: ${this.memoryStats.peakMemoryMB}MB, Pages created: ${this.memoryStats.pagesCreated}, Pages destroyed: ${this.memoryStats.pagesDestroyed}, GC forced: ${this.memoryStats.gcForced}`);
       this.logger.debug('Comprehensive cleanup completed');
-      
+
     } catch (error) {
       this.logger.error(`Error during cleanup: ${error.message}`);
       // Ensure browser is killed even if cleanup fails
@@ -241,30 +245,25 @@ class BaseCrawler {
 
   async configurePageForMemoryEfficiency(page) {
     try {
-      // Set user agent
-      if (this.config.userAgent) {
-        await page.setUserAgent(this.config.userAgent);
-      } else {
-        const userAgent = new UserAgent();
-        await page.setUserAgent(userAgent.toString());
-      }
+      // Puppeteer-stealth handles user agent automatically
+      // No manual user agent setting needed
       
       // Set viewport
-      const viewport = {
-        width: this.config.viewport?.width || 1366,
-        height: this.config.viewport?.height || 768,
-        deviceScaleFactor: this.config.viewport?.deviceScaleFactor || 1,
-      };
-      await page.setViewport(viewport);
+      // const viewport = {
+      //   width: this.config.viewport?.width || 1366,
+      //   height: this.config.viewport?.height || 768,
+      //   deviceScaleFactor: this.config.viewport?.deviceScaleFactor || 1,
+      // };
+      // await page.setViewport(viewport);
       
       // Set extra HTTP headers
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache'
-      });
+      // await page.setExtraHTTPHeaders({
+      //   'Accept-Language': 'en-US,en;q=0.9',
+      //   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      //   'Accept-Encoding': 'gzip, deflate, br',
+      //   'Connection': 'keep-alive',
+      //   'Cache-Control': 'no-cache'
+      // });
 
       // Block unnecessary resources to save memory
       await page.setRequestInterception(true);
@@ -273,7 +272,7 @@ class BaseCrawler {
         const url = request.url();
         
         // Block images, stylesheets, fonts for memory efficiency
-        if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+        if (['font', 'media'].includes(resourceType)) {
           request.abort();
         } else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) {
           request.abort();
@@ -362,7 +361,7 @@ class BaseCrawler {
     try {
       const memUsage = process.memoryUsage();
       const memoryMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-      
+
       this.memoryStats.currentMemoryMB = memoryMB;
       if (memoryMB > this.memoryStats.peakMemoryMB) {
         this.memoryStats.peakMemoryMB = memoryMB;
@@ -385,7 +384,7 @@ class BaseCrawler {
     if (memoryMB > maxMemoryMB * 0.8) { // 80% threshold
       this.logger.warn(`Memory usage high: ${memoryMB}MB / ${maxMemoryMB}MB. Performing cleanup.`);
       await this.performCleanup();
-      
+
       if (memoryMB > maxMemoryMB) {
         throw new Error(`Memory limit exceeded: ${memoryMB}MB > ${maxMemoryMB}MB`);
       }
@@ -395,7 +394,7 @@ class BaseCrawler {
   async performCleanup() {
     try {
       const now = Date.now();
-      
+
       // Close excess pages in pool if any
       while (this.pagePool.length > Math.floor(this.config.memoryManagement.pagePoolSize / 2)) {
         const page = this.pagePool.shift();
@@ -418,7 +417,7 @@ class BaseCrawler {
 
   async forceCleanupOldestPages() {
     this.logger.warn(`Page limit reached. Forcing cleanup of oldest pages.`);
-    
+
     // Close half of the pages in pool
     const pagesToClose = Math.ceil(this.pagePool.length / 2);
     for (let i = 0; i < pagesToClose; i++) {
@@ -458,7 +457,7 @@ class BaseCrawler {
   async navigate(page, url) {
     try {
       await page.goto(url, { 
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'load', // Wait for full page load including JS
         timeout: 30000
       });
       await this.delay();
@@ -490,22 +489,22 @@ class BaseCrawler {
     try {
       // Wait for the element to be visible
       await page.waitForSelector(selector, { visible: true, timeout: 10000 });
-      
+
       // Get the element's position
       const elementHandle = await page.$(selector);
       const box = await elementHandle.boundingBox();
-      
+
       // Move mouse to element with some randomness
       const x = box.x + (box.width * (0.3 + Math.random() * 0.4));
       const y = box.y + (box.height * (0.3 + Math.random() * 0.4));
-      
+
       // Move mouse and click with delay
       await page.mouse.move(x, y, { steps: 10 });
       await this.delay(300, 800);
       await page.mouse.down();
       await this.delay(50, 150);
       await page.mouse.up();
-      
+
       await this.delay();
     } catch (error) {
       this.logger.error(`Click error on ${selector}: ${error.message}`);
@@ -518,12 +517,12 @@ class BaseCrawler {
     await page.evaluate((distance) => {
       const totalScrolls = Math.floor(distance / 100);
       let scrolled = 0;
-      
+
       return new Promise((resolve) => {
         const scroller = setInterval(() => {
           window.scrollBy(0, 100);
           scrolled++;
-          
+
           if (scrolled >= totalScrolls) {
             clearInterval(scroller);
             resolve();
@@ -531,7 +530,7 @@ class BaseCrawler {
         }, 120);
       });
     }, scrollDistance);
-    
+
     await this.delay(500, 1000);
   }
 
