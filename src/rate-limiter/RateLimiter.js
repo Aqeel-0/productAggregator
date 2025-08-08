@@ -501,7 +501,7 @@ class RateLimiter extends EventEmitter {
   /**
    * Calculate optimal delay for respectful scraping
    */
-  calculateDelay(result, baseDelay = 1000) {
+  calculateDelay(result, baseDelay = 700) {
     if (!result.allowed && result.retryAfter) {
       return result.retryAfter * 1000; // Convert to ms
     }
