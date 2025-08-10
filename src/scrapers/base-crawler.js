@@ -258,13 +258,13 @@ class BaseCrawler {
       await page.setViewport(viewport);
       
       // Set extra HTTP headers
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Cache-Control': 'no-cache'
-      });
+      // await page.setExtraHTTPHeaders({
+      //   'Accept-Language': 'en-US,en;q=0.9',
+      //   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      //   'Accept-Encoding': 'gzip, deflate, br',
+      //   'Connection': 'keep-alive',
+      //   'Cache-Control': 'no-cache'
+      // });
 
       // Block unnecessary resources to save memory
       await page.setRequestInterception(true);
@@ -273,7 +273,7 @@ class BaseCrawler {
         const url = request.url();
         
         // Block images, stylesheets, fonts for memory efficiency
-        if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+        if (['font', 'media'].includes(resourceType)) {
           request.abort();
         } else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) {
           request.abort();
@@ -458,7 +458,7 @@ class BaseCrawler {
   async navigate(page, url) {
     try {
       await page.goto(url, { 
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'load',
         timeout: 30000
       });
       await this.delay();

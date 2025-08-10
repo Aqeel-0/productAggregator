@@ -34,13 +34,16 @@ class FlipkartCrawler extends BaseCrawler {
     
     super({ ...defaultConfig, ...config });
     this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock';
-    this.checkpointFile = path.join(__dirname, 'checkpoint-rate-limited.json');
-    this.outputFile = path.join(__dirname, 'flipkart_scraped_data_rate_limited.json');
+    this.checkpointFile = path.join(__dirname, 'checkpoint.json');
+    this.outputFile = path.join(__dirname, 'flipkart_raw.json');
     this.productLinks = [];
     this.checkpoint = this.loadCheckpoint();
     
     // Multi-page scraping configuration
-    this.maxProducts = config.maxProducts || null; // If null, uses maxPages instead
+    // maxProducts applies to MAIN links only
+    this.maxProducts = (config.maxProducts ?? defaultConfig.maxProducts) ?? null; // If null, uses maxPages instead
+    // totalMaxProducts applies to MAIN + RELATED combined
+    this.totalMaxProducts = config.totalMaxProducts || null;
     this.maxPages = config.maxPages || 3; // Default: scrape 3 pages
     this.maxConcurrent = config.maxConcurrent || 2;
     this.maxRetries = config.maxRetries || 3;
@@ -64,8 +67,14 @@ class FlipkartCrawler extends BaseCrawler {
     if (!this.checkpoint.productLinks) {
       this.checkpoint.productLinks = [];
     }
+    if (!this.checkpoint.relatedLinks) {
+      this.checkpoint.relatedLinks = [];
+    }
     if (this.checkpoint.lastProcessedIndex === undefined) {
       this.checkpoint.lastProcessedIndex = -1;
+    }
+    if (this.checkpoint.lastRelatedIndex === undefined) {
+      this.checkpoint.lastRelatedIndex = -1;
     }
     if (!this.checkpoint.failedProducts) {
       this.checkpoint.failedProducts = [];
@@ -77,7 +86,26 @@ class FlipkartCrawler extends BaseCrawler {
       this.checkpoint.lastPageScraped = 0;
     }
     
-    // Rate limiter and memory management initialized
+    // Related products configuration
+    this.relatedProductsConfig = {
+      maxPerProduct: config.relatedProducts?.maxPerProduct ?? 5,
+    };
+
+    // Global deduplication across main and related
+    this.seenUrl = new Set();
+    // Track URLs that are related (to avoid related-of-related scraping)
+    this.relatedProductUrls = new Set();
+
+    // Seed sets from checkpoint content
+    [...this.checkpoint.productLinks, ...this.checkpoint.relatedLinks].forEach((url) => {
+      const normalized = this.normalizeFlipkartUrl(this.addBaseUrl(url));
+      if (normalized) this.seenUrl.add(normalized);
+    });
+    this.checkpoint.relatedLinks.forEach((url) => {
+      const normalized = this.normalizeFlipkartUrl(this.addBaseUrl(url));
+      if (normalized) this.relatedProductUrls.add(normalized);
+    });
+
   }
 
   loadCheckpoint() {
@@ -108,13 +136,22 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
+  addBaseUrl(url) {
+    if (!url) return url;
+    if (url.startsWith('/')) {
+      return 'https://www.flipkart.com' + url;
+    }
+    return url;
+  }
+
   normalizeFlipkartUrl(url) {
     if (!url) return url;
     
     try {
+      const fullUrl = this.addBaseUrl(url);
       // Match up to and including the pid parameter value
-      const match = url.match(/^(.*?\?pid=[^&]+)/);
-      return match ? match[1] : url;
+      const match = fullUrl.match(/^(.*?\?pid=[^&]+)/);
+      return match ? match[1] : fullUrl;
     } catch (error) {
       return url;
     }
@@ -175,6 +212,26 @@ class FlipkartCrawler extends BaseCrawler {
       }
 
       await this.scrapeProductDetails();
+
+      // After main products are processed, process related products
+      let relatedLimit = null;
+      if (this.totalMaxProducts) {
+        const mainProcessed = this.checkpoint.lastProcessedIndex + 1;
+        relatedLimit = Math.max(0, this.totalMaxProducts - mainProcessed);
+      }
+
+      if (!relatedLimit || relatedLimit > 0) {
+        await this.processProductArray(
+          this.checkpoint.relatedLinks,
+          'lastRelatedIndex',
+          'related products',
+          true,
+          relatedLimit || null
+        );
+      } else {
+        this.logger.info('Related processing skipped due to totalMaxProducts cap');
+      }
+
       this.logger.info('Crawling completed successfully');
       
       // Enhanced cleanup to ensure proper shutdown
@@ -287,10 +344,11 @@ class FlipkartCrawler extends BaseCrawler {
 
   async scrapeProductLinks() {
     const allProductLinks = [];
-    const seenUrls = new Set(); // Single deduplication set for entire process
+    // Only apply maxProducts cap during link collection, not totalMaxProducts
+    const mainCap = this.maxProducts;
     const startPage = this.checkpoint.lastPageScraped + 1;
     
-    this.logger.info(`🚀 Starting: Pages ${startPage}-${this.maxPages} | Target: ${this.maxProducts || 'ALL'} products`);
+    this.logger.info(`🚀 Starting: Pages ${startPage}-${this.maxPages} | Target: ${mainCap || 'ALL'} products`);
     
     for (let currentPage = startPage; currentPage <= this.maxPages; currentPage++) {
       const page = await this.newPage();
@@ -329,13 +387,13 @@ class FlipkartCrawler extends BaseCrawler {
         for (const link of pageLinks) {
           const normalizedUrl = this.normalizeFlipkartUrl(link);
           
-          if (!seenUrls.has(normalizedUrl)) {
-            seenUrls.add(normalizedUrl);
+          if (!this.seenUrl.has(normalizedUrl)) {
+            this.seenUrl.add(normalizedUrl);
             allProductLinks.push(normalizedUrl); // Store normalized URL instead of original
             newLinksCount++;
             
             // Early exit if target reached
-            if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
+            if (mainCap && allProductLinks.length >= mainCap) {
               break;
             }
           }
@@ -349,7 +407,7 @@ class FlipkartCrawler extends BaseCrawler {
           break;
         }
         
-        if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
+        if (mainCap && allProductLinks.length >= mainCap) {
           this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
           break;
         }
@@ -381,7 +439,7 @@ class FlipkartCrawler extends BaseCrawler {
       }
       
       // Respectful delay between pages
-      if (currentPage < this.maxPages && allProductLinks.length < (this.maxProducts || Infinity)) {
+      if (currentPage < this.maxPages && allProductLinks.length < (mainCap || Infinity)) {
         await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
       }
     }
@@ -394,7 +452,7 @@ class FlipkartCrawler extends BaseCrawler {
     this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
   }
   
-  async processProductWithRetry(url, index) {
+  async processProductWithRetry(url, index, isRelated) {
     let lastError;
     
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
@@ -409,7 +467,7 @@ class FlipkartCrawler extends BaseCrawler {
         }
         
         // Processing product ${index + 1}
-        const productData = await this._scrapeProductDetail(url);
+        const productData = await this._scrapeProductDetail(url, isRelated);
         
         // Adaptive delay based on rate limit status
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
@@ -458,7 +516,7 @@ class FlipkartCrawler extends BaseCrawler {
       
       for (let j = i; j < batchEnd; j++) {
         const url = this.productLinks[j];
-        batchPromises.push(this.processProductWithRetry(url, j));
+        batchPromises.push(this.processProductWithRetry(url, j, false));
       }
       
       const batchResults = await Promise.allSettled(batchPromises);
@@ -505,7 +563,71 @@ class FlipkartCrawler extends BaseCrawler {
     this.logger.info(`Completed scraping ${endIndex - startIndex} products`);
   }
 
-  async _scrapeProductDetail(url) {
+  async processProductArray(urlArray, indexKey, description, isRelated, maxToProcess = null) {
+    const totalProducts = urlArray.length;
+    const startIndex = this.checkpoint[indexKey] + 1;
+    const endIndex = maxToProcess ? Math.min(totalProducts, startIndex + maxToProcess) : totalProducts;
+
+    if (startIndex >= endIndex) return;
+
+    this.logger.info(`Processing ${description} from index ${startIndex} to ${endIndex - 1} with max ${this.maxConcurrent} concurrent requests`);
+
+    const results = [];
+    const concurrent = Math.min(this.maxConcurrent, endIndex - startIndex);
+
+    for (let i = startIndex; i < endIndex; i += concurrent) {
+      const batchEnd = Math.min(i + concurrent, endIndex);
+      const batchPromises = [];
+
+      for (let j = i; j < batchEnd; j++) {
+        const url = urlArray[j];
+        batchPromises.push(this.processProductWithRetry(url, j, isRelated));
+      }
+
+      const batchResults = await Promise.allSettled(batchPromises);
+
+      for (let k = 0; k < batchResults.length; k++) {
+        const result = batchResults[k];
+        const index = i + k;
+
+        if (result.status === 'fulfilled' && result.value) {
+          results.push(result.value);
+          this.checkpoint[indexKey] = index;
+        } else {
+          const errorMessage = result.reason && result.reason.message ? result.reason.message : (result.reason || 'Unknown error');
+          this.logger.error(`Failed to process ${description} at index ${index}: ${errorMessage}`);
+          this.checkpoint.failedProducts.push({
+            index,
+            url: urlArray[index],
+            error: errorMessage,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      // Save progress
+      this.saveCheckpoint();
+
+      // Save data in batches
+      if (results.length >= 5 || i + concurrent >= endIndex) {
+        if (results.length > 0) {
+          this.saveData(results);
+          results.length = 0; // Clear the array
+        }
+      }
+
+      // Add batch delay
+      if (i + concurrent < endIndex) {
+        const delayMs = Math.random() * 2000 + 1000; // 1-3 seconds
+        this.logger.debug(`Batch delay: ${delayMs}ms`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    this.logger.info(`Completed processing ${endIndex - startIndex} ${description}`);
+  }
+
+  async _scrapeProductDetail(url, isRelated = false) {
     const page = await this.newPage();
     try {
       // Enable JavaScript for Flipkart
@@ -517,6 +639,11 @@ class FlipkartCrawler extends BaseCrawler {
       await this.delay(500, 1000);
 
       const productData = await this._extractProductData(page);
+
+      // Extract related links only for main products
+      if (!isRelated) {
+        await this._extractRelatedProducts(page);
+      }
       
       // Return page to pool instead of closing
       await this.returnPageToPool(page);
@@ -541,7 +668,6 @@ class FlipkartCrawler extends BaseCrawler {
       const categories = await this._extractCategories($);
       const tags = await this._extractTags(page);
       const images = await this._extractImages(page);
-      
       return { 
         title, 
         price: pricing,
@@ -857,6 +983,77 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
+  async _extractRelatedProducts(page) {
+    try {
+
+      let scrollAttempts = 0;
+      const maxScrollAttempts = 20;
+
+      while ((await page.$("div.jOp9db")) == null && scrollAttempts < maxScrollAttempts) {
+        await page.mouse.wheel({ deltaY: 600 });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        scrollAttempts++;
+      }
+      // Get HTML content and load with Cheerio
+      const html = await page.content();
+      const $ = cheerio.load(html);
+
+      const allRelatedUrls = [];
+
+      // Extract related products from pq8uUv sections
+      $('.pq8uUv').each((index, element) => {
+        const ele = $(element);
+        const jOp9dbDiv = ele.find('div.jOp9db');
+
+        if (jOp9dbDiv.length > 0) {
+          const text = jOp9dbDiv.text().trim();
+          if (text === 'Similar Products') {
+            ele.find('a.VJA3rP').each((_, anchor) => {
+              const url = $(anchor).attr('href');
+              if (url) {
+                allRelatedUrls.push(url);
+              }
+            });
+          }
+        }
+      });
+
+      this.logger.debug(`  Raw URLs extracted: ${allRelatedUrls.length}`);
+
+      // Normalize and deduplicate URLs, then add to checkpoint.relatedLinks array
+      const maxRelated = this.relatedProductsConfig.maxPerProduct;
+      let addedCount = 0;
+
+      for (const url of allRelatedUrls) {
+        if (addedCount >= maxRelated) break;
+
+        const normalizedUrl = this.normalizeFlipkartUrl(this.addBaseUrl(url));
+
+        if (normalizedUrl && !this.seenUrl.has(normalizedUrl)) {
+          this.seenUrl.add(normalizedUrl);
+          
+          // Add to relatedLinks list only
+          this.checkpoint.relatedLinks.push(normalizedUrl);
+          
+          // Track that this is a related product
+          this.relatedProductUrls.add(normalizedUrl);
+          
+          addedCount++;
+        }
+      }
+
+      this.logger.debug(`  Added ${addedCount} new related products to related queue`);
+
+      // Save checkpoint after adding new links
+      if (addedCount > 0) {
+        this.saveCheckpoint();
+      }
+
+    } catch (error) {
+      this.logger.error(`Error extracting related products: ${error.message}`);
+    }
+  }
+
   async close() {
     await super.close();
     if (this.rateLimiter) {
@@ -872,10 +1069,14 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 800,
+    maxProducts: 200,
+    totalMaxProducts: 800,
+    relatedProductsConfig: {
+      maxPerProduct: 5,
+    },
     maxPages: 60,
     delayBetweenPages: 3000,
-    maxConcurrent: 4,
+    maxConcurrent: 10,
     maxRetries: 3,
   });
   
