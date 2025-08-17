@@ -12,10 +12,12 @@ const CATEGORY_SELECTORS = {
     '/* optional: .product-card */'
   ],
   PRODUCT_LINK: [
-    // Reliance Digital product links
-  '.product-card-image'
+    // Reliance Digital product links - captures all product links
+    'a[href*="/product/"]'
   ],
   NEXT_PAGE: [
+    'span[aria-label="Goto Next Page"]', // Primary arrow button selector
+    'span[aria-label="Goto Next Page"] img.rotation', // Alternative selector for the arrow image
     'a[rel="next"]',
     'a.pagination__next',
     'button[aria-label="Next"]'
@@ -28,15 +30,10 @@ const PRODUCT_SELECTORS = {
     '.product-name'
   ],
   PRICE: [
-    '[itemprop="price"]',
-    '.pdp__finalPrice',
-    '.price .final',
-    '.price-final'
+    '.product-price'
   ],
   ORIGINAL_PRICE: [
-    '.price .original',
-    '.mrp',
-    '.pdp__mrp'
+    '.product-marked-price',
   ],
   DISCOUNT: [
     '.price .discount',
@@ -52,8 +49,10 @@ const PRODUCT_SELECTORS = {
     '.pdp__rating-count'
   ],
   IMAGE: [
-    '.product-gallery img',
-    'img[alt][src]'
+    '.load-image img',
+  ],
+  ALT_IMAGE: [
+    '.image-gallery__list--item',
   ],
   BRAND: [
     '.brand-name',

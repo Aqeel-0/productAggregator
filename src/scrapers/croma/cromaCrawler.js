@@ -60,10 +60,18 @@ class ChromeCrawler extends BaseCrawler {
     // Load checkpoint
     this.checkpoint = this.loadCheckpoint();
     this.productLinks = this.checkpoint.productLinks || [];
+    this.seenUrls = new Set(); // Global deduplication set
     
     // Ensure checkpoint has the required structure
     if (!this.checkpoint.productLinks) {
       this.checkpoint.productLinks = [];
+    }
+    
+    // Restore URLs from checkpoint into the Set for deduplication
+    if (this.productLinks.length > 0) {
+      this.productLinks.forEach(url => {
+        this.seenUrls.add(this.normalizeCromaUrl(url));
+      });
     }
     if (this.checkpoint.lastProcessedIndex === undefined) {
       this.checkpoint.lastProcessedIndex = -1;
@@ -162,12 +170,32 @@ class ChromeCrawler extends BaseCrawler {
     if (!url) return url;
     
     try {
-      // Basic URL normalization for Croma
+      // Enhanced URL normalization for Croma
       const fullUrl = url.startsWith('http') ? url : `https://www.croma.com${url}`;
-      return fullUrl;
+      const u = new URL(fullUrl);
+      u.hash = '';
+      // Remove query parameters for better deduplication
+      u.search = '';
+      u.hostname = u.hostname.toLowerCase();
+      // Remove trailing slash
+      if (u.pathname.length > 1 && u.pathname.endsWith('/')) {
+        u.pathname = u.pathname.slice(0, -1);
+      }
+      return u.toString();
     } catch (error) {
       return url;
     }
+  }
+
+  // Add URL to global set with normalization
+  addUniqueUrl(url) {
+    const normalized = this.normalizeCromaUrl(url);
+    if (!this.seenUrls.has(normalized)) {
+      this.seenUrls.add(normalized);
+      this.productLinks.push(normalized);
+      return true; // Added
+    }
+    return false; // Duplicate
   }
 
   saveData(data) {
@@ -282,7 +310,8 @@ class ChromeCrawler extends BaseCrawler {
 
 
   async scrapeProductLinks() {
-    this.logger.info('🚀 Starting Croma scraping with "View More" button');
+    let newLinksAdded = 0;
+    this.logger.info('🚀 Starting Croma scraping with simplified global Set deduplication');
     
     const page = await this.newPage();
     
@@ -294,101 +323,98 @@ class ChromeCrawler extends BaseCrawler {
       
       // Keep clicking "View More" until we have enough links
       let totalClickCount = 0;
-      // Calculate how many times we need to click "View More" button based on maxProducts
       const productsPerPage = 20;
       const maxTotalClicks = this.maxProducts ? 
         Math.max(0, Math.ceil((this.maxProducts - productsPerPage) / productsPerPage)) : 
         20; // Default to 20 if no maxProducts set
       
-      this.logger.info(`🎯 Target: ${this.maxProducts || 'unlimited'} products | Products per page: ${productsPerPage} | Required clicks: ${maxTotalClicks}`);
-      let currentLinkCount = 0;
+      this.logger.info(`🎯 Target: ${this.maxProducts || 'unlimited'} products | Required clicks: ${maxTotalClicks}`);
       
       // Click "View More" button exactly maxTotalClicks times
       while (totalClickCount < maxTotalClicks) {
-        // Look for "View More" button (reduced wait)
         let viewMoreButton = null;
         for (const selector of CATEGORY_SELECTORS.VIEW_MORE_BUTTON) {
           try {
-            await page.waitForSelector(selector, { timeout: 3000 }).catch(() => {}); // Smart wait
+            await page.waitForSelector(selector, { timeout: 3000 }).catch(() => {});
             viewMoreButton = await page.$(selector);
             if (viewMoreButton) break;
           } catch (error) {
-            continue; // Skip invalid selectors
+            continue;
           }
         }
         
         if (!viewMoreButton) {
-          this.logger.info(`🔍 No "View More" button found after ${totalClickCount} clicks - stopping early`);
+          this.logger.info(`🔍 No "View More" button found after ${totalClickCount} clicks`);
           break;
         }
         
-        // Check if button is clickable
         const isClickable = await page.evaluate((button) => {
           return button && !button.disabled && button.offsetParent !== null;
         }, viewMoreButton);
         
         if (!isClickable) {
-          this.logger.info(`⚠️  View More button not clickable after ${totalClickCount} clicks - stopping early`);
+          this.logger.info(`⚠️ View More button not clickable after ${totalClickCount} clicks`);
           break;
         }
         
-        // Click the button
         try {
           await page.evaluate((button) => {
             button.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, viewMoreButton);
-          await page.waitForTimeout(300); // Reduced wait
+          await page.waitForTimeout(300);
           await viewMoreButton.click();
           totalClickCount++;
-          this.logger.info(`🔄 Clicked "View More" button (${totalClickCount}/${maxTotalClicks})`);
-          await page.waitForTimeout(1500); // Reduced wait for content to load
+          this.logger.info(`🔄 Clicked "View More" (${totalClickCount}/${maxTotalClicks})`);
+          await page.waitForTimeout(1500);
         } catch (error) {
-          this.logger.error(`❌ Error clicking View More button: ${error.message}`);
+          this.logger.error(`❌ Error clicking View More: ${error.message}`);
           break;
         }
       }
       
-      // Now extract all product links from the page
-      this.logger.info('🔗 Extracting all product links from loaded page');
+      // Extract all product links from the fully loaded page
+      this.logger.info('🔗 Extracting all product links with global deduplication');
       
-      const allLinks = await page.evaluate((selectors) => {
+      const rawLinks = await page.evaluate((selectors) => {
         const links = [];
-        const seenUrls = new Set();
         
-        // Use the best selector (usually .product-item a works for Croma)
+        // Extract raw links without normalization (done in addUniqueUrl)
         for (const selector of selectors.PRODUCT_LINK) {
           const linkElements = document.querySelectorAll(selector);
           linkElements.forEach(element => {
             const href = element.href || element.getAttribute('href');
-            if (href && !seenUrls.has(href)) {
+            if (href) {
               const absoluteUrl = href.startsWith('http') ? href : `https://www.croma.com${href}`;
-              seenUrls.add(absoluteUrl);
               links.push(absoluteUrl);
             }
           });
           
-          // If we found links with this selector, we're good
-          if (links.length > 0) break;
+          if (links.length > 0) break; // Use first successful selector
         }
         
         return links;
       }, CATEGORY_SELECTORS);
       
-      // Limit to maxProducts if specified
-      const finalLinks = this.maxProducts ? allLinks.slice(0, this.maxProducts) : allLinks;
+      // Add links using global Set deduplication
+      let uniqueCount = 0;
+      rawLinks.forEach(link => {
+        if (this.addUniqueUrl(link)) {
+          uniqueCount++;
+          newLinksAdded++;
+        }
+      });
       
-      this.logger.info(`📋 Found ${allLinks.length} total links, using ${finalLinks.length}`);
+      this.logger.info(`📋 Found ${rawLinks.length} raw links, ${uniqueCount} unique | Total: ${this.productLinks.length}`);
       
       // Log sample links
-      if (finalLinks.length > 0) {
+      if (this.productLinks.length > 0) {
         this.logger.info('🔗 Sample links:');
-        finalLinks.slice(0, 5).forEach((link, i) => {
+        this.productLinks.slice(0, 5).forEach((link, i) => {
           this.logger.info(`  ${i + 1}. ${link}`);
         });
       }
       
-      // Store results
-      this.productLinks = finalLinks;
+      // Update checkpoint
       this.checkpoint.productLinks = this.productLinks;
       this.checkpoint.lastPageScraped = 1;
       this.checkpoint.pagesScraped = [1];
@@ -402,7 +428,7 @@ class ChromeCrawler extends BaseCrawler {
       await this.returnPageToPool(page);
     }
     
-    this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products`);
+    this.logger.info(`✅ Croma link collection complete: ${this.productLinks.length} total products (${newLinksAdded} new)`);
   }
 
   async scrapeProductDetails() {

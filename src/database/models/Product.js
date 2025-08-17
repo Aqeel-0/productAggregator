@@ -356,158 +356,120 @@ class Product extends Model {
    * Model names are normalized to lowercase for consistent storage and matching
    */
   static async insertWithCache(productData, brandId, categoryId, modelNumberCache, modelNameCache, stats) {
-    const { model_name, model_number, model_name_with_5g } = productData.product_identifiers;
+    const { model_name, model_number } = productData.product_identifiers;
     const key_specifications = productData.key_specifications || {};
-
+  
     if (!model_name) return null;
-
-    // Normalize model names to lowercase for consistent storage and matching
+  
+    // Helper functions
+    const hasNetworkSuffix = (name) => {
+      return name.endsWith(' 5g') || name.endsWith(' 4g');
+    };
+  
+    const removeNetworkSuffix = (name) => {
+      if (name.endsWith(' 5g') || name.endsWith(' 4g')) return name.slice(0, -3);
+      return name;
+    };
+  
+    const getNetworkType = (name) => {
+      if (name.endsWith(' 5g')) return '5g';
+      if (name.endsWith(' 4g')) return '4g';
+      return '5g'; // Default for no suffix
+    };
+  
+    const getCacheKey = (name) => {
+      const networkType = getNetworkType(name);
+      return networkType === '4g' ? name : removeNetworkSuffix(name); // 4G: full name, else base
+    };
+  
+    const generateSearchVariants = (name) => {
+      const baseName = removeNetworkSuffix(name);
+      const networkType = getNetworkType(name);
+      return networkType === '4g' ? [name] : [baseName, `${baseName} 5g`]; // 4G: exact only; else base + 5G
+    };
+  
+    // Normalize input
     const normalizedModelName = model_name.toLowerCase().trim();
-    const normalizedModelNameWith5G = model_name_with_5g ? model_name_with_5g.toLowerCase().trim() : null;
-
+    const cacheKey = `${brandId}:${getCacheKey(normalizedModelName)}`;
+  
     try {
       let matchedProduct = null;
       let matchType = 'none';
-
-      // Phase 1: Check model number cache first
+  
+      // Phase 1: Model Number Matching
       if (model_number) {
         const modelNumberKey = `${brandId}:${model_number}`;
         if (modelNumberCache.has(modelNumberKey)) {
-          const productId = modelNumberCache.get(modelNumberKey);
           stats.deduplication.model_number_matches++;
           stats.products.existing++;
-          return productId;
+          return modelNumberCache.get(modelNumberKey);
         }
-
-        // Try exact model number match in database
+  
         matchedProduct = await Product.findOne({
-          where: {
-            model_number: model_number,
-            brand_id: brandId
-          }
+          where: { model_number, brand_id: brandId }
         });
-
+  
         if (matchedProduct) {
           matchType = 'model_number';
           stats.deduplication.model_number_matches++;
           modelNumberCache.set(modelNumberKey, matchedProduct.id);
         }
       }
-
-      // Phase 2: Check base model name cache (exact match with normalized lowercase)
+  
+      // Phase 2: Model Name Matching
       if (!matchedProduct) {
-        const modelNameKey = `${brandId}:${normalizedModelName}`;
-        if (modelNameCache.has(modelNameKey)) {
-          const productId = modelNameCache.get(modelNameKey);
+        // Check cache
+        if (modelNameCache.has(cacheKey)) {
           stats.deduplication.exact_name_matches++;
           stats.products.existing++;
-          return productId;
+          return modelNameCache.get(cacheKey);
         }
-
-        // Try exact base model name match in database (stored in lowercase)
-        matchedProduct = await Product.findOne({
-          where: {
-            model_name: normalizedModelName,
-            brand_id: brandId
-          }
+  
+        // Generate search variants
+        const searchVariants = generateSearchVariants(normalizedModelName);
+  
+        // Database query
+        const dbResults = await Product.findAll({
+          where: { model_name: searchVariants, brand_id: brandId }
         });
-
-        if (matchedProduct) {
-          matchType = 'model_name';
-          stats.deduplication.exact_name_matches++;
-          modelNameCache.set(modelNameKey, matchedProduct.id);
+  
+        if (dbResults.length > 0) {
+          // Prefer exact match, then any variant
+          matchedProduct = dbResults.find(p => p.model_name === normalizedModelName) || dbResults[0];
+          matchType = matchedProduct.model_name === normalizedModelName ? 'exact_name' : 'variant_match';
+          stats.deduplication[matchType] = (stats.deduplication[matchType] || 0) + 1;
+          modelNameCache.set(cacheKey, matchedProduct.id);
         }
       }
-
-      // Phase 3: Check 5G variant model name cache (exact match with normalized lowercase, if provided)
-      if (!matchedProduct && normalizedModelNameWith5G) {
-        const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
-        if (modelNameCache.has(modelName5GKey)) {
-          const productId = modelNameCache.get(modelName5GKey);
-          stats.deduplication.variant_5g_matches++;
-          stats.products.existing++;
-          return productId;
-        }
-
-        // Try exact 5G variant model name match in database (stored in lowercase)
-        matchedProduct = await Product.findOne({
-          where: {
-            model_name: normalizedModelNameWith5G,
-            brand_id: brandId
-          }
-        });
-
-        if (matchedProduct) {
-          matchType = '5g_variant';
-          stats.deduplication.variant_5g_matches++;
-          modelNameCache.set(modelName5GKey, matchedProduct.id);
-        }
-      }
-
-      // Phase 4: Create new product if no matches found
+  
+      // Phase 3: Create New Product
       if (!matchedProduct) {
         const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, brandId, categoryId);
-
-        // Update product with additional data
-        const updateData = {
+        await product.update({
           model_number: model_number || null,
           specifications: key_specifications,
           status: 'active'
-        };
-
-        if (created || !product.model_number) {
-          await product.update(updateData);
-        }
-
+        });
+  
         matchedProduct = product;
         matchType = created ? 'created' : 'existing';
-
         if (created) {
           stats.products.created++;
           stats.deduplication.new_products++;
         } else {
           stats.products.existing++;
         }
-
-        // Cache the new product with both normalized model names
-        const modelNameKey = `${brandId}:${normalizedModelName}`;
-        modelNameCache.set(modelNameKey, matchedProduct.id);
-
-        if (normalizedModelNameWith5G) {
-          const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
-          modelNameCache.set(modelName5GKey, matchedProduct.id);
-        }
-
+  
+        modelNameCache.set(cacheKey, matchedProduct.id);
         if (model_number) {
-          const modelNumberKey = `${brandId}:${model_number}`;
-          modelNumberCache.set(modelNumberKey, matchedProduct.id);
+          modelNumberCache.set(`${brandId}:${model_number}`, matchedProduct.id);
         }
-      } else {
-        // Update existing product with model number if it was missing
-        if (model_number && !matchedProduct.model_number) {
-          await matchedProduct.update({ model_number: model_number });
-
-          // Add to model number cache
-          const modelNumberKey = `${brandId}:${model_number}`;
-          modelNumberCache.set(modelNumberKey, matchedProduct.id);
-        }
-
-        // Cache both normalized model names for the matched product
-        const modelNameKey = `${brandId}:${normalizedModelName}`;
-        if (!modelNameCache.has(modelNameKey)) {
-          modelNameCache.set(modelNameKey, matchedProduct.id);
-        }
-
-        if (normalizedModelNameWith5G) {
-          const modelName5GKey = `${brandId}:${normalizedModelNameWith5G}`;
-          if (!modelNameCache.has(modelName5GKey)) {
-            modelNameCache.set(modelName5GKey, matchedProduct.id);
-          }
-        }
-
-        stats.products.existing++;
+      } else if (model_number && !matchedProduct.model_number) {
+        await matchedProduct.update({ model_number });
+        modelNumberCache.set(`${brandId}:${model_number}`, matchedProduct.id);
       }
-
+  
+      stats.products.existing++;
       return matchedProduct.id;
     } catch (error) {
       console.error(`❌ Error in product insertion "${model_name}":`, error.message);

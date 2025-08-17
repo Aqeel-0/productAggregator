@@ -21,10 +21,10 @@ class DatabaseInserter {
       listings: { created: 0, existing: 0 },
       deduplication: {
         model_number_matches: 0,
-        cross_field_matches: 0,
-        new_products: 0,
-        apple_variants: 0,
-        cross_platform_merges: 0
+        exact_name_matches: 0,
+        variant_match: 0,
+        exact_name: 0,
+        new_products: 0
       },
       crossPlatform: {
         commonProducts: 0,
@@ -55,22 +55,13 @@ class DatabaseInserter {
   }
 
   /**
-   * Get or create product using model method with dual model names
+   * Get or create product using simplified model method
    */
   async getOrCreateProduct(productData, brandId, categoryId) {
-    // Initialize dual cache system if not already done
+    // Initialize simple cache system if not already done
     if (!this.modelNumberCache) {
-      const cacheSystem = Product.createDualCache();
-      this.modelNumberCache = cacheSystem.modelNumberCache;
-      this.modelNameCache = cacheSystem.modelNameCache;
-      this.dualCacheStats = cacheSystem.stats;
-      // Initialize deduplication stats if they don't exist
-      if (!this.stats.deduplication.exact_name_matches) {
-        this.stats.deduplication.exact_name_matches = 0;
-      }
-      if (!this.stats.deduplication.variant_5g_matches) {
-        this.stats.deduplication.variant_5g_matches = 0;
-      }
+      this.modelNumberCache = new Map();
+      this.modelNameCache = new Map();
     }
 
     const result = await Product.insertWithCache(
@@ -79,19 +70,8 @@ class DatabaseInserter {
       categoryId,
       this.modelNumberCache,
       this.modelNameCache,
-      this.dualCacheStats
+      this.stats
     );
-
-    // Merge updated statistics from dual cache system
-    this.stats.deduplication.model_number_matches = this.dualCacheStats.deduplication.model_number_matches;
-    this.stats.deduplication.exact_name_matches = this.dualCacheStats.deduplication.exact_name_matches;
-    this.stats.deduplication.variant_5g_matches = this.dualCacheStats.deduplication.variant_5g_matches;
-    this.stats.deduplication.new_products = this.dualCacheStats.deduplication.new_products;
-    
-    // Merge product creation statistics
-    this.stats.products.created = this.dualCacheStats.products.created;
-    this.stats.products.existing = this.dualCacheStats.products.existing;
-
     return result;
   }
 
@@ -354,15 +334,15 @@ class DatabaseInserter {
 
     console.log(`\n🔍 DEDUPLICATION PERFORMANCE:`);
     console.log(`   Model Number Matches: ${this.stats.deduplication.model_number_matches}`);
-    console.log(`   Exact Model Name Matches: ${this.stats.deduplication.exact_name_matches || 0}`);
-    console.log(`   5G Variant Matches: ${this.stats.deduplication.variant_5g_matches || 0}`);
-    console.log(`   Fuzzy Name Matches: ${this.stats.deduplication.fuzzy_name_matches || 0}`);
-    console.log(`   Apple Variants (Storage+Color): ${this.stats.deduplication.apple_variants || 0}`);
+    console.log(`   Model Name Matches: ${this.stats.deduplication.exact_name_matches || 0}`);
+    console.log(`   Variant Matches: ${this.stats.deduplication.variant_match || 0}`);
+    console.log(`   Other Matches: ${this.stats.deduplication.exact_name || 0}`);
+    console.log(`   New Products Created: ${this.stats.deduplication.new_products}`);
 
-    const totalMatches = this.stats.deduplication.model_number_matches +
-      (this.stats.deduplication.exact_name_matches || 0) +
-      (this.stats.deduplication.variant_5g_matches || 0) +
-      (this.stats.deduplication.fuzzy_name_matches || 0);
+    const totalMatches = this.stats.deduplication.model_number_matches + 
+                        (this.stats.deduplication.exact_name_matches || 0) +
+                        (this.stats.deduplication.variant_match || 0) +
+                        (this.stats.deduplication.exact_name || 0);
     const totalProcessed = totalMatches + (this.stats.deduplication.new_products || 0);
     if (totalProcessed > 0) {
       const deduplicationRate = ((totalMatches / totalProcessed) * 100).toFixed(1);
@@ -455,7 +435,8 @@ class DatabaseInserter {
     const normalizedFiles = [
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' }
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
     ];
 
     console.log('🚀 Starting cross-platform database ingestion...\n');

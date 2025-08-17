@@ -18,7 +18,7 @@ class RelianceCrawler extends BaseCrawler {
         enabled: true,
         maxMemoryMB: 1024,
         maxPages: 4,
-        pagePoolSize: 3,
+        pagePoolSize: 8,
         cleanupInterval: 60000,
         forceGCInterval: 240000,
         memoryCheckInterval: 25000,
@@ -38,7 +38,16 @@ class RelianceCrawler extends BaseCrawler {
     this.checkpointFile = config.checkpointFile || path.join(__dirname, 'checkpoint.json');
     this.outputFile = config.outputFile || path.join(__dirname, 'reliance_raw.json');
     this.productLinks = [];
+    this.seenUrls = new Set(); // Global deduplication set
     this.checkpoint = this.loadCheckpoint();
+    
+    // Restore URLs from checkpoint into the Set for deduplication
+    if (this.checkpoint.productLinks && this.checkpoint.productLinks.length > 0) {
+      this.productLinks = [...this.checkpoint.productLinks];
+      this.checkpoint.productLinks.forEach(url => {
+        this.seenUrls.add(this.normalizeRelianceProductUrl(url));
+      });
+    }
 
     // Instance-level runtime settings
     this.maxProducts = (config.maxProducts ?? defaultConfig.maxProducts) ?? null;
@@ -85,14 +94,14 @@ class RelianceCrawler extends BaseCrawler {
       try {
         const page = await target.page();
         if (!page) return;
-        await page.setJavaScriptEnabled(true);
+        await page.setJavaScriptEnabled(false);
         if (this.config.userAgent) await page.setUserAgent(this.config.userAgent);
-        await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1 });
-        await page.setExtraHTTPHeaders({
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache'
-        });
+        // await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1 });
+        // await page.setExtraHTTPHeaders({
+        //   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        //   'Accept-Language': 'en-US,en;q=0.9',
+        //   'Cache-Control': 'no-cache'
+        // });
       } catch (_) { /* ignore */ }
     });
   }
@@ -128,42 +137,22 @@ class RelianceCrawler extends BaseCrawler {
   saveData(data) {
     try {
       const newData = Array.isArray(data) ? data : [data];
-      
-      // Load existing titles
-      let existingTitles = [];
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          const existing = JSON.parse(fileContent);
-          if (existing.titles && Array.isArray(existing.titles)) {
-            existingTitles = existing.titles;
-          } else if (existing.titles && typeof existing.titles === 'string') {
-            // Handle old comma-separated format
-            existingTitles = existing.titles.split(', ').filter(t => t.trim());
-          }
-        }
-      }
-      
-      // Extract new titles and combine with existing
-      const newTitles = newData.filter(item => item.title).map(item => item.title);
-      const allTitles = [...existingTitles, ...newTitles];
-      const titleOutput = { titles: allTitles };
-      
-      // Save titles format (each title on separate line in array)
-      fs.writeFileSync(this.outputFile, JSON.stringify(titleOutput, null, 2));
-      
-      // Comment: Original detailed format (uncomment to use)
-      /*
+
+      // 1) Write/append full product objects to the main output file (array of objects)
       let existingData = [];
       if (fs.existsSync(this.outputFile)) {
         const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) existingData = JSON.parse(fileContent);
+        if (fileContent) {
+          try {
+            const parsed = JSON.parse(fileContent);
+            existingData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.products) ? parsed.products : []);
+          } catch (_) {
+            existingData = [];
+          }
+        }
       }
       const combinedData = [...existingData, ...newData];
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      */
-      
-      this.logger.info(`Saved ${newTitles.length} product titles | Total titles: ${allTitles.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -172,6 +161,9 @@ class RelianceCrawler extends BaseCrawler {
   async start() {
     try {
       this.logger.info('Starting Reliance crawler');
+      
+      // Initialize browser first - this is critical for proper page pooling
+      await this.initialize();
 
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
@@ -193,109 +185,227 @@ class RelianceCrawler extends BaseCrawler {
     }
   }
 
-  async scrapeProductLinks() {
-    this.logger.info('Scraping product links (listing pages)');
-    const startPage = this.checkpoint.lastPageScraped || 1;
-    const maxPages = this.maxPages;
-    const collected = [];
+  async normalizeRelianceProductUrl(href) {
+    if (!href) return href;
 
-    for (let pageNum = startPage; pageNum <= maxPages; pageNum++) {
-      const url = this.buildCategoryPageUrl(this.categoryUrl, pageNum);
-      console.log('url: ', url);
+    // Ensure absolute URL
+    const absHref = href.startsWith('http')
+      ? href
+      : `https://www.reliancedigital.in${href}`;
 
-      // Rate limit guard
-      const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'reliance');
-      if (!rateLimitResult.allowed) {
-        const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, RelianceRateLimitConfig.baseDelay);
-        // Add extra random delay to be more respectful
-        const extraDelay = Math.random() * 1500 + 500; // 0.5-2 seconds extra
-        this.logger.warn(`Rate limit hit, waiting ${delayMs + extraDelay}ms`);
-        await new Promise((r) => setTimeout(r, delayMs + extraDelay));
+    try {
+      const url = new URL(absHref);
+
+      // Remove tracking params related to "internal"
+      url.searchParams.delete('internal_source');
+      url.searchParams.delete('internal');
+      for (const key of Array.from(url.searchParams.keys())) {
+        if (key.startsWith('internal_')) url.searchParams.delete(key);
       }
 
-      const page = await this.newPage();
-      try {
-        await this.navigate(page, url);
-        // Small scroll to ensure content snaps in even if JS is disabled
-        try { await this.humanScroll(page, 600); } catch (_) {}
-        const html = await page.content();
-        if (pageNum === 1) {
-          try {
-            const dumpPath = path.join(__dirname, '../../..', 'screenshots', 'reliance_page_1.html');
-            fs.writeFileSync(dumpPath, html, 'utf8');
-            this.logger.info(`Saved page HTML to ${dumpPath}`);
-          } catch (_) { /* ignore */ }
-        }
-        const $ = cheerio.load(html);
+      url.search = url.searchParams.toString();
+      return url.toString();
+    } catch {
+      // String fallback if URL parsing fails
+      return absHref
+        .replace(/\?internal_source=search_collection$/, '')
+        .replace(/([?&])internal_source=search_collection(&|$)/, (m, p1, p2) => (p1 === '?' && !p2 ? '' : p2 ? p1 : ''))
+        .replace(/\?internal=.*$/, '')
+        .replace(/([?&])internal=[^&]*/g, (m, p1) => (p1 === '?' ? '?' : ''))
+        .replace(/[?&]$/, '');
+    }
+  }
+  
+  addUniqueUrl(rawUrl) {
+    if (!rawUrl) return false;
 
-        const newLinks = new Set();
-        
-        // 1) Extract from JSON-LD structured data (most reliable for Reliance)
-        $('script[type="application/ld+json"]').each((_, script) => {
-          try {
-            const jsonText = $(script).html();
-            const data = JSON.parse(jsonText);
-            
-            // Look for ItemList with itemListElement
-            if (data['@type'] === 'ItemList' && data.itemListElement && Array.isArray(data.itemListElement)) {
-              data.itemListElement.forEach(item => {
-                if (item.url) {
-                  // URLs in JSON-LD are relative and HTML-encoded, clean them up
-                  let cleanUrl = item.url.replace(/&#x2F;/g, '/'); // Fix HTML-encoded forward slashes
-                  const absoluteUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-                  newLinks.add(absoluteUrl);
-                }
-              });
-            }
-          } catch (e) {
-            // Ignore JSON parsing errors
+    // Lazy-init the Set on first use
+    if (!this.urlSeen) this.urlSeen = new Set();
+
+    let url = rawUrl.trim();
+
+    // Fast de-duplication
+    if (this.urlSeen.has(url)) return false;
+
+    this.urlSeen.add(url);
+    if (!Array.isArray(this.productLinks)) this.productLinks = [];
+    this.productLinks.push(url);
+    return true;
+  }
+
+  // Returns the href of the first product link on the page (or null)
+  async getFirstProductHref(page) {
+    try {
+      return await page.$eval('a[href*="/product/"]', a => a.getAttribute('href') || a.href || null);
+    } catch {
+      return null;
+    }
+  }
+
+  // Waits for first product href to change from beforeHref
+  async  waitForPageAdvance(page, targetNo, beforeHref, timeoutMs = 5000) {
+
+    const gridWait = page.waitForFunction(
+      (before) => {
+        const el = document.querySelector('a[href*="/product/"]');
+        const now = el ? (el.getAttribute('href') || el.href || '') : '';
+        return before && now && now !== before;
+      },
+      {},
+      beforeHref
+    ).catch(() => null);
+
+    const timer = new Promise(res => setTimeout(res, timeoutMs));
+    await Promise.race([gridWait, timer]);
+  }
+
+  async scrapeProductLinks() {
+    let currentPage = (this.checkpoint.lastPageScraped || 0) + 1;
+    const targetPages = this.maxPages;
+    let newLinksAdded = 0;
+
+    this.logger.info(`🚀 Starting Reliance link collection (Next-button only): up to ${targetPages} pages`);
+
+    const page = await this.newPage();
+    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1, isMobile: false });
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    );
+
+    try {
+      await page.setJavaScriptEnabled(true);
+
+      // Always start from the base category URL
+      await this.navigate(page, this.categoryUrl);
+
+      while (currentPage <= targetPages) {
+        // Rate limiting
+        const rl = await this.rateLimiter.checkLimit('scraper', 'reliance');
+        if (!rl.allowed) {
+          const wait =
+            this.rateLimiter.calculateDelay(rl, RelianceRateLimitConfig.baseDelay) +
+            (Math.random() * 1500 + 500);
+          await new Promise((r) => setTimeout(r, wait));
+        }
+
+        // Wait for product links to appear
+        await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 500));
+
+        // Collect and normalize product links
+        const pageLinks = await page.$$eval('a[href*="/product/"]', (as) =>
+          as
+            .map((a) => a.getAttribute('href') || a.href || '')
+            .filter(Boolean)
+        );
+
+        // Apply normalization in Node context (using the separated function)
+        let pageUnique = 0;
+        for (const rawHref of pageLinks) {
+          const normalized = await this.normalizeRelianceProductUrl(rawHref);
+          if (normalized && this.addUniqueUrl(normalized)) {
+            pageUnique++;
+            newLinksAdded++;
           }
-        });
-        
-        // 2) Fallback: Try CSS selectors if JSON-LD didn't work
-        if (newLinks.size === 0) {
-          (CATEGORY_SELECTORS.PRODUCT_LINK || []).forEach((sel) => {
-            $(String(sel)).each((_, el) => {
-              const hrefRaw = $(el).attr('href');
-              if (!hrefRaw) return;
-              try {
-                const absolute = new URL(hrefRaw, 'https://www.reliancedigital.in').href;
-                newLinks.add(absolute);
-              } catch (_) {
-                newLinks.add(this.addBaseUrl(hrefRaw));
-              }
-            });
-          });
         }
 
-        const unique = Array.from(newLinks);
-        this.logger.info(`Page ${pageNum}: found ${unique.length} links`);
-        collected.push(...unique);
+        if (pageLinks.length === 0) {
+          this.logger.info(`✅ No products on page ${currentPage} — stopping`);
+          break;
+        }
 
-        this.checkpoint.pagesScraped.push({ page: pageNum, url, count: unique.length, ts: Date.now() });
-        this.checkpoint.lastPageScraped = pageNum + 1;
+        // Update checkpoints
+        this.checkpoint.lastPageScraped = currentPage;
+        if (!this.checkpoint.pagesScraped.includes(currentPage)) {
+          this.checkpoint.pagesScraped.push(currentPage);
+        }
+        this.checkpoint.productLinks = this.productLinks;
         this.saveCheckpoint();
 
-        // Delay between pages
-        await new Promise((r) => setTimeout(r, this.delayBetweenPages));
-      } catch (error) {
-        this.logger.warn(`Failed to process page ${pageNum}: ${error.message}`);
-      } finally {
-        await this.returnPageToPool(page);
+        // Respect max products if set
+        if (this.maxProducts && this.productLinks.length >= this.maxProducts) {
+          this.logger.info(`🎯 Target reached: ${this.productLinks.length} products`);
+          break;
+        }
+
+        // Move to next page by clicking the Next button
+        if (currentPage < targetPages) {
+          let nextHandle = null;
+        
+          // Try each provided Next selector
+          for (const sel of CATEGORY_SELECTORS.NEXT_PAGE) {
+            await page.waitForSelector(sel, { timeout: 1200 }).catch(() => {});
+            nextHandle = await page.$(sel);
+            if (nextHandle) break;
+          }
+        
+          if (!nextHandle) {
+            this.logger.info(`🔚 Next button not found on page ${currentPage} — stopping`);
+            break;
+          }
+        
+          try {
+            const targetNo = currentPage + 1;
+            const beforeFirstHref = await this.getFirstProductHref(page);
+        
+            // Ensure the next button is in view to avoid overlay issues
+            await page.evaluate((el) => el && el.scrollIntoView({ block: 'center' }), nextHandle);
+            // Small nudge to escape sticky bars if any
+            await page.evaluate(() => window.scrollBy(0, 80));
+        
+            // Click Next
+            await nextHandle.click();
+        
+            // Wait for either URL page_no change or grid refresh
+            await this.waitForPageAdvance(page, targetNo, beforeFirstHref, this.delayBetweenPages || 2000);
+        
+            // If neither URL nor grid changed, fall back to URL increment
+            const pageNoAfter = new URL(page.url()).searchParams.get('page_no');
+            const firstHrefAfter = await this.getFirstProductHref(page);
+            const advanced =
+              (pageNoAfter && Number(pageNoAfter) === targetNo) ||
+              (beforeFirstHref && firstHrefAfter && beforeFirstHref !== firstHrefAfter);
+        
+            if (!advanced) {
+              // Fallback: programmatically increment page_no
+              const u = new URL(page.url());
+              const now = Number(u.searchParams.get('page_no') || String(currentPage));
+              u.searchParams.set('page_no', String(now));
+              await this.navigate(page, u.toString());
+              await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+            }
+        
+            currentPage++;
+            this.logger.info(`🔄 Moved to page ${currentPage}`);
+          } catch (err) {
+            this.logger.warn(`❌ Failed to advance via Next, attempting URL fallback: ${err.message}`);
+            try {
+              const u = new URL(page.url());
+              const now = Number(u.searchParams.get('page_no') || String(currentPage));
+              u.searchParams.set('page_no', String(now + 1));
+              await this.navigate(page, u.toString());
+              await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+              currentPage++;
+              this.logger.info(`🔄 Moved to page ${currentPage} (URL fallback)`);
+            } catch (fallbackErr) {
+              this.logger.warn(`🛑 Fallback navigation failed: ${fallbackErr.message}`);
+              break;
+            }
+          }
+        } else {
+          break;
+        }
       }
-
-      // Stop early if maxProducts reached
-      if (this.maxProducts && collected.length >= this.maxProducts) break;
+    } catch (err) {
+      this.logger.error(`❌ Error during link collection: ${err.message}`);
+      throw err;
+    } finally {
+      await this.returnPageToPool(page);
     }
 
-    // Trim if over-collected
-    if (this.maxProducts && collected.length > this.maxProducts) {
-      collected.length = this.maxProducts;
-    }
-
-    this.productLinks = collected;
-    this.checkpoint.productLinks = collected;
-    this.saveCheckpoint();
+    this.logger.info(
+      `✅ Complete: ${this.productLinks.length} total (${newLinksAdded} new) across ${this.checkpoint.pagesScraped.length} pages`
+    );
   }
 
   addBaseUrl(url) {
@@ -408,19 +518,17 @@ class RelianceCrawler extends BaseCrawler {
     const pricing = await this._extractPricing($);
     const ratingInfo = await this._extractRating($);
     const image = await this._extractImage($);
-    const brand = await this._extractBrand($);
-    const specs = await this._extractSpecifications($);
+    const specifications = await this._extractSpecifications($);
 
     const product = {
       title,
-      price: pricing.price,
-      originalPrice: pricing.originalPrice,
-      discount: pricing.discount,
-      rating: ratingInfo.rating,
-      ratingCount: ratingInfo.ratingCount,
+      price: pricing,
+      rating: ratingInfo,
       image,
-      brand,
-      specs,
+      specifications,
+      availability: 'In Stock',
+      categories: 'Smartphones',  
+      extractedAt: new Date().toISOString()
     };
 
     return product;
@@ -472,14 +580,7 @@ class RelianceCrawler extends BaseCrawler {
           break;
         }
       }
-      
-      for (const selector of PRODUCT_SELECTORS.DISCOUNT) {
-        const element = $(selector).first();
-        if (element.length > 0 && element.text().trim()) {
-          pricing.discount = element.text().trim();
-          break;
-        }
-      }
+      // calculate discount in normalizer
 
       return pricing;
     } catch (error) {
@@ -528,6 +629,7 @@ class RelianceCrawler extends BaseCrawler {
    async _extractImage($) { 
     try {
       let mainImage = null;
+      let altImages = [];
       for (const selector of PRODUCT_SELECTORS.IMAGE) {
         const element = $(selector).first();
         if (element.length > 0) {
@@ -537,44 +639,50 @@ class RelianceCrawler extends BaseCrawler {
           }
         }
       }
-      return mainImage;
+      for (const selector of PRODUCT_SELECTORS.ALT_IMAGE) {
+        const element = $(selector);
+        element.each((_, el) => {
+          const src = $(el).attr('src') || $(el).attr('data-src');
+          if (src) {
+            altImages.push(src);
+          }
+        });
+      }
+      return { mainImage, altImages };
     } catch (error) {
       this.logger.error(`Error extracting image: ${error.message}`);
       return null;
     }
    }
 
-   async _extractBrand($) { 
-    try {
-      for (const selector of PRODUCT_SELECTORS.BRAND) {
-        const element = $(selector).first();
-        if (element.length > 0 && element.text().trim()) {
-          return element.text().trim();
-        }
-      }
-      return null;
-    } catch (error) {
-      this.logger.error(`Error extracting brand: ${error.message}`);
-      return null;
-    }
-   }
-
-   _extractSpecifications($) {
+   async _extractSpecifications($) {
     try {
       const specifications = {};
 
       // Basic specifications extraction using selectors
-      if (PRODUCT_SELECTORS.SPECS && typeof PRODUCT_SELECTORS.SPECS === 'object') {
-        for (const [specKey, selector] of Object.entries(PRODUCT_SELECTORS.SPECS)) {
-          const element = $(selector).first();
-          if (element.length > 0) {
-            const value = element.text().trim();
-            if (specKey && value) {
-              specifications[specKey] = value;
-            }
+      $('.specifications-header').each((_, header) => {
+        const sectionTitle = $(header).text().trim();
+        if (!sectionTitle) return;
+  
+        const sectionSpecs = {};
+  
+        // Find the sibling <ul> after the header
+        const $ul = $(header).next('ul');
+  
+        // Each spec row
+        $ul.find('.specifications-list').each((_, li) => {
+          const label = $(li).find('span').first().text().trim();
+          const value = $(li).find('.specifications-list--right ul').text().trim();
+  
+          if (label && value) {
+            sectionSpecs[label] = value;
           }
+        });
+  
+        if (Object.keys(sectionSpecs).length > 0) {
+          specifications[sectionTitle] = sectionSpecs;
         }
-      }
+      });
       
       return specifications;
 
@@ -589,9 +697,9 @@ class RelianceCrawler extends BaseCrawler {
     const crawler = new RelianceCrawler({
       headless: false,
       maxPages: 60,
-      maxConcurrent: 1, // Reduced to prevent blocking
-      maxRetries: 5,
-      maxProducts: 600,
+      maxConcurrent: 2, // Reduced to prevent blocking
+      maxRetries: 1,
+      maxProducts: 500,
     });
   crawler
     .start()

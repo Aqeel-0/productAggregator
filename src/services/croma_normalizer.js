@@ -82,6 +82,7 @@ class CromaNormalizer {
 
     const product_identifiers = {
       brand: this.extractBrandFromSpecsOrTitle(specs, product.title),
+      //...this.generateDualModelNamesForCroma(this.extractModelName(specs, product.title), product.title, specs),
       model_name: this.extractModelName(specs, product.title),
       original_title: product.title || null,
       model_number: this.extractModelNumber(specs)
@@ -168,16 +169,92 @@ class CromaNormalizer {
     return out;
   }
 
+  // Convert capacity strings like "128 GB", "1 TB", "512MB" to integer GB
+  _toGbNumber(val) {
+    if (val === null || val === undefined) return null;
+    if (typeof val === 'number') return Number.isNaN(val) ? null : Math.round(val);
+    const s = String(val).trim();
+    const numMatch = s.match(/([\d]+(?:\.[\d]+)?)/);
+    if (!numMatch) return null;
+    const num = parseFloat(numMatch[1]);
+    if (Number.isNaN(num)) return null;
+    const lower = s.toLowerCase();
+    if (lower.includes('tb')) return Math.round(num * 1024);
+    if (lower.includes('mb')) return Math.round(num / 1024);
+    return Math.round(num); // default GB
+  }
+
   // ---------- Extractors ----------
   extractBrandFromSpecsOrTitle(specs, title) {
     // Only from specs, no title fallback
-    return specs?.['Manufacturer Details']?.['Brand'] || null;
+    const rawBrand = specs?.['Manufacturer Details']?.['Brand'] || null;
+    if (!rawBrand) return null;
+    const brandStr = String(rawBrand);
+    // If brand appears like "Realme | Realme", keep only the part before '|'
+    const cleaned = brandStr.split('|')[0].trim();
+    return cleaned || brandStr.trim();
   }
 
   extractModelName(specs, title) {
     // Only from specs, no title fallback
     return specs?.['Manufacturer Details']?.['Model Series'] || null;
   }
+
+  // Generate base and 4G/5G variant names following Amazon logic
+  generateDualModelNamesForCroma(modelFromSpecs, title, specs) {
+    const base = this._cleanModelName(modelFromSpecs);
+    const titleStr = title || '';
+    const networkField = specs?.['Network Connectivity']?.['Cellular Technology']
+      || specs?.['Network Connectivity']?.['Network Technology']
+      || specs?.['Connectivity Features']?.['Cellular Technology']
+      || specs?.['Connectivity Features']?.['Network Technology']
+      || '';
+
+    const has5gInModel = this._contains5G(base);
+    const has4gInModel = this._contains4G(base);
+    const has5gInTitle = /\b5g\b/i.test(titleStr);
+    const has4gInTitle = /\b4g\b/i.test(titleStr);
+    const has5gInSpecs = /\b5g\b/i.test(String(networkField));
+    const has4gInSpecs = /\b4g\b/i.test(String(networkField));
+
+    // Case 1: Model already includes 4G/5G → also create base without suffix
+    if (base && (has5gInModel || has4gInModel)) {
+      const without = has5gInModel ? this._remove5G(base) : this._remove4G(base);
+      return { model_name: without || base, model_name_with_5g: base };
+    }
+
+    // Determine desired suffix from title/specs if not in model
+    let desiredSuffix = null;
+    if (has5gInTitle || has5gInSpecs) desiredSuffix = '5G';
+    else if (has4gInTitle || has4gInSpecs) desiredSuffix = '4G';
+
+    if (!base) {
+      return { model_name: null, model_name_with_5g: null };
+    }
+
+    if (desiredSuffix === '5G') {
+      return { model_name: base, model_name_with_5g: `${base} 5G` };
+    }
+    if (desiredSuffix === '4G') {
+      return { model_name: base, model_name_with_5g: `${base} 4G` };
+    }
+
+    // No signals → default to base and a 5G variant (keeps parity with Amazon logic)
+    return { model_name: base, model_name_with_5g: `${base} 5G` };
+  }
+
+  _cleanModelName(name) {
+    if (!name || typeof name !== 'string') return null;
+    let cleaned = name.trim();
+    // Remove trailing commas/parentheticals/colors
+    cleaned = cleaned.replace(/\([^)]*\)/g, ' ').replace(/,[^,]*$/g, ' ').replace(/\s+/g, ' ').trim();
+    return cleaned || null;
+  }
+
+  _contains4G(s) { return !!(s && /\b4g\b/i.test(s)); }
+  _contains5G(s) { return !!(s && /\b5g\b/i.test(s)); }
+  _remove4G(s) { return s ? s.replace(/\b4g\b/i, '').replace(/\s+/g, ' ').trim() : s; }
+  _remove5G(s) { return s ? s.replace(/\b5g\b/i, '').replace(/\s+/g, ' ').trim() : s; }
 
   extractModelNumber(specs) {
     return specs?.['Manufacturer Details']?.['Model Number'] || null;
@@ -196,9 +273,9 @@ class CromaNormalizer {
   }
 
   extractRAM(specs, title) {
-    // Only from specs, no regex or title fallback
+    // Only from specs, no title fallback
     const ramFromSpecs = specs?.['Storage Specifications']?.['RAM'];
-    if (ramFromSpecs) return ramFromSpecs;
+    if (ramFromSpecs) return this._toGbNumber(ramFromSpecs);
     
     // Check other sections
     const groups = [
@@ -208,39 +285,61 @@ class CromaNormalizer {
     ];
     for (const g of groups) {
       const ramStr = g?.['RAM'] || g?.['Memory (RAM)'];
-      if (ramStr) return ramStr;
+      if (ramStr) return this._toGbNumber(ramStr);
     }
     
     return null;
   }
 
   extractStorage(specs, title) {
-    // Only from specs, no regex or title fallback
+    // Only from specs, no title fallback
     const storageStr = specs?.['Storage Specifications']?.['Internal Storage'];
-    if (storageStr) return storageStr;
+    if (storageStr) return this._toGbNumber(storageStr);
     
     // Check other sections
     const altStorageStr = specs?.['Memory & Storage Features']?.['Internal Storage'];
-    if (altStorageStr) return altStorageStr;
+    if (altStorageStr) return this._toGbNumber(altStorageStr);
     
     return null;
   }
 
   normalizePrice(price) {
+    // Helper to parse a price value to integer rupees
+    const toNumber = (val) => {
+      if (val === null || val === undefined) return null;
+      if (typeof val === 'number') {
+        return Number.isNaN(val) ? null : Math.round(val);
+      }
+      if (typeof val === 'string') {
+        // Remove currency symbols and formatting, keep digits and decimal
+        const cleaned = val.replace(/,/g, '').replace(/[^\d.]/g, '');
+        if (!cleaned) return null;
+        const n = parseFloat(cleaned);
+        return Number.isNaN(n) ? null : Math.round(n);
+      }
+      return null;
+    };
+
     if (!price) {
       return { current: null, original: null, discount_percent: null, currency: 'INR' };
     }
+
+    const current = toNumber(price.current);
+    const original = toNumber(price.original);
+
     let discountPercent = null;
     if (price.discount && typeof price.discount === 'string') {
-      const m = price.discount.match(/(\d+)%/);
+      const m = price.discount.match(/(\d+)\s*%/);
       if (m) discountPercent = parseInt(m[1], 10);
     }
-    return {
-      current: price.current || null,
-      original: price.original || null,
-      discount_percent: discountPercent,
-      currency: 'INR'
-    };
+    if (discountPercent === null && typeof price.discount_percent === 'number') {
+      discountPercent = Math.round(price.discount_percent);
+    }
+    if (discountPercent === null && current !== null && original !== null && original > 0 && current <= original) {
+      discountPercent = Math.round(((original - current) / original) * 100);
+    }
+
+    return { current, original, discount_percent: discountPercent, currency: 'INR' };
   }
 
   normalizeRating(rating) {
@@ -390,7 +489,7 @@ if (require.main === module) {
   (async () => {
     try {
       logger.info('🚀 Starting Croma Normalizer...');
-      const inputPath = path.join(__dirname, '../scrapers/chrome/croma_scraped_data.json');
+      const inputPath = path.join(__dirname, '../scrapers/croma/croma_scraped_data.json');
       const outputPath = path.join(__dirname, '../../parsed_data/croma_normalized_data.json');
       logger.info(`📁 Input: ${inputPath}`);
       logger.info(`📁 Output: ${outputPath}`);

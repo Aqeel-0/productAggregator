@@ -51,10 +51,18 @@ class AmazonDetailCrawler extends BaseCrawler {
     // Load checkpoint
     this.checkpoint = this.loadCheckpoint();
     this.productLinks = this.checkpoint.productLinks || [];
+    this.seenUrls = new Set(); // Global deduplication set
     
     // Ensure checkpoint has the required structure
     if (!this.checkpoint.productLinks) {
       this.checkpoint.productLinks = [];
+    }
+    
+    // Restore URLs from checkpoint into the Set for deduplication
+    if (this.productLinks.length > 0) {
+      this.productLinks.forEach(url => {
+        this.seenUrls.add(url);
+      });
     }
     if (this.checkpoint.lastProcessedIndex === undefined) {
       this.checkpoint.lastProcessedIndex = -1;
@@ -146,7 +154,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       });
 
       // Wait for page to be fully loaded
-      await page.waitForTimeout(2000);
+      //await page.waitForTimeout(2000);
 
       // Wait for specific Amazon elements to be present
       try {
@@ -212,6 +220,17 @@ class AmazonDetailCrawler extends BaseCrawler {
     } catch (error) {
       return url;
     }
+  }
+
+  // Add URL to global set with normalization
+  addUniqueUrl(url) {
+    const normalized = this.normalizeAmazonUrl(url);
+    if (!this.seenUrls.has(normalized)) {
+      this.seenUrls.add(normalized);
+      this.productLinks.push(normalized);
+      return true; // Added
+    }
+    return false; // Duplicate
   }
 
   saveData(data) {
@@ -401,35 +420,24 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
 
-  /**
-   * Enhanced multi-page product link scraping
-   */
   async scrapeProductLinks() {
-    const allProductLinks = [];
     const targetPages = this.calculatePagesToScrape();
     const startPage = this.checkpoint.lastPageScraped + 1;
+    let newLinksAdded = 0;
     
-          this.logger.info(`🚀 Starting: Pages ${startPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products`);
+    this.logger.info(`🚀 Starting Amazon: Pages ${startPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products`);
     
     for (let currentPage = startPage; currentPage <= targetPages; currentPage++) {
       const page = await this.newPage();
       
       try {
-        // Enable JavaScript for category page
         await page.setJavaScriptEnabled(true);
-        
         const pageUrl = this.buildPageUrl(currentPage);
-                  // Scraping current page
-        
         await this.navigate(page, pageUrl);
-        
-        // Check for access issues
         await this.checkForErrors(page);
-        
-        // Wait for product grid to load
         await page.waitForSelector('.s-main-slot.s-result-list', { timeout: 15000 });
         
-        // Extract product links from current page
+        // Extract raw product links from page
         const pageLinks = await page.evaluate((selectors) => {
           const getAllElementsByXPath = (xpath) => {
             const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -441,7 +449,6 @@ class AmazonDetailCrawler extends BaseCrawler {
           };
           
           const links = [];
-          const seenUrls = new Set(); // Track normalized URLs to prevent duplicates within same page
           
           // Try each XPath selector in the array
           if (selectors.PRODUCT_LINK) {
@@ -450,14 +457,7 @@ class AmazonDetailCrawler extends BaseCrawler {
               if (linkElements.length > 0) {
                 linkElements.forEach(element => {
                   if (element.href && element.href.includes('/dp/')) {
-                    // Extract normalized URL (up to ASIN)
-                    const normalizedUrl = element.href.match(/^(.*?\/dp\/[A-Z0-9]{10})/);
-                    const cleanUrl = normalizedUrl ? normalizedUrl[1] : element.href;
-                    
-                    if (!seenUrls.has(cleanUrl)) {
-                      seenUrls.add(cleanUrl);
-                      links.push(cleanUrl); // Store normalized URL directly
-                    }
+                    links.push(element.href); // Return raw URLs
                   }
                 });
                 if (links.length > 0) break; // Use first successful selector
@@ -468,33 +468,31 @@ class AmazonDetailCrawler extends BaseCrawler {
           return links;
         }, CATEGORY_SELECTORS);
         
-                  this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products | Total: ${allProductLinks.length + pageLinks.length}`);
+        // Add links using global Set deduplication
+        let pageUniqueCount = 0;
+        pageLinks.forEach(link => {
+          if (this.addUniqueUrl(link)) {
+            pageUniqueCount++;
+            newLinksAdded++;
+          }
+        });
         
-        // Stop if no products found (end of results)
+        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} links, ${pageUniqueCount} unique | Total: ${this.productLinks.length}`);
+        
         if (pageLinks.length === 0) {
-                      this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
+          this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
           await this.returnPageToPool(page);
           break;
         }
         
-        // Add unique links to collection (deduplicate by normalized URL)
-        const uniqueLinks = pageLinks.filter(link => {
-          // Since we're already storing normalized URLs, just check for duplicates
-          return !allProductLinks.includes(link);
-        });
-        
-        allProductLinks.push(...uniqueLinks);
-        
         // Update checkpoint
         this.checkpoint.lastPageScraped = currentPage;
         this.checkpoint.pagesScraped.push(currentPage);
+        this.checkpoint.productLinks = this.productLinks;
         this.saveCheckpoint();
         
-                  // Total links collected
-        
-        // Check if we have enough products
-        if (this.maxProducts && allProductLinks.length >= this.maxProducts) {
-                      this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
+        if (this.maxProducts && this.productLinks.length >= this.maxProducts) {
+          this.logger.info(`🎯 Target reached: ${this.productLinks.length} products collected`);
           await this.returnPageToPool(page);
           break;
         }
@@ -529,17 +527,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       }
     }
     
-    // Limit to maxProducts if specified
-    if (this.maxProducts && allProductLinks.length > this.maxProducts) {
-      allProductLinks.splice(this.maxProducts);
-              // Limited to requested product count
-    }
-    
-    this.productLinks = allProductLinks;
-    this.checkpoint.productLinks = this.productLinks;
-    this.saveCheckpoint();
-    
-          this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
+    this.logger.info(`✅ Amazon link collection complete: ${this.productLinks.length} total products (${newLinksAdded} new) from ${this.checkpoint.pagesScraped.length} pages`);
   }
 
   async scrapeProductDetails() {
