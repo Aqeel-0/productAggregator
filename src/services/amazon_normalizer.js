@@ -228,9 +228,13 @@ class AmazonNormalizer {
     const colorRemovedModelName = this.removeColorFromModelName(modelName, product);
 
     // Step 2: Generate dual model names (base and 5G variant)
-    const dualModelNames = this.generateDualModelNames(colorRemovedModelName);
+    // COMMENTED OUT: const dualModelNames = this.generateDualModelNames(colorRemovedModelName);
 
-    return dualModelNames;
+    // Return only the base model name without generating dual variants
+    return {
+      model_name: colorRemovedModelName,
+      //model_name_with_5g: null
+    };
   }
 
   /**
@@ -381,7 +385,7 @@ class AmazonNormalizer {
     }
 
     // Add 5G at the end with proper spacing
-    return `${trimmed} 5g`;
+    return `${trimmed} 5G`;
   }
 
   /**

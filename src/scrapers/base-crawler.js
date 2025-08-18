@@ -1,8 +1,10 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra')
 const UserAgent = require('user-agents');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+puppeteer.use(StealthPlugin())
 
 class BaseCrawler {
   constructor(config = {}) {
