@@ -28,374 +28,147 @@ class Product extends Model {
   /**
    * Create a URL-friendly slug from the product name
    */
+  // major issue, needs fixing.
   static generateSlug(name) {
     return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+    .toLowerCase()
+    .trim()
+    // Replace common special characters with meaningful alternatives (except +)
+    .replace(/&/g, 'and')
+    .replace(/[@]/g, 'at')
+    .replace(/[%]/g, 'percent')
+    // Remove quotes, parentheses, brackets
+    .replace(/['"()[\]{}]/g, '')
+    // Replace spaces, dashes, underscores with single dash
+    .replace(/[\s\-_]+/g, '-')
+    // Remove all other non-alphanumeric characters EXCEPT + and -
+    .replace(/[^a-z0-9\-+]/g, '')
+    // Replace multiple consecutive dashes with single dash
+    .replace(/-+/g, '-')
+    // Remove leading and trailing dashes
+    .replace(/^-+|-+$/g, '');
   }
 
   /**
    * Find or create product by name, brand, and category
    */
-  static async findOrCreateByDetails(name, brandId, categoryId) {
+  static async findOrCreateByDetails(name, brandId, categoryId, supabase) {
     const slug = this.generateSlug(name);
 
     // First try to find by slug (most reliable for variants)
-    let product = await Product.findOne({
-      where: { slug: slug }
-    });
+    const { data: productBySlug, error: slugError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle();
 
-    if (product) {
-      return { product, created: false };
+    if (slugError) {
+      throw new Error(`Error finding product by slug: ${slugError.message}`);
+    }
+
+    if (productBySlug) {
+      return { product: productBySlug, created: false };
     }
 
     // If not found by slug, try to find by model_name and brand
     // Note: name is already normalized to lowercase when passed to this method
-    product = await Product.findOne({
-      where: {
-        model_name: name.trim(),
-        brand_id: brandId
-      }
-    });
+    const { data: productByName, error: nameError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('model_name', name.trim())
+      .eq('brand_id', brandId)
+      .maybeSingle();
 
-    if (product) {
+    if (nameError) {
+      throw new Error(`Error finding product by name: ${nameError.message}`);
+    }
+
+    if (productByName) {
       // Update the slug if it's different
-      if (product.slug !== slug) {
-        await product.update({ slug: slug });
+      if (productByName.slug !== slug) {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ slug: slug })
+          .eq('id', productByName.id);
+  
+        if (updateError) {
+          throw new Error(`Error updating product slug: ${updateError.message}`);
+        }
+  
+        // Update the local object to reflect the change
+        productByName.slug = slug;
       }
-      return { product, created: false };
+      return { product: productByName, created: false };
     }
 
     // Create new product if not found
     // Store model name in lowercase for consistent case-insensitive matching
-    product = await Product.create({
-      model_name: name.trim(), // Already normalized to lowercase
-      slug: slug,
-      brand_id: brandId,
-      category_id: categoryId,
-      status: 'active'
-    });
-
-    return { product, created: true };
-  }
-
-  /**
-   * Search products by name with filters
-   */
-  static async searchProducts(query, filters = {}) {
-    const whereClause = {
-      status: 'active'
-    };
-
-    if (query) {
-      whereClause.model_name = {
-        [Op.iLike]: `%${query}%`
-      };
-    }
-
-    if (filters.brandId) {
-      whereClause.brand_id = filters.brandId;
-    }
-
-    if (filters.categoryId) {
-      whereClause.category_id = filters.categoryId;
-    }
-
-    if (filters.minPrice || filters.maxPrice) {
-      whereClause.min_price = {};
-      if (filters.minPrice) {
-        whereClause.min_price[Op.gte] = filters.minPrice;
-      }
-      if (filters.maxPrice) {
-        whereClause.max_price = {
-          [Op.lte]: filters.maxPrice
-        };
-      }
-    }
-
-    const includeClause = [
-      {
-        model: sequelize.models.Brand,
-        as: 'brand',
-        attributes: ['id', 'name', 'slug']
-      },
-      {
-        model: sequelize.models.Category,
-        as: 'category',
-        attributes: ['id', 'name', 'slug', 'path']
-      }
-    ];
-
-    return await Product.findAll({
-      where: whereClause,
-      include: includeClause,
-      order: [['name', 'ASC']],
-      limit: filters.limit || 50,
-      offset: filters.offset || 0
-    });
-  }
-
-  /**
-   * Get featured products
-   */
-  static async getFeaturedProducts(limit = 10) {
-    return await Product.findAll({
-      where: {
-        is_featured: true,
-        status: 'active'
-      },
-      include: [
-        {
-          model: sequelize.models.Brand,
-          as: 'brand',
-          attributes: ['id', 'name', 'slug']
-        },
-        {
-          model: sequelize.models.Category,
-          as: 'category',
-          attributes: ['id', 'name', 'slug']
-        }
-      ],
-      order: [['created_at', 'DESC']],
-      limit
-    });
-  }
-
-  /**
-   * Get products by category with pagination
-   */
-  static async getByCategory(categoryId, page = 1, limit = 20) {
-    const offset = (page - 1) * limit;
-
-    return await Product.findAndCountAll({
-      where: {
+    const { data: newProducts, error: insertError } = await supabase
+      .from('products')
+      .insert([{
+        model_name: name.trim(), // Already normalized to lowercase
+        slug: slug,
+        brand_id: brandId,
         category_id: categoryId,
         status: 'active'
-      },
-      include: [
-        {
-          model: sequelize.models.Brand,
-          as: 'brand',
-          attributes: ['id', 'name', 'slug']
-        },
-        {
-          model: sequelize.models.Category,
-          as: 'category',
-          attributes: ['id', 'name', 'slug']
-        }
-      ],
-      order: [['name', 'ASC']],
-      limit,
-      offset
-    });
-  }
+      }])
+      .select();
 
-  /**
-   * Update price statistics from variants
-   */
-  async updatePriceStats() {
-    const variants = await sequelize.models.ProductVariant.findAll({
-      where: {
-        product_id: this.id,
-        is_active: true
-      }
-    });
-
-    if (variants.length === 0) {
-      this.min_price = null;
-      this.max_price = null;
-      this.avg_price = null;
-    } else {
-      const prices = variants
-        .filter(v => v.min_price !== null)
-        .map(v => parseFloat(v.min_price));
-
-      if (prices.length > 0) {
-        this.min_price = Math.min(...prices);
-        this.max_price = Math.max(...prices);
-        this.avg_price = prices.reduce((a, b) => a + b, 0) / prices.length;
-      }
+    if (insertError) {
+      throw new Error(`Error creating product: ${insertError.message}`);
     }
 
-    this.variant_count = variants.length;
-    await this.save();
-  }
+    if (!newProducts || newProducts.length === 0) {
+      throw new Error('Product creation failed - no product returned');
+    }
 
-  /**
-   * Get product with all variants and listings
-   */
-  async getFullDetails() {
-    return await Product.findByPk(this.id, {
-      include: [
-        {
-          model: sequelize.models.Brand,
-          as: 'brand'
-        },
-        {
-          model: sequelize.models.Category,
-          as: 'category'
-        },
-        {
-          model: sequelize.models.ProductVariant,
-          as: 'variants',
-          where: { is_active: true },
-          required: false,
-          include: [
-            {
-              model: sequelize.models.Listing,
-              as: 'listings',
-              where: { is_active: true },
-              required: false
-            }
-          ]
-        }
-      ]
-    });
-  }
-
-  /**
-   * Get best price across all variants
-   */
-  async getBestPrice() {
-    const result = await sequelize.models.ProductVariant.findOne({
-      where: {
-        product_id: this.id,
-        is_active: true,
-        min_price: {
-          [Op.ne]: null
-        }
-      },
-      order: [['min_price', 'ASC']]
-    });
-
-    return result ? result.min_price : null;
-  }
-
-  /**
-   * Mark product as featured
-   */
-  async markAsFeatured() {
-    this.is_featured = true;
-    await this.save();
-  }
-
-  /**
-   * Remove from featured
-   */
-  async removeFromFeatured() {
-    this.is_featured = false;
-    await this.save();
-  }
-
-  /**
-   * Discontinue product
-   */
-  async discontinue() {
-    this.status = 'discontinued';
-    await this.save();
-  }
-
-  /**
-   * Initialize dual cache system for product insertion
-   */
-  static createDualCache() {
-    return {
-      modelNumberCache: new Map(),
-      modelNameCache: new Map(),
-      stats: {
-        products: {
-          created: 0,
-          existing: 0,
-          total: 0
-        },
-        deduplication: {
-          model_number_matches: 0,
-          exact_name_matches: 0,
-          variant_5g_matches: 0,
-          new_products: 0,
-          total_matches: 0
-        },
-        errors: []
-      }
-    };
-  }
-
-  /**
-   * Clear both caches
-   */
-  static clearDualCache(cacheSystem) {
-    cacheSystem.modelNumberCache.clear();
-    cacheSystem.modelNameCache.clear();
-  }
-
-  /**
-   * Get cache statistics
-   */
-  static getCacheStats(cacheSystem) {
-    const stats = cacheSystem.stats;
-    stats.products.total = stats.products.created + stats.products.existing;
-    stats.deduplication.total_matches =
-      stats.deduplication.model_number_matches +
-      stats.deduplication.exact_name_matches +
-      stats.deduplication.variant_5g_matches;
-
-    return {
-      ...stats,
-      cache_sizes: {
-        model_number_cache: cacheSystem.modelNumberCache.size,
-        model_name_cache: cacheSystem.modelNameCache.size
-      }
-    };
+    const product = newProducts[0];
+    return { product, created: true };
   }
 
   /**
    * Simplified product insertion with exact matching and dual model names
    * Model names are normalized to lowercase for consistent storage and matching
    */
-  static async insertWithCache(productData, brandId, categoryId, modelNumberCache, modelNameCache, stats) {
+  static async insertWithCache(productData, brandId, categoryId, modelNumberCache, modelNameCache, stats, supabase) {
     const { model_name, model_number } = productData.product_identifiers;
     const key_specifications = productData.key_specifications || {};
-  
+
     if (!model_name) return null;
-  
-    // Helper functions
-    const hasNetworkSuffix = (name) => {
-      return name.endsWith(' 5g') || name.endsWith(' 4g');
-    };
-  
-    const removeNetworkSuffix = (name) => {
+
+    // Helper functions (exactly the same)
+    const hasNetworkSuffix = name => name.endsWith(' 5g') || name.endsWith(' 4g');
+
+    const removeNetworkSuffix = name => {
       if (name.endsWith(' 5g') || name.endsWith(' 4g')) return name.slice(0, -3);
       return name;
     };
-  
-    const getNetworkType = (name) => {
+
+    const getNetworkType = name => {
       if (name.endsWith(' 5g')) return '5g';
       if (name.endsWith(' 4g')) return '4g';
       return '5g'; // Default for no suffix
     };
-  
-    const getCacheKey = (name) => {
+
+    const getCacheKey = name => {
       const networkType = getNetworkType(name);
       return networkType === '4g' ? name : removeNetworkSuffix(name); // 4G: full name, else base
     };
-  
-    const generateSearchVariants = (name) => {
+
+    const generateSearchVariants = name => {
       const baseName = removeNetworkSuffix(name);
       const networkType = getNetworkType(name);
       return networkType === '4g' ? [name] : [baseName, `${baseName} 5g`]; // 4G: exact only; else base + 5G
     };
-  
+
     // Normalize input
     const normalizedModelName = model_name.toLowerCase().trim();
     const cacheKey = `${brandId}:${getCacheKey(normalizedModelName)}`;
-  
+
     try {
       let matchedProduct = null;
       let matchType = 'none';
-  
+
       // Phase 1: Model Number Matching
       if (model_number) {
         const modelNumberKey = `${brandId}:${model_number}`;
@@ -404,18 +177,24 @@ class Product extends Model {
           stats.products.existing++;
           return modelNumberCache.get(modelNumberKey);
         }
-  
-        matchedProduct = await Product.findOne({
-          where: { model_number, brand_id: brandId }
-        });
-  
-        if (matchedProduct) {
+
+        const { data: matchedProduct_temp, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('model_number', model_number)
+          .eq('brand_id', brandId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (matchedProduct_temp) {
+          matchedProduct = matchedProduct_temp;
           matchType = 'model_number';
           stats.deduplication.model_number_matches++;
           modelNumberCache.set(modelNumberKey, matchedProduct.id);
         }
       }
-  
+
       // Phase 2: Model Name Matching
       if (!matchedProduct) {
         // Check cache
@@ -424,16 +203,20 @@ class Product extends Model {
           stats.products.existing++;
           return modelNameCache.get(cacheKey);
         }
-  
+
         // Generate search variants
         const searchVariants = generateSearchVariants(normalizedModelName);
-  
+
         // Database query
-        const dbResults = await Product.findAll({
-          where: { model_name: searchVariants, brand_id: brandId }
-        });
-  
-        if (dbResults.length > 0) {
+        const { data: dbResults, error } = await supabase
+          .from('products')
+          .select('*')
+          .in('model_name', searchVariants)
+          .eq('brand_id', brandId);
+
+        if (error) throw error;
+
+        if (dbResults && dbResults.length > 0) {
           // Prefer exact match, then any variant
           matchedProduct = dbResults.find(p => p.model_name === normalizedModelName) || dbResults[0];
           matchType = matchedProduct.model_name === normalizedModelName ? 'exact_name' : 'variant_match';
@@ -441,16 +224,23 @@ class Product extends Model {
           modelNameCache.set(cacheKey, matchedProduct.id);
         }
       }
-  
+
       // Phase 3: Create New Product
       if (!matchedProduct) {
-        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, brandId, categoryId);
-        await product.update({
-          model_number: model_number || null,
-          specifications: key_specifications,
-          status: 'active'
-        });
-  
+        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, brandId, categoryId, supabase);
+        
+        // Update with additional specifications and model_number
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            model_number: model_number || null,
+            specifications: key_specifications,
+            status: 'active'
+          })
+          .eq('id', product.id);
+
+        if (updateError) throw updateError;
+
         matchedProduct = product;
         matchType = created ? 'created' : 'existing';
         if (created) {
@@ -459,24 +249,30 @@ class Product extends Model {
         } else {
           stats.products.existing++;
         }
-  
+
         modelNameCache.set(cacheKey, matchedProduct.id);
         if (model_number) {
           modelNumberCache.set(`${brandId}:${model_number}`, matchedProduct.id);
         }
       } else if (model_number && !matchedProduct.model_number) {
-        await matchedProduct.update({ model_number });
+        // Update existing matched product with model_number if missing
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ model_number })
+          .eq('id', matchedProduct.id);
+        
+        if (updateError) throw updateError;
         modelNumberCache.set(`${brandId}:${model_number}`, matchedProduct.id);
       }
-  
-      stats.products.existing++;
+
       return matchedProduct.id;
+
     } catch (error) {
       console.error(`❌ Error in product insertion "${model_name}":`, error.message);
       stats.errors.push(`Product: ${model_name} - ${error.message}`);
       return null;
     }
-  }
+  }  
 }
 
 Product.init({

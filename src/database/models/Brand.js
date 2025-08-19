@@ -27,26 +27,55 @@ class Brand extends Model {
       .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
   }
 
-  /**
-   * Find or create a brand by name
-   */
-  static async findOrCreateByName(name) {
-    const slug = this.generateSlug(name);
+  static async findOrCreateByName(name, supabase) {
+    const slug = Brand.generateSlug(name);
+    
     // First, try to find by slug
-    let brand = await Brand.findOne({ where: { slug } });
-    if (brand) {
-      return { brand, created: false };
+    const { data: brandBySlug, error: slugError } = await supabase
+      .from('brands')
+      .select('*')
+      .eq('slug', slug)
+      .maybeSingle();
+      
+    if (slugError) {
+      throw new Error(`Error finding brand by slug: ${slugError.message}`);
     }
-    // Otherwise, try to find or create by name
-    const [brandByName, created] = await Brand.findOrCreate({
-      where: { name: name.trim() },
-      defaults: {
+    
+    if (brandBySlug) {
+      return { brand: brandBySlug, created: false };
+    }
+    
+    // Try to find by name
+    const { data: brandByName, error: nameError } = await supabase
+      .from('brands')
+      .select('*')
+      .eq('name', name.trim())
+      .maybeSingle();
+      
+    if (nameError) {
+      throw new Error(`Error finding brand by name: ${nameError.message}`);
+    }
+    
+    if (brandByName) {
+      return { brand: brandByName, created: false };
+    }
+    
+    // Create new brand if not found
+    const { data: newBrand, error: insertError } = await supabase
+      .from('brands')
+      .insert([{
         name: name.trim(),
         slug: slug,
         is_active: true
-      }
-    });
-    return { brand: brandByName, created };
+      }])
+      .select()
+      .single();
+      
+    if (insertError) {
+      throw new Error(`Error creating brand: ${insertError.message}`);
+    }
+    
+    return { brand: newBrand, created: true };
   }
 
   /**
@@ -119,7 +148,7 @@ class Brand extends Model {
    * Enhanced insertion method with caching and statistics
    * Used by DatabaseInserter for optimized brand creation
    */
-  static async insertWithCache(brandName, cache, stats) {
+  static async insertWithCache(brandName, cache, stats, supabase) {
     if (!brandName) return null;
 
     const normalizedName = brandName.trim();
@@ -128,7 +157,7 @@ class Brand extends Model {
     }
 
     try {
-      const { brand, created } = await Brand.findOrCreateByName(normalizedName);
+      const { brand, created } = await Brand.findOrCreateByName(normalizedName, supabase);
       cache.set(normalizedName, brand.id);
       
       if (created) {

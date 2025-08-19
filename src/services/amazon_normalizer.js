@@ -50,6 +50,11 @@ class AmazonNormalizer {
     // Store current title for fallback extractions
     this.currentTitle = product.title;
 
+    // Special handling for iPhone 16 products
+    if (this.isIPhone16Product(product)) {
+      return this.normalizeIPhone16Product(product);
+    }
+
     return {
       source_details: {
         source_name: "amazon",
@@ -88,6 +93,91 @@ class AmazonNormalizer {
 
       source_metadata: {
         category_breadcrumb: product.categories || []
+      }
+    };
+  }
+
+  /**
+   * Check if product is an iPhone 16 variant
+   */
+  isIPhone16Product(product) {
+    if (!product || !product.title) return false;
+    
+    const title = product.title.toLowerCase();
+    return title.includes('iphone 16');
+  }
+
+  /**
+   * Extract iPhone 16 model name using regex patterns
+   */
+  extractIPhone16ModelName(title) {
+    if (!title) return '';
+
+    const titleLower = title.toLowerCase();
+    
+    // iPhone 16 model patterns
+    const iphone16Patterns = [
+      // iPhone 16 Pro Max
+      /iphone\s+16\s+pro\s+max/i,
+      // iPhone 16 Pro
+      /iphone\s+16\s+pro/i,
+      // iPhone 16 Plus
+      /iphone\s+16\s+plus/i,
+      // iPhone 16e
+      /iphone\s+16e/i,
+      // iPhone 16 (base model)
+      /iphone\s+16\b/i
+    ];
+
+    for (const pattern of iphone16Patterns) {
+      const match = titleLower.match(pattern);
+      if (match) {
+        // Convert to proper case
+        const modelName = match[0].replace(/\b\w/g, l => l.toUpperCase());
+        return modelName;
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Normalize iPhone 16 product with simplified structure
+   */
+  normalizeIPhone16Product(product) {
+    const specs = product.specifications || {};
+
+    return {
+      source_details: {
+        source_name: "amazon",
+        url: product.url || null,
+        scraped_at_utc: new Date().toISOString()
+      },
+
+      product_identifiers: {
+        brand: "Apple",
+        model_name: this.extractIPhone16ModelName(product.title),
+        original_title: product.title || null,
+        model_number: this.extractModelNumber(specs)
+      },
+
+      variant_attributes: {
+        color: this.extractColor(specs),
+        ram: this.extractRAM(specs),
+        availability: product.availability,
+        storage: this.extractStorage(specs)
+      },
+
+      listing_info: {
+        price: this.normalizePrice(product.price),
+        rating: this.normalizeRating(product.rating),
+        image_url: product.image || null
+      },
+
+      key_specifications: null,
+
+      source_metadata: {
+        category_breadcrumb: ["Smartphones & Basic Mobiles", "Smartphones"]
       }
     };
   }
@@ -215,182 +305,12 @@ class AmazonNormalizer {
     const bestModelName = this.selectBestModelNameCandidate(candidates, product);
 
     // Process the model name through color removal and dual name generation
-    return this.processModelNameWithDualGeneration(bestModelName, product);
-  }
-
-  /**
-   * Process model name with color removal and dual model name generation
-   */
-  processModelNameWithDualGeneration(modelName, product) {
-    if (!modelName) return { model_name: null, model_name_with_5g: null };
-
-    // Step 1: Remove color from model name if present
-    const colorRemovedModelName = this.removeColorFromModelName(modelName, product);
-
-    // Step 2: Generate dual model names (base and 5G variant)
-    // COMMENTED OUT: const dualModelNames = this.generateDualModelNames(colorRemovedModelName);
-
-    // Return only the base model name without generating dual variants
+    const colorRemovedModelName = this.removeColorFromModelName(bestModelName, product);
     return {
       model_name: colorRemovedModelName,
-      //model_name_with_5g: null
     };
   }
 
-  /**
-   * Generate dual model names - base model name and network variant (4G/5G)
-   */
-  generateDualModelNames(originalModelName) {
-    if (!originalModelName || typeof originalModelName !== 'string') {
-      return { model_name: null, model_name_with_5g: null };
-    }
-
-    const trimmedModel = originalModelName.trim();
-
-    // Check if the model name contains 4G or 5G
-    const has4G = this.contains4G(trimmedModel);
-    const has5G = this.contains5G(trimmedModel);
-
-    let baseModelName, modelNameWithNetwork;
-
-    if (has4G) {
-      // If model name has 4G, create base without 4G and variant with 4G
-      baseModelName = this.remove4GFromModelName(trimmedModel);
-      modelNameWithNetwork = trimmedModel; // Keep original as 4G variant
-    } else if (has5G) {
-      // If model name has 5G, create base without 5G and variant with 5G
-      baseModelName = this.remove5GFromModelName(trimmedModel);
-      modelNameWithNetwork = trimmedModel; // Keep original as 5G variant
-    } else {
-      // If model name has neither 4G nor 5G, use original as base and add 5G for variant
-      baseModelName = trimmedModel; // Keep original as base
-      modelNameWithNetwork = this.add5GToModelName(trimmedModel);
-    }
-
-    return {
-      model_name: baseModelName,
-      model_name_with_5g: modelNameWithNetwork // Keep same field name for compatibility
-    };
-  }
-
-  /**
-   * Check if model name contains 4G designation
-   */
-  contains4G(modelName) {
-    if (!modelName || typeof modelName !== 'string') return false;
-    modelName = modelName.toLowerCase();
-    // Pattern to match various 4G formats
-    const fourGPatterns = [
-      /\b4g\b/i,           // Lowercase 4g
-      /\s+4g$/i,           // 4G at the end
-      /^4g\s+/i,           // 4G at the beginning
-      /\s+4g\s+/i          // 4G in the middle
-    ];
-
-    return fourGPatterns.some(pattern => pattern.test(modelName));
-  }
-
-  /**
-   * Check if model name contains 5G designation
-   */
-  contains5G(modelName) {
-    if (!modelName || typeof modelName !== 'string') return false;
-    modelName = modelName.toLowerCase();
-    // Pattern to match various 5G formats
-    const fiveGPatterns = [
-      /\b5g\b/i,           // Lowercase 5g
-      /\s+5g$/i,           // 5G at the end
-      /^5g\s+/i,           // 5G at the beginning
-      /\s+5g\s+/i          // 5G in the middle
-    ];
-
-    return fiveGPatterns.some(pattern => pattern.test(modelName));
-  }
-
-  /**
-   * Remove 4G designation from model name
-   */
-  remove4GFromModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-    modelName = modelName.toLowerCase();
-    let cleaned = modelName;
-
-    // Remove various 4G patterns
-    const fourGPatterns = [
-      /\s+4g$/i,           // 4G at the end (most common)
-      /^4g\s+/i,           // 4G at the beginning
-      /\s+4g\s+/i,         // 4G in the middle
-      /\b4g\b/i            // Any standalone 4G
-    ];
-
-    // Apply removal patterns in order of specificity
-    for (const pattern of fourGPatterns) {
-      cleaned = cleaned.replace(pattern, ' ');
-    }
-
-    // Clean up extra spaces and return
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-    // If cleaning resulted in empty or very short string, return original
-    if (cleaned.length < 2) {
-      return modelName;
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * Remove 5G designation from model name
-   */
-  remove5GFromModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-    modelName = modelName.toLowerCase();
-    let cleaned = modelName;
-
-    // Remove various 5G patterns
-    const fiveGPatterns = [
-      /\s+5g$/i,           // 5G at the end (most common)
-      /^5g\s+/i,           // 5G at the beginning
-      /\s+5g\s+/i,         // 5G in the middle
-      /\b5g\b/i            // Any standalone 5G
-    ];
-
-    // Apply removal patterns in order of specificity
-    for (const pattern of fiveGPatterns) {
-      cleaned = cleaned.replace(pattern, ' ');
-    }
-
-    // Clean up extra spaces and return
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-    // If cleaning resulted in empty or very short string, return original
-    if (cleaned.length < 2) {
-      return modelName;
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * Add 5G designation to model name
-   */
-  add5GToModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-
-    const trimmed = modelName.trim();
-
-    // Don't add 5G if it already exists
-    if (this.contains5G(trimmed)) {
-      return trimmed;
-    }
-
-    // Add 5G at the end with proper spacing
-    return `${trimmed} 5G`;
-  }
-
-  /**
-   * Remove color from model name if it matches the extracted color
-   */
   /**
    * Remove color from model name if it matches the extracted color (simplified approach)
    */

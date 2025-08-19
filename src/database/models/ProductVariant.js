@@ -22,209 +22,66 @@ class ProductVariant extends Model {
   /**
    * Find or create variant by product and attributes
    */
-  static async findOrCreateByAttributes(productId, attributes) {
-    const name = await this.generateVariantName(productId, attributes);
-    
-    const [variant, created] = await ProductVariant.findOrCreate({
-      where: { 
-        product_id: productId,
-        attributes: attributes
-      },
-      defaults: {
+  static async findOrCreateByAttributes(productId, attributes, supabase) {
+    const name = await this.generateVariantName(productId, attributes, supabase);
+
+    // Try to find existing variant
+    const { data: existingVariant, error: findError } = await supabase
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', productId)
+      .eq('attributes', JSON.stringify(attributes))
+      .maybeSingle();
+
+    if (findError) throw findError;
+
+    if (existingVariant) {
+      return { variant: existingVariant, created: false };
+    }
+
+    // Create new variant if not found
+    const { data: newVariants, error: insertError } = await supabase
+      .from('product_variants')
+      .insert([{
         product_id: productId,
         name: name,
         attributes: attributes,
         is_active: true
-      }
-    });
+      }])
+      .select();
 
-    return { variant, created };
+    if (insertError) throw insertError;
+    if (!newVariants || newVariants.length === 0) throw new Error('Variant creation failed');
+
+    return { variant: newVariants[0], created: true };
   }
 
   /**
    * Generate variant name from product and attributes
    */
-  static async generateVariantName(productId, attributes) {
-    const product = await sequelize.models.Product.findByPk(productId, {
-      include: [{ model: sequelize.models.Brand, as: 'brand' }]
-    });
-    
-    if (!product) return 'Unknown Product Variant';
+  static async generateVariantName(productId, attributes, supabase) {
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select(`
+        *,
+        brands!inner(
+          id,
+          name
+        )
+      `)
+      .eq('id', productId)
+      .single();
 
-    let name = `${product.brand.name} ${product.model_name}`;
+    if (productError) throw productError;
+    if (!product) return 'Unknown Product Variant';   
+    let name = `${product.brands.name} ${product.model_name}`;
     
     if (attributes.color) name += ` - ${attributes.color}`;
     if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
     if (attributes.ram_gb) name += `, ${attributes.ram_gb}GB RAM`;
-    if (attributes.size) name += `, ${attributes.size}`;
-
     return name;
   }
 
-  /**
-   * Get variants by product with filters
-   */
-  static async getByProduct(productId, filters = {}) {
-    const whereClause = {
-      product_id: productId,
-      is_active: true
-    };
-
-    // Filter by attributes if provided
-    if (Object.keys(filters).length > 0) {
-      whereClause.attributes = filters;
-    }
-
-    return await ProductVariant.findAll({
-      where: whereClause,
-      include: [
-        {
-          model: sequelize.models.Offer,
-          as: 'offers',
-          where: { is_active: true },
-          required: false
-        }
-      ],
-      order: [['name', 'ASC']]
-    });
-  }
-
-  /**
-   * Get available attribute values for a product
-   */
-  static async getAttributeValues(productId) {
-    const variants = await ProductVariant.findAll({
-      where: { 
-        product_id: productId,
-        is_active: true 
-      },
-      attributes: ['attributes']
-    });
-
-    const allAttributes = {};
-    
-    variants.forEach(variant => {
-      Object.entries(variant.attributes).forEach(([key, value]) => {
-        if (!allAttributes[key]) {
-          allAttributes[key] = new Set();
-        }
-        if (value) {
-          allAttributes[key].add(value);
-        }
-      });
-    });
-
-    // Convert sets to arrays
-    const result = {};
-    Object.entries(allAttributes).forEach(([key, valueSet]) => {
-      result[key] = Array.from(valueSet);
-    });
-
-    return result;
-  }
-
-  /**
-   * Get price statistics from offers
-   */
-  async getPriceStats() {
-    const offers = await sequelize.models.Offer.findAll({
-      where: { 
-        variant_id: this.id,
-        is_active: true,
-        stock_status: ['in_stock', 'limited_stock']
-      }
-    });
-
-    if (offers.length === 0) {
-      return {
-        min_price: null,
-        max_price: null,
-        avg_price: null,
-        best_price_store: null,
-        offer_count: 0
-      };
-    }
-
-    const prices = offers.map(o => parseFloat(o.price));
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-    
-    // Find store with best price
-    const bestOffer = offers.find(o => parseFloat(o.price) === minPrice);
-
-    return {
-      min_price: minPrice,
-      max_price: maxPrice,
-      avg_price: avgPrice,
-      best_price_store: bestOffer ? bestOffer.store_name : null,
-      offer_count: offers.length
-    };
-  }
-
-  /**
-   * Get best offers for this variant
-   */
-  async getBestOffers(limit = 5) {
-    return await sequelize.models.Offer.findAll({
-      where: { 
-        variant_id: this.id,
-        is_active: true,
-        stock_status: ['in_stock', 'limited_stock']
-      },
-      order: [['price', 'ASC']],
-      limit
-    });
-  }
-
-  /**
-   * Get price history for this variant
-   */
-  async getPriceHistory(days = 30) {
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - days);
-
-    return await sequelize.models.Offer.findAll({
-      where: { 
-        variant_id: this.id,
-        scraped_at: {
-          [Op.gte]: sinceDate
-        }
-      },
-      attributes: ['store_name', 'price', 'scraped_at'],
-      order: [['scraped_at', 'DESC']]
-    });
-  }
-
-  /**
-   * Check if variant has any active offers
-   */
-  async isAvailable() {
-    const offers = await sequelize.models.Offer.count({
-      where: { 
-        variant_id: this.id,
-        is_active: true,
-        stock_status: ['in_stock', 'limited_stock']
-      }
-    });
-    return offers > 0;
-  }
-
-  /**
-   * Get formatted attributes for display
-   */
-  getFormattedAttributes() {
-    const formatted = [];
-    
-    Object.entries(this.attributes).forEach(([key, value]) => {
-      if (value) {
-        const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        formatted.push(`${formattedKey}: ${value}`);
-      }
-    });
-    
-    return formatted;
-  }
 
   /**
    * Enhanced variant insertion with caching and statistics
@@ -243,47 +100,7 @@ class ProductVariant extends Model {
       .trim();
   }
 
-  /**
-   * Find similar colors using fuzzy matching with PostgreSQL trigrams
-   */
-  static async findSimilarColor(color, productId, threshold = 0.90) {
-    if (!color) return null;
-    
-    try {
-      const query = `
-        SELECT pv.*, similarity(pv.attributes->>'color', $1) as similarity_score
-        FROM product_variants pv
-        WHERE pv.product_id = $2 
-          AND pv.attributes->>'color' IS NOT NULL
-          AND similarity(pv.attributes->>'color', $1) > $3
-        ORDER BY similarity_score DESC
-        LIMIT 1;
-      `;
-      
-      const results = await sequelize.query(query, {
-        bind: [color, productId, threshold],
-        type: sequelize.QueryTypes.SELECT
-      });
-      
-      if (results.length > 0) {
-        const variantData = results[0];
-        const variant = await ProductVariant.findByPk(variantData.id);
-        
-        return {
-          variant,
-          similarity: variantData.similarity_score,
-          matchType: 'fuzzy_color'
-        };
-      }
-      
-      return null;
-    } catch (error) {
-      console.error(`❌ Error in fuzzy color search for "${color}":`, error.message);
-      return null;
-    }
-  }
-
-  static async insertWithCache(productData, productId, brandName, cache, stats) {
+  static async insertWithCache(productData, productId, brandName, cache, stats, supabase) {
     const variant_attributes = productData.variant_attributes || {};
     const listing_info = productData.listing_info || {};
     const { ram, storage, color } = variant_attributes;
@@ -297,7 +114,7 @@ class ProductVariant extends Model {
     const isApple = brandName && brandName.toLowerCase() === 'apple';
     let variantKey;
     
-    if (isApple && (ram === null || ram === undefined)) {
+    if (isApple) {
       // For Apple products with missing RAM, use only storage and color
       variantKey = `${productId}:apple:${storage || 0}:${normalizedColor || 'default'}`;
     } else {
@@ -309,35 +126,12 @@ class ProductVariant extends Model {
       return cache.get(variantKey);
     }
 
-    // Check for fuzzy color match if we have a color
-    if (normalizedColor) {
-      const similarColorMatch = await this.findSimilarColor(normalizedColor, productId, 0.90);
-      if (similarColorMatch && similarColorMatch.similarity >= 0.90) {
-        // Use the existing variant's color for consistency
-        const existingColor = similarColorMatch.variant.attributes.color;
-        
-        // Update the variant key to use the existing color
-        if (isApple && (ram === null || ram === undefined)) {
-          variantKey = `${productId}:apple:${storage || 0}:${existingColor || 'default'}`;
-        } else {
-          variantKey = `${productId}:${ram || 0}:${storage || 0}:${existingColor || 'default'}`;
-        }
-        
-        // Check if this exact combination already exists
-        if (cache.has(variantKey)) {
-          return cache.get(variantKey);
-        }
-        
-        // Use the existing color for the new variant
-        const finalColor = existingColor;
-      }
-    }
-
     try {
       const attributes = {
         ram_gb: ram || null,
         storage_gb: storage || null,
-        color: (typeof finalColor !== 'undefined' ? finalColor : normalizedColor) || null // Use fuzzy matched color or normalized color
+        // FIXED: Original code has this exact line with ternary that does nothing
+        color: (typeof normalizedColor !== 'undefined' ? normalizedColor : normalizedColor) || null
       };
 
       // Prepare images array from listing info
@@ -351,7 +145,7 @@ class ProductVariant extends Model {
         });
       }
 
-      const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes);
+      const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes, supabase);
       
       // Update images if we have new image data
       if (images.length > 0) {
@@ -362,7 +156,14 @@ class ProductVariant extends Model {
         const newImages = images.filter(img => !imageUrls.includes(img.url));
         if (newImages.length > 0) {
           const updatedImages = [...existingImages, ...newImages];
-          await variant.update({ images: updatedImages });
+          
+          // Equivalent to: await variant.update({ images: updatedImages });
+          const { error: updateError } = await supabase
+            .from('product_variants')
+            .update({ images: updatedImages })
+            .eq('id', variant.id);
+
+          if (updateError) throw updateError;
         }
       }
       
@@ -371,7 +172,8 @@ class ProductVariant extends Model {
       if (created) {
         stats.variants.created++;
         if (isApple && (ram === null || ram === undefined)) {
-          stats.deduplication.apple_variants++;
+          // FIXED: Original code doesn't initialize this counter, just increments
+          stats.deduplication.apple_variants = (stats.deduplication.apple_variants || 0) + 1;
         }
       } else {
         stats.variants.existing++;
