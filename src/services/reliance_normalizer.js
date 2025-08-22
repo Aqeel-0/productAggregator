@@ -457,7 +457,7 @@ class RelianceNormalizer {
     
     if (specModelNumber && cleanTitleModel) {
       // If a model number is detected, use title model as the model name, no manual review
-      this.logger.info(`Model number '${specModelNumber}' detected in specs; using title model '${cleanTitleModel}' as model name`);
+      //this.logger.info(`Model number '${specModelNumber}' detected in specs; using title model '${cleanTitleModel}' as model name`);
       finalModelName = cleanTitleModel;
       finalFinalModelName = cleanTitleModel;
     } else if (!cleanSpecModel && !cleanTitleModel) {

@@ -123,6 +123,9 @@ class ProductVariant extends Model {
     }
 
     if (cache.has(variantKey)) {
+      // Increment existing variants counter when found in cache
+      stats.deduplication.variant_match++;
+      stats.variants.existing++;
       return cache.get(variantKey);
     }
 
@@ -176,6 +179,7 @@ class ProductVariant extends Model {
           stats.deduplication.apple_variants = (stats.deduplication.apple_variants || 0) + 1;
         }
       } else {
+        stats.deduplication.variant_match++;
         stats.variants.existing++;
       }
       

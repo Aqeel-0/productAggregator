@@ -86,13 +86,22 @@ class DatabaseInserter {
    * Track cross-platform product information
    */
   trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant) {
-    const productKey = `${productData.product_identifiers?.brand}_${productData.product_identifiers?.model_name}`;
+    // Normalize model name using same logic as Product model
+    const model_name = productData.product_identifiers?.model_name;
+    const normalizedModelName = model_name ? model_name.toLowerCase().trim() : '';
+    
+    // Simple normalization: remove 5G suffix, keep 4G suffix (same as Product model)
+    const normalizedKey = normalizedModelName.endsWith(' 5g') 
+      ? normalizedModelName.slice(0, -3) 
+      : normalizedModelName;
+    
+    const productKey = `${productData.product_identifiers?.brand}_${normalizedKey}`;
 
     if (!this.productPlatformMap.has(productKey)) {
       this.productPlatformMap.set(productKey, {
         platforms: new Set(),
         productId: productId,
-        modelName: productData.product_identifiers?.model_name,
+        modelName: normalizedKey,
         brand: productData.product_identifiers?.brand,
         wasNewProduct: wasNewProduct,
         variants: new Set()
@@ -130,6 +139,12 @@ class DatabaseInserter {
         return null;
       }
 
+      // Store stats before processing to determine what was created
+      const statsBefore = {
+        productsCreated: this.stats.products.created,
+        variantsCreated: this.stats.variants.created
+      };
+
       // Step 1: Create/Get Brand
       const brandId = await this.getOrCreateBrand(brand_name);
       if (!brandId) {
@@ -141,7 +156,6 @@ class DatabaseInserter {
       const categoryId = await this.getCategoryForProduct(productData);
 
       // Step 3: Create/Get Product
-      const wasNewProduct = false;
       const productId = await this.getOrCreateProduct(productData, brandId, categoryId);
       if (!productId) {
         this.stats.errors.push(`Product ${index + 1}: Could not create product`);
@@ -149,8 +163,6 @@ class DatabaseInserter {
       }
 
       //Step 4: Create/Get Variant
-      const variantKey = `${productId}_${productData.variant_attributes?.ram || 0}_${productData.variant_attributes?.storage || 0}_${productData.variant_attributes?.color || 'default'}`;
-      const wasNewVariant = !this.variantCache.has(variantKey);
       const variantId = await this.getOrCreateVariant(productData, productId, brand_name);
       if (!variantId) {
         this.stats.errors.push(`Product ${index + 1}: Could not create variant`);
@@ -160,7 +172,10 @@ class DatabaseInserter {
       // Step 5: Create Listing
       const listingId = await this.createListing(productData, variantId);
 
-      //Track cross-platform information
+      // Track cross-platform information
+      // Determine if this was a new product/variant by comparing stats
+      const wasNewProduct = this.stats.products.created > statsBefore.productsCreated;
+      const wasNewVariant = this.stats.variants.created > statsBefore.variantsCreated;
       this.trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant);
 
       return {
@@ -419,9 +434,9 @@ class DatabaseInserter {
     this.supabase = supabaseSingleton.getClient();
     const normalizedFiles = [
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
     ];
 
     console.log('🚀 Starting cross-platform database ingestion...\n');

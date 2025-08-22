@@ -93,13 +93,38 @@ class DatabaseInserter {
    * Track cross-platform product information
    */
   trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant) {
-    const productKey = `${productData.product_identifiers?.brand}_${productData.product_identifiers?.model_name}`;
+    // Use the same normalization logic as Product.insertWithCache
+    const model_name = productData.product_identifiers?.model_name;
+    const normalizedModelName = model_name ? model_name.toLowerCase().trim() : '';
+    
+    // Helper functions for network suffix handling (EXACTLY the same as Product model)
+    const hasNetworkSuffix = name => name.endsWith(' 5g') || name.endsWith(' 4g');
+
+    const removeNetworkSuffix = name => {
+      if (name.endsWith(' 5g') || name.endsWith(' 4g')) return name.slice(0, -3);
+      return name;
+    };
+
+    const getNetworkType = name => {
+      if (name.endsWith(' 5g')) return '5g';
+      if (name.endsWith(' 4g')) return '4g';
+      return '5g'; // Default for no suffix
+    };
+
+    const getCacheKey = name => {
+      const networkType = getNetworkType(name);
+      return networkType === '4g' ? name : removeNetworkSuffix(name); // 4G: full name, else base
+    };
+    
+    // Use normalized model name for consistent cross-platform tracking
+    const normalizedKey = getCacheKey(normalizedModelName);
+    const productKey = `${productData.product_identifiers?.brand}_${normalizedKey}`;
 
     if (!this.productPlatformMap.has(productKey)) {
       this.productPlatformMap.set(productKey, {
         platforms: new Set(),
         productId: productId,
-        modelName: productData.product_identifiers?.model_name,
+        modelName: normalizedKey, // Use normalized name
         brand: productData.product_identifiers?.brand,
         wasNewProduct: wasNewProduct,
         variants: new Set()
@@ -137,6 +162,14 @@ class DatabaseInserter {
         return null;
       }
 
+      // Store stats before processing to determine what was created
+      const statsBefore = {
+        productsCreated: this.stats.products.created,
+        productsExisting: this.stats.products.existing,
+        variantsCreated: this.stats.variants.created,
+        variantsExisting: this.stats.variants.existing
+      };
+
       // Step 1: Create/Get Brand
       const brandId = await this.getOrCreateBrand(brand_name);
       if (!brandId) {
@@ -148,8 +181,6 @@ class DatabaseInserter {
       const categoryId = await this.getCategoryForProduct(productData);
 
       // Step 3: Create/Get Product
-      const productCacheKey = `${brand_name}_${productName}`;
-      const wasNewProduct = !this.productCache.has(productCacheKey);
       const productId = await this.getOrCreateProduct(productData, brandId, categoryId);
       if (!productId) {
         this.stats.errors.push(`Product ${index + 1}: Could not create product`);
@@ -158,7 +189,6 @@ class DatabaseInserter {
 
       // Step 4: Create/Get Variant
       const variantKey = `${productId}_${productData.variant_attributes?.ram || 0}_${productData.variant_attributes?.storage || 0}_${productData.variant_attributes?.color || 'default'}`;
-      const wasNewVariant = !this.variantCache.has(variantKey);
       const variantId = await this.getOrCreateVariant(productData, productId, brand_name);
       if (!variantId) {
         this.stats.errors.push(`Product ${index + 1}: Could not create variant`);
@@ -169,6 +199,9 @@ class DatabaseInserter {
       const listingId = await this.createListing(productData, variantId);
 
       // Track cross-platform information
+      // Determine if this was a new product/variant by comparing stats
+      const wasNewProduct = this.stats.products.created > statsBefore.productsCreated;
+      const wasNewVariant = this.stats.variants.created > statsBefore.variantsCreated;
       this.trackCrossPlatformProduct(productData, productId, wasNewProduct, wasNewVariant);
 
       return {
