@@ -32,8 +32,19 @@ class Product extends Model {
     return name
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/[\s_-]+/g, '-')
+      // Replace common special characters with meaningful alternatives (except +)
+      .replace(/&/g, 'and')
+      .replace(/[@]/g, 'at')
+      .replace(/[%]/g, 'percent')
+      // Remove quotes, parentheses, brackets
+      .replace(/['"()[\]{}]/g, '')
+      // Replace spaces, dashes, underscores with single dash
+      .replace(/[\s\-_]+/g, '-')
+      // Remove all other non-alphanumeric characters EXCEPT + and -
+      .replace(/[^a-z0-9\-+]/g, '')
+      // Replace multiple consecutive dashes with single dash
+      .replace(/-+/g, '-')
+      // Remove leading and trailing dashes
       .replace(/^-+|-+$/g, '');
   }
 
@@ -469,7 +480,7 @@ class Product extends Model {
         modelNumberCache.set(`${brandId}:${model_number}`, matchedProduct.id);
       }
   
-      stats.products.existing++;
+      
       return matchedProduct.id;
     } catch (error) {
       console.error(`❌ Error in product insertion "${model_name}":`, error.message);
