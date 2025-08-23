@@ -695,11 +695,11 @@ class RelianceCrawler extends BaseCrawler {
 
   if (require.main === module) {
     const crawler = new RelianceCrawler({
-      headless: false,
+      headless: true,
       maxPages: 60,
       maxConcurrent: 1, // Reduced to prevent blocking
       maxRetries: 1,
-      maxProducts: 500,
+      maxProducts: 700,
     });
   crawler
     .start()

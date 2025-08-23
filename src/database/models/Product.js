@@ -52,7 +52,7 @@ class Product extends Model {
   /**
    * Find or create product by name, brand, and category
    */
-  static async findOrCreateByDetails(name, brandId, categoryId, supabase) {
+  static async findOrCreateByDetails(name, original_model_name, brandId, categoryId, supabase) {
     const slug = this.generateSlug(name);
 
     // First try to find by slug (most reliable for variants)
@@ -106,6 +106,7 @@ class Product extends Model {
     const { data: newProducts, error: insertError } = await supabase
       .from('products')
       .insert([{
+        original_model_name: original_model_name,
         model_name: name.trim(), // Already normalized to lowercase
         slug: slug,
         brand_id: brandId,
@@ -227,7 +228,7 @@ class Product extends Model {
 
       // Phase 3: Create New Product
       if (!matchedProduct) {
-        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, brandId, categoryId, supabase);
+        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, model_name, brandId, categoryId, supabase);
         
         // Update with additional specifications and model_number
         const { error: updateError } = await supabase

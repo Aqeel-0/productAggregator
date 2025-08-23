@@ -1069,14 +1069,14 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 200,
-    totalMaxProducts: 800,
+    maxProducts: 4000,
+    totalMaxProducts: 4000,
     relatedProductsConfig: {
-      maxPerProduct: 5,
+      maxPerProduct: 10,
     },
-    maxPages: 60,
+    maxPages: 100,
     delayBetweenPages: 3000,
-    maxConcurrent: 10,
+    maxConcurrent: 6,
     maxRetries: 3,
   });
   

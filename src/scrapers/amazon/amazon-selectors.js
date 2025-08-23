@@ -9,8 +9,7 @@ const CATEGORY_SELECTORS = {
   PRODUCT_GRID: '//div[contains(@class, "s-main-slot") and contains(@class, "s-result-list")]',
   PRODUCT_CARD: '//div[contains(@class, "s-result-item") and @data-asin and @data-asin!=""]',
   PRODUCT_LINK: [
-    '//a[contains(@href, "/dp/")]',
-    '//a[contains(@href, "/gp/product/")]'
+    "//div[contains(@class, 's-product-image-container')]//a[contains(@href, '/dp/')]"
   ],
   PAGINATION: '//ul[contains(@class, "a-pagination")]',
   NEXT_PAGE: '//a[contains(@class, "s-pagination-next")]'

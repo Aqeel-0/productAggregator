@@ -1134,9 +1134,9 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 500,
-    maxConcurrent: 10,
-    maxPages: 50,
+    maxProducts: 2000,
+    maxConcurrent: 6,
+    maxPages: 100,
     delayBetweenPages: 3000
   });
   

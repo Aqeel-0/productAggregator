@@ -30,7 +30,7 @@ class ProductVariant extends Model {
       .from('product_variants')
       .select('*')
       .eq('product_id', productId)
-      .eq('attributes', JSON.stringify(attributes))
+      .contains('attributes', attributes)
       .maybeSingle();
 
     if (findError) throw findError;
@@ -74,11 +74,11 @@ class ProductVariant extends Model {
 
     if (productError) throw productError;
     if (!product) return 'Unknown Product Variant';   
-    let name = `${product.brands.name} ${product.model_name}`;
+    let name = `${product.brands.name} ${product.original_model_name}`;
     
-    if (attributes.color) name += ` - ${attributes.color}`;
-    if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
     if (attributes.ram_gb) name += `, ${attributes.ram_gb}GB RAM`;
+    if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
+    if (attributes.color) name += ` - ${attributes.color}`;
     return name;
   }
 
@@ -133,8 +133,7 @@ class ProductVariant extends Model {
       const attributes = {
         ram_gb: ram || null,
         storage_gb: storage || null,
-        // FIXED: Original code has this exact line with ternary that does nothing
-        color: (typeof normalizedColor !== 'undefined' ? normalizedColor : normalizedColor) || null
+        color: normalizedColor || null
       };
 
       // Prepare images array from listing info
