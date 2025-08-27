@@ -75,7 +75,8 @@ class RelianceNormalizer {
         price: this.normalizePrice(product.price),
         availability: product.availability || null,
         rating: this.normalizeRating(product.rating),
-        image_url: this.extractMainImage(product.image)
+        image: this.processRelianceImage(product.image.mainImage),
+        images: this.processRelianceImages(product.image.allImages, product.image.mainImage)
       },
       key_specifications: {
         display: this.extractDisplaySpecs(specs),
@@ -245,8 +246,13 @@ class RelianceNormalizer {
       }
     }
     if (title) {
+      // Extract GB from title (avoiding RAM confusion)
       const m = title.match(/(\d+)\s*GB(?!\s*RAM)/i);
       if (m) return parseInt(m[1], 10);
+      
+      // Extract TB from title as fallback
+      const tbMatch = title.match(/(\d+)\s*TB/i);
+      if (tbMatch) return parseInt(tbMatch[1], 10) * 1024;
     }
     return null;
   }
@@ -290,12 +296,6 @@ class RelianceNormalizer {
       return { score: score ?? null, count: count ?? null };
     }
     return { score: null, count: null };
-  }
-
-  extractMainImage(imageObj) {
-    if (!imageObj) return null;
-    if (typeof imageObj === 'string') return imageObj;
-    return imageObj.mainImage || null;
   }
 
   // ---------- Spec sections ----------
@@ -457,7 +457,7 @@ class RelianceNormalizer {
     
     if (specModelNumber && cleanTitleModel) {
       // If a model number is detected, use title model as the model name, no manual review
-      this.logger.info(`Model number '${specModelNumber}' detected in specs; using title model '${cleanTitleModel}' as model name`);
+      //this.logger.info(`Model number '${specModelNumber}' detected in specs; using title model '${cleanTitleModel}' as model name`);
       finalModelName = cleanTitleModel;
       finalFinalModelName = cleanTitleModel;
     } else if (!cleanSpecModel && !cleanTitleModel) {
@@ -664,6 +664,45 @@ class RelianceNormalizer {
       'product information', 'mobile phone information', 'smartphone', 'mobile phone', 'phone', 'mobile'
     ]);
     return !invalid.has(trimmed.toLowerCase());
+  }
+
+  processRelianceImage(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    
+    // Remove resize-w:75 and replace with original
+    const processedUrl = imageUrl.replace(/resize-w:\d+/, 'original');
+    
+    return processedUrl;
+  }
+
+  processRelianceImages(images, mainImage = null) {
+    if (!Array.isArray(images) || images.length === 0) return [];
+    
+    const processedImages = [];
+    const seenUrls = new Set();
+    
+    // Add main image to seen URLs if provided
+    if (mainImage) {
+      const processedMainImage = this.processRelianceImage(mainImage);
+      if (processedMainImage) {
+        seenUrls.add(processedMainImage);
+      }
+    }
+    
+    for (const imageUrl of images) {
+      if (!imageUrl || typeof imageUrl !== 'string') continue;
+      
+      // Remove resize-w:75 and replace with original
+      const processedUrl = imageUrl.replace(/resize-w:\d+/, 'original');
+      
+      // Only add if we haven't seen this URL before (including main image)
+      if (!seenUrls.has(processedUrl)) {
+        seenUrls.add(processedUrl);
+        processedImages.push(processedUrl);
+      }
+    }
+    
+    return processedImages;
   }
 
   // IO helpers

@@ -50,11 +50,16 @@ class AmazonNormalizer {
     // Store current title for fallback extractions
     this.currentTitle = product.title;
 
+    // Special handling for iPhone 16 products
+    if (this.isIPhone16Product(product)) {
+      return this.normalizeIPhone16Product(product);
+    }
+
     return {
       source_details: {
         source_name: "amazon",
         url: product.url || null,
-        scraped_at_utc: new Date().toISOString()
+        scraped_at_utc: '2025-08-22T18:55:33.449Z'
       },
 
       product_identifiers: {
@@ -66,7 +71,7 @@ class AmazonNormalizer {
 
       variant_attributes: {
         color: this.extractColor(specs),
-        ram: this.extractRAM(specs),
+        ram: this.extractRAM(product),
         availability: product.availability,
         storage: this.extractStorage(specs)
       },
@@ -74,7 +79,7 @@ class AmazonNormalizer {
       listing_info: {
         price: this.normalizePrice(product.price),
         rating: this.normalizeRating(product.rating),
-        image_url: product.image || null
+        image_url: this.cleanAmazonImageUrl(product.image)
       },
 
       key_specifications: {
@@ -88,6 +93,169 @@ class AmazonNormalizer {
 
       source_metadata: {
         category_breadcrumb: product.categories || []
+      }
+    };
+  }
+
+  cleanAmazonImageUrl(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    
+    // Remove Amazon size suffixes like _SX679_, _SY679_, etc.
+    // Pattern: underscore, SX or SY, followed by numbers, then underscore
+    let cleanedUrl = imageUrl.replace(/_(SX|SY)\d+_/g, '');
+    
+    // Fix multiple consecutive dots that might occur after cleaning
+    cleanedUrl = cleanedUrl.replace(/\.{2,}/g, '.');
+    
+    return cleanedUrl;
+  }
+
+  /**
+   * Check if product is an iPhone 16 variant
+   */
+  isIPhone16Product(product) {
+    if (!product || !product.title) return false;
+    
+    const title = product.title.toLowerCase();
+    return title.includes('iphone 16');
+  }
+
+  /**
+   * Check if product is any iPhone model
+   */
+  isAnyIPhoneProduct(product) {
+    if (!product || !product.title) return false;
+    
+    const title = product.title.toLowerCase();
+    return title.includes('iphone');
+  }
+
+  /**
+   * Extract iPhone 16 model name using regex patterns
+   */
+  extractIPhone16ModelName(title) {
+    if (!title) return '';
+
+    const titleLower = title.toLowerCase();
+    
+    // iPhone 16 model patterns
+    const iphone16Patterns = [
+      // iPhone 16 Pro Max
+      /iphone\s+16\s+pro\s+max/i,
+      // iPhone 16 Pro
+      /iphone\s+16\s+pro/i,
+      // iPhone 16 Plus
+      /iphone\s+16\s+plus/i,
+      // iPhone 16e
+      /iphone\s+16e/i,
+      // iPhone 16 (base model)
+      /iphone\s+16\b/i
+    ];
+
+    for (const pattern of iphone16Patterns) {
+      const match = titleLower.match(pattern);
+      if (match) {
+        // Convert to proper case
+        const modelName = match[0].replace(/\b\w/g, l => l.toUpperCase());
+        return modelName;
+      }
+    }
+
+    return '';
+  }
+
+  extractIPhone16Color(title, specs) {
+    if (!title) return null;
+    
+    // Handle special cases and normalize colors
+    const colorMapping = {
+      'Black': 'Black',
+      'White': 'White',
+      'Pink': 'Pink',
+      'Teal': 'Teal',
+      'Ultramarine': 'Ultramarine',
+      'Desert': 'Desert Titanium',
+      'Natural': 'Natural Titanium',
+      'Whit': 'White', // Handle truncated
+      'Ultrmarine': 'Ultramarine' // Handle typo
+    };
+    
+    // First try to extract color from title after semicolon (most common pattern)
+    if (title.includes(';')) {
+      const afterSemicolon = title.split(';')[1];
+      if (afterSemicolon) {
+        const color = afterSemicolon.trim();
+        if (color && color.length > 0) {
+          // Apply color mapping to semicolon-extracted color
+          if (colorMapping[color]) {
+            return colorMapping[color];
+          }
+          return color;
+        }
+      }
+    }
+    
+    // Fallback: try to extract color from anywhere in the title
+    const words = title.trim().split(/\s+/);
+    
+    // Look for any word that matches our color mapping
+    for (const word of words) {
+      const cleanWord = word.replace(/[^\w]/g, '');
+      if (colorMapping[cleanWord]) {
+        return colorMapping[cleanWord];
+      }
+    }
+    
+    // Try to extract multi-word colors from anywhere in the title
+    // Look for patterns like "Natural Titanium", "Desert Titanium", etc.
+    const multiWordColors = ['Natural Titanium', 'Desert Titanium', 'Black Titanium', 'White Titanium'];
+    for (const multiColor of multiWordColors) {
+      if (title.toLowerCase().includes(multiColor.toLowerCase())) {
+        return multiColor;
+      }
+    }
+    
+    // If title extraction didn't work, fall back to specifications
+    return this.extractColor(specs);
+  }
+
+  normalizeIPhone16Product(product) {
+    const specs = product.specifications || {};
+
+    return {
+      source_details: {
+        source_name: "amazon",
+        url: product.url || null,
+        scraped_at_utc: new Date().toISOString()
+      },
+
+      product_identifiers: {
+        brand: "Apple",
+        model_name: this.extractIPhone16ModelName(product.title),
+        original_title: product.title || null,
+        model_number: this.extractModelNumber(specs)
+      },
+
+      variant_attributes: {
+        color: this.extractIPhone16Color(product.title, specs),
+        ram: null,
+        availability: product.availability,
+        storage: this.extractStorage(specs)
+      },
+
+      listing_info: {
+        price: this.normalizePrice(product.price),
+        rating: this.normalizeRating(product.rating),
+        image_url: this.cleanAmazonImageUrl(product.image)
+      },
+
+      key_specifications: null,
+
+      source_metadata: {
+        category_breadcrumb: [ "Electronics",
+          "Mobiles & Accessories",
+          "Smartphones & Basic Mobiles",
+          "Smartphones"]
       }
     };
   }
@@ -180,9 +348,10 @@ class AmazonNormalizer {
         // Still include as candidate but with lower confidence
         const brand = this.extractBrand(product);
         const cleanedSpecModel = this.cleanModelNameFromBrand(specModelName, brand);
+        const finalCleanedSpecModel = this.cleanModelName(cleanedSpecModel);
         candidates.push({
           source: 'specs_unvalidated',
-          value: cleanedSpecModel,
+          value: finalCleanedSpecModel,
           confidence: 0.5, // Lower confidence due to failed validation
           validation: 'title_failed'
         });
@@ -193,9 +362,11 @@ class AmazonNormalizer {
     if (product.productName && product.productName !== "Product information") {
       const { brand, model } = this.extractBrandAndModelName(product.productName);
       if (model && this.isValidModelName(model)) {
+        // Clean the model name to remove RAM/ROM, colors, etc.
+        const cleanedModel = this.cleanModelName(model);
         candidates.push({
           source: 'productName',
-          value: model,
+          value: cleanedModel,
           confidence: 0.8 // Higher confidence as it's usually more accurate
         });
       }
@@ -204,9 +375,11 @@ class AmazonNormalizer {
     // Candidate 3: Model name from title
     const titleModel = this.extractModelNameFromTitle(product.title, product);
     if (titleModel && this.isValidModelName(titleModel)) {
+      // Clean the model name to remove RAM/ROM, colors, etc.
+      const cleanedTitleModel = this.cleanModelName(titleModel);
       candidates.push({
         source: 'title',
-        value: titleModel,
+        value: cleanedTitleModel,
         confidence: 0.6 // Lower confidence due to parsing complexity
       });
     }
@@ -215,182 +388,16 @@ class AmazonNormalizer {
     const bestModelName = this.selectBestModelNameCandidate(candidates, product);
 
     // Process the model name through color removal and dual name generation
-    return this.processModelNameWithDualGeneration(bestModelName, product);
-  }
-
-  /**
-   * Process model name with color removal and dual model name generation
-   */
-  processModelNameWithDualGeneration(modelName, product) {
-    if (!modelName) return { model_name: null, model_name_with_5g: null };
-
-    // Step 1: Remove color from model name if present
-    const colorRemovedModelName = this.removeColorFromModelName(modelName, product);
-
-    // Step 2: Generate dual model names (base and 5G variant)
-    // COMMENTED OUT: const dualModelNames = this.generateDualModelNames(colorRemovedModelName);
-
-    // Return only the base model name without generating dual variants
+    const colorRemovedModelName = this.removeColorFromModelName(bestModelName, product);
+    
+    // Final cleanup: ensure RAM/ROM and other specs are removed from the final model name
+    const finalCleanedModelName = this.cleanModelName(colorRemovedModelName);
+    
     return {
-      model_name: colorRemovedModelName,
-      //model_name_with_5g: null
+      model_name: finalCleanedModelName,
     };
   }
 
-  /**
-   * Generate dual model names - base model name and network variant (4G/5G)
-   */
-  generateDualModelNames(originalModelName) {
-    if (!originalModelName || typeof originalModelName !== 'string') {
-      return { model_name: null, model_name_with_5g: null };
-    }
-
-    const trimmedModel = originalModelName.trim();
-
-    // Check if the model name contains 4G or 5G
-    const has4G = this.contains4G(trimmedModel);
-    const has5G = this.contains5G(trimmedModel);
-
-    let baseModelName, modelNameWithNetwork;
-
-    if (has4G) {
-      // If model name has 4G, create base without 4G and variant with 4G
-      baseModelName = this.remove4GFromModelName(trimmedModel);
-      modelNameWithNetwork = trimmedModel; // Keep original as 4G variant
-    } else if (has5G) {
-      // If model name has 5G, create base without 5G and variant with 5G
-      baseModelName = this.remove5GFromModelName(trimmedModel);
-      modelNameWithNetwork = trimmedModel; // Keep original as 5G variant
-    } else {
-      // If model name has neither 4G nor 5G, use original as base and add 5G for variant
-      baseModelName = trimmedModel; // Keep original as base
-      modelNameWithNetwork = this.add5GToModelName(trimmedModel);
-    }
-
-    return {
-      model_name: baseModelName,
-      model_name_with_5g: modelNameWithNetwork // Keep same field name for compatibility
-    };
-  }
-
-  /**
-   * Check if model name contains 4G designation
-   */
-  contains4G(modelName) {
-    if (!modelName || typeof modelName !== 'string') return false;
-    modelName = modelName.toLowerCase();
-    // Pattern to match various 4G formats
-    const fourGPatterns = [
-      /\b4g\b/i,           // Lowercase 4g
-      /\s+4g$/i,           // 4G at the end
-      /^4g\s+/i,           // 4G at the beginning
-      /\s+4g\s+/i          // 4G in the middle
-    ];
-
-    return fourGPatterns.some(pattern => pattern.test(modelName));
-  }
-
-  /**
-   * Check if model name contains 5G designation
-   */
-  contains5G(modelName) {
-    if (!modelName || typeof modelName !== 'string') return false;
-    modelName = modelName.toLowerCase();
-    // Pattern to match various 5G formats
-    const fiveGPatterns = [
-      /\b5g\b/i,           // Lowercase 5g
-      /\s+5g$/i,           // 5G at the end
-      /^5g\s+/i,           // 5G at the beginning
-      /\s+5g\s+/i          // 5G in the middle
-    ];
-
-    return fiveGPatterns.some(pattern => pattern.test(modelName));
-  }
-
-  /**
-   * Remove 4G designation from model name
-   */
-  remove4GFromModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-    modelName = modelName.toLowerCase();
-    let cleaned = modelName;
-
-    // Remove various 4G patterns
-    const fourGPatterns = [
-      /\s+4g$/i,           // 4G at the end (most common)
-      /^4g\s+/i,           // 4G at the beginning
-      /\s+4g\s+/i,         // 4G in the middle
-      /\b4g\b/i            // Any standalone 4G
-    ];
-
-    // Apply removal patterns in order of specificity
-    for (const pattern of fourGPatterns) {
-      cleaned = cleaned.replace(pattern, ' ');
-    }
-
-    // Clean up extra spaces and return
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-    // If cleaning resulted in empty or very short string, return original
-    if (cleaned.length < 2) {
-      return modelName;
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * Remove 5G designation from model name
-   */
-  remove5GFromModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-    modelName = modelName.toLowerCase();
-    let cleaned = modelName;
-
-    // Remove various 5G patterns
-    const fiveGPatterns = [
-      /\s+5g$/i,           // 5G at the end (most common)
-      /^5g\s+/i,           // 5G at the beginning
-      /\s+5g\s+/i,         // 5G in the middle
-      /\b5g\b/i            // Any standalone 5G
-    ];
-
-    // Apply removal patterns in order of specificity
-    for (const pattern of fiveGPatterns) {
-      cleaned = cleaned.replace(pattern, ' ');
-    }
-
-    // Clean up extra spaces and return
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-    // If cleaning resulted in empty or very short string, return original
-    if (cleaned.length < 2) {
-      return modelName;
-    }
-
-    return cleaned;
-  }
-
-  /**
-   * Add 5G designation to model name
-   */
-  add5GToModelName(modelName) {
-    if (!modelName || typeof modelName !== 'string') return modelName;
-
-    const trimmed = modelName.trim();
-
-    // Don't add 5G if it already exists
-    if (this.contains5G(trimmed)) {
-      return trimmed;
-    }
-
-    // Add 5G at the end with proper spacing
-    return `${trimmed} 5G`;
-  }
-
-  /**
-   * Remove color from model name if it matches the extracted color
-   */
   /**
    * Remove color from model name if it matches the extracted color (simplified approach)
    */
@@ -488,7 +495,8 @@ class AmazonNormalizer {
     // Comprehensive regex patterns for different model name formats
     const modelPatterns = [
       // Pattern 1: Brand + Model + Number (e.g., "Redmi 13 5G Prime Edition")
-      new RegExp(`(${brand}\\s+)([A-Za-z0-9]+\\s*[0-9]*[A-Za-z]*\\s*[0-9]*[A-Za-z]*)`, 'i'),
+      // More restrictive to stop at RAM/ROM/Storage or other specs
+      new RegExp(`(${brand}\\s+)([A-Za-z0-9]+\\s*[0-9]*[A-Za-z]*\\s*[0-9]*[A-Za-z]*?)(?=\\s*(?:\\d+GB|\\d+TB|RAM|ROM|Storage|\\||\\(|$))`, 'i'),
 
       // Pattern 2: Specific brand patterns with model extraction
       /(Redmi\s+)([A-Za-z0-9]+)/i,
@@ -784,7 +792,7 @@ class AmazonNormalizer {
       'iQOO': ['iQOO', 'IQOO'],
       'Vivo': ['Vivo', 'VIVO'],
       'Oppo': ['Oppo', 'OPPO'],
-      'Nothing': ['Nothing', 'CMF BY NOTHING']
+      'Nothing': ['Nothing']
     };
 
     return variations[brand] || [brand];
@@ -911,7 +919,23 @@ class AmazonNormalizer {
     let cleaned = modelName;
 
     // Remove color information (usually in parentheses or after comma)
-    cleaned = cleaned.replace(/\([^)]*\)/g, '').trim();
+    // BUT preserve Nothing Phone identifiers like "(3a)", "(2a)" etc.
+    if (cleaned.includes('Phone (') && /Phone\s*\([^)]+\)/.test(cleaned)) {
+      // For Nothing Phone models, preserve the identifier in parentheses
+      // Only remove other parentheses content that's not a phone identifier
+      cleaned = cleaned.replace(/\(([^)]*)\)/g, (match, content) => {
+        // If it's a phone identifier (like "3a", "2a"), keep it
+        if (/^\d+[a-z]?$/i.test(content.trim())) {
+          return match; // Keep the original parentheses
+        }
+        // Otherwise remove it
+        return '';
+      });
+    } else {
+      // For non-phone models, remove all parentheses content
+      cleaned = cleaned.replace(/\([^)]*\)/g, '').trim();
+    }
+    
     cleaned = cleaned.replace(/,[^,]*$/g, '').trim();
 
     // Remove embedded colors that appear directly in model names
@@ -929,17 +953,15 @@ class AmazonNormalizer {
       'Forest', 'Desert', 'Arctic', 'Lunar', 'Solar', 'Stellar', 'Nebula',
       'Diamond', 'Crystal', 'Platinum', 'Titanium', 'Chrome', 'Bronze', 'Copper',
       'Obsidian', 'Emerald', 'Ruby', 'Sapphire', 'Onyx', 'Jade', 'Amber',
+      'Orchid', 'Pink', 'Stellar Pink',
 
       // Color combinations (will be handled as single words)
       'Starlight', 'Graphite', 'Magsafe', 'Alpine', 'Sierra', 'Pacific', 'Ceramic',
       'Frosted', 'Gradient', 'Prism', 'Spectrum', 'Iridescent', 'Holographic'
     ];
 
-    // Remove colors that appear as separate words (with word boundaries)
-    const colorPattern = new RegExp(`\\s+(${commonColors.join('|')})\\b`, 'gi');
-    cleaned = cleaned.replace(colorPattern, '');
-
-    // Remove common color combinations that might appear together
+    // Remove common color combinations first (more specific matches)
+    // This prevents partial color names from remaining
     const colorCombinations = [
       'Midnight Black', 'Space Gray', 'Space Grey', 'Jet Black', 'Pearl White',
       'Rose Gold', 'Matte Black', 'Glossy White', 'Deep Blue', 'Light Blue',
@@ -948,18 +970,44 @@ class AmazonNormalizer {
       'Ocean Blue', 'Sky Blue', 'Forest Green', 'Desert Gold', 'Arctic White',
       'Lunar Silver', 'Solar Red', 'Stellar Blue', 'Nebula Purple', 'Diamond Black',
       'Crystal White', 'Platinum Silver', 'Titanium Gray', 'Chrome Silver',
-      'Panda White', 'Just Black', 'Satin Black', 'Aqua Blue'
+      'Panda White', 'Just Black', 'Satin Black', 'Aqua Blue',
+      
+          // Additional color combinations found in phone data
+    'Ice Silver', 'Glacier Green', 'Cosmic Silver', 'Stellar Pink', 'Ethereal Blue',
+    'Mystical Green', 'Enchanted Green', 'Aqua Bliss', 'Diamond Dust Black',
+    'Pondicherry Blue', 'Jaisalmer Gold', 'Hawaiian Blue', 'Dimond Black',
+    'Charcoal', 'Nature Green', 'Wave Green', 'Pepermint Green', 'Moonlight Silver',
+    'Leather Blue', 'Satin Black', 'Power Black', 'Titanium Grey', 'Midnight Shadow',
+    'Midnight Galaxy', 'Diamond Dust', 'Ethereal Blue', 'Mystical Green',
+    'Dimond'
     ];
 
-    // Remove color combinations first (more specific matches)
     const combinationPattern = new RegExp(`\\s+(${colorCombinations.join('|')})\\b`, 'gi');
     cleaned = cleaned.replace(combinationPattern, '');
+    
+    // Remove colors that appear as separate words (with word boundaries)
+    // But only if they weren't already handled by combinations
+    const colorPattern = new RegExp(`\\s+(${commonColors.join('|')})\\b`, 'gi');
+    cleaned = cleaned.replace(colorPattern, '');
 
     // Remove storage information
     cleaned = cleaned.replace(/\d+GB\s*RAM?/gi, '').trim();
     cleaned = cleaned.replace(/\d+GB\s*Storage?/gi, '').trim();
     cleaned = cleaned.replace(/\d+GB\s*ROM?/gi, '').trim();
     cleaned = cleaned.replace(/\+\d+GB/gi, '').trim();
+    
+    // Remove standalone GB numbers (like "8GB", "128GB") that might not have RAM/Storage/ROM labels
+    cleaned = cleaned.replace(/\b\d+GB\b/gi, '').trim();
+    
+    // Remove standalone TB numbers (like "1TB", "2TB")
+    cleaned = cleaned.replace(/\b\d+TB\b/gi, '').trim();
+    
+    // Remove any remaining storage-like patterns
+    cleaned = cleaned.replace(/\b\d+\s*[GM]B\b/gi, '').trim();
+    
+    // Remove brand-related terms that shouldn't be in model names
+    cleaned = cleaned.replace(/\b(CMF|BY NOTHING)\b/gi, '').trim();
+    
     cleaned = cleaned.replace(/\s+(Mobile|Phone|Smartphone)$/i, '').trim();
 
     // Clean up extra spaces
@@ -1009,9 +1057,13 @@ class AmazonNormalizer {
   }
 
 
-  extractRAM(specs) {
+  extractRAM(product) {
     let ramValue = null;
-
+    const specs = product.specifications || {};
+    const isAnyIPhone = this.isAnyIPhoneProduct(product);
+    if (isAnyIPhone) {
+      return null;
+    }
     // Try multiple paths for RAM
     if (specs?.["RAM Memory Installed Size"]) {
       const ramMatch = specs["RAM Memory Installed Size"].match(/(\d+)\s*GB/i);
@@ -1374,7 +1426,7 @@ class AmazonNormalizer {
       { brand: 'Vivo', patterns: ['vivo'] },
       { brand: 'Motorola', patterns: ['motorola', 'moto'] },
       { brand: 'Nokia', patterns: ['nokia'] },
-      { brand: 'Nothing', patterns: ['nothing', 'cmf'] },
+      { brand: 'Nothing', patterns: ['nothing'] },
       { brand: 'Poco', patterns: ['poco'] },
       { brand: 'Tecno', patterns: ['tecno'] },
       { brand: 'Infinix', patterns: ['infinix'] },

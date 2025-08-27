@@ -916,8 +916,8 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 500,
-    maxConcurrent: 8, // Reduced to match page pool size
+    maxProducts: 1000,
+    maxConcurrent: 6, // Reduced to match page pool size
     delayBetweenPages: 3000
   });
   

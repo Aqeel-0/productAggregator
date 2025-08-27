@@ -34,7 +34,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     this.rateLimiter.registerRules('amazon', AmazonRateLimitConfig);
 
     // Configuration
-    this.categoryUrl = config.categoryUrl || 'https://www.amazon.in/s?i=electronics&rh=n%3A1389432031&s=popularity-rank&fs=true&page=1';
+    this.categoryUrl = config.categoryUrl || 'https://www.amazon.in/s?i=electronics&rh=n%3A976419031%2Cn%3A1389401031%2Cn%3A1389432031%2Cn%3A1805560031&s=popularity-rank&dc&fs=true&ds=v1&page=1';
     this.outputFile = config.outputFile || path.join(__dirname, 'amazon_scraped_data.json');
     this.checkpointFile = config.checkpointFile || path.join(__dirname, 'checkpoint.json');
     
@@ -1134,9 +1134,9 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 500,
-    maxConcurrent: 10,
-    maxPages: 50,
+    maxProducts: 1200,
+    maxConcurrent: 6,
+    maxPages: 100,
     delayBetweenPages: 3000
   });
   

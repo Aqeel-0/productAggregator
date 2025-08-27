@@ -100,7 +100,7 @@ class CromaNormalizer {
       price: this.normalizePrice(product.price),
       availability: null, // Not reliably available in Croma scraped data
       rating: this.normalizeRating(product.rating),
-      image_url: product.image || null,
+      image_url: product.image && !product.image.includes('video_thumbnail') ? product.image : null,
       image_urls: Array.isArray(product.allImages) ? this._dedupe(product.allImages) : []
     };
     if (listing_info.image_url === null) this._inc('listing_info', 'image_url');
@@ -161,6 +161,12 @@ class CromaNormalizer {
     const out = [];
     for (const url of arr) {
       if (!url || typeof url !== 'string') continue;
+      
+      // Filter out video thumbnail images
+      if (url.includes('video_thumbnail')) {
+        continue;
+      }
+      
       if (!seen.has(url)) {
         seen.add(url);
         out.push(url);

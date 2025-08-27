@@ -33,7 +33,7 @@ class FlipkartCrawler extends BaseCrawler {
     };
     
     super({ ...defaultConfig, ...config });
-    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock';
+    this.categoryUrl = 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&p%5B%5D=facets.type%255B%255D%3DSmartphones&page=1';
     this.checkpointFile = path.join(__dirname, 'checkpoint.json');
     this.outputFile = path.join(__dirname, 'flipkart_raw.json');
     this.productLinks = [];
@@ -677,7 +677,7 @@ class FlipkartCrawler extends BaseCrawler {
         category: categories,
         tags: tags,
         image: images.main,
-        // images: images.all
+        images: images.all
       };
     } catch (error) {
       this.logger.error(`Error extracting product data: ${error.message}`);
@@ -892,21 +892,22 @@ class FlipkartCrawler extends BaseCrawler {
           }
         }
 
-        // const imageElements = $("img._0DkuPH");
+        // Use XPath to find all image elements with class _0DkuPH
+        const imageXPath = "//img[contains(@class, '_0DkuPH')]";
+        const imageElements = getAllElementsByXPath(imageXPath);
 
-        // imageElements.each((_, img) => {
-        //   const $img = $(img);
-        //   const srcset = $img.attr('srcset');
-        //   if (srcset) {
-        //     // Extract the first URL from srcset
-        //     const firstUrl = srcset.split(',')[0].trim().split(' ')[0];
-        //     allImages.push(firstUrl);
-        //   }
-        // });
+        imageElements.forEach((img) => {
+          const srcset = img.getAttribute('src');
+          if (srcset) {
+            // Extract the first URL from srcset
+            const firstUrl = srcset.split(',')[0].trim().split(' ')[0];
+            allImages.push(firstUrl);
+          }
+        });
 
         return {
           main: mainImage,
-          // all: allImages
+          all: allImages
         };
       }, PRODUCT_SELECTORS);
     } catch (error) {
@@ -1069,14 +1070,14 @@ if (require.main === module) {
     proxyConfig: {
       useProxy: false
     },
-    maxProducts: 200,
-    totalMaxProducts: 800,
+    maxProducts: 3000,
+    totalMaxProducts: 5000,
     relatedProductsConfig: {
-      maxPerProduct: 5,
+      maxPerProduct: 6,
     },
-    maxPages: 60,
+    maxPages: 42,
     delayBetweenPages: 3000,
-    maxConcurrent: 10,
+    maxConcurrent: 6,
     maxRetries: 3,
   });
   
