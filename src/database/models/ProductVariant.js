@@ -2,27 +2,11 @@ const { DataTypes, Model, Op } = require('sequelize');
 const { sequelize } = require('../../config/sequelize');
 
 class ProductVariant extends Model {
-  /**
-   * Helper method for defining associations.
-   */
-  static associate(models) {
-    // A variant belongs to a product
-    ProductVariant.belongsTo(models.Product, {
-      foreignKey: 'product_id',
-      as: 'product'
-    });
-
-    // A variant has many listings
-    ProductVariant.hasMany(models.Listing, {
-      foreignKey: 'variant_id',
-      as: 'listings'
-    });
-  }
 
   /**
    * Find or create variant by product and attributes
    */
-  static async findOrCreateByAttributes(productId, attributes, supabase) {
+  static async findOrCreateByAttributes(productId, attributes, supabase, images = null) {
     const name = await this.generateVariantName(productId, attributes, supabase);
 
     // Try to find existing variant
@@ -39,15 +23,23 @@ class ProductVariant extends Model {
       return { variant: existingVariant, created: false };
     }
 
+    // Prepare variant data for insertion
+    const variantData = {
+      product_id: productId,
+      name: name,
+      attributes: attributes,
+      is_active: true
+    };
+
+    // Include images if provided
+    if (images && images.length > 0) {
+      variantData.images = images;
+    }
+
     // Create new variant if not found
     const { data: newVariants, error: insertError } = await supabase
       .from('product_variants')
-      .insert([{
-        product_id: productId,
-        name: name,
-        attributes: attributes,
-        is_active: true
-      }])
+      .insert([variantData])
       .select();
 
     if (insertError) throw insertError;
@@ -76,8 +68,8 @@ class ProductVariant extends Model {
     if (!product) return 'Unknown Product Variant';   
     let name = `${product.brands.name} ${product.original_model_name}`;
     
-    if (attributes.ram_gb) name += `, ${attributes.ram_gb}GB RAM`;
-    if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
+    if (attributes.ram_gb) name += `(${attributes.ram_gb}GB RAM`;
+    if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB)`;
     if (attributes.color) name += ` - ${attributes.color}`;
     return name;
   }
@@ -138,49 +130,76 @@ class ProductVariant extends Model {
 
       // Prepare images array from listing info
       const images = [];
-      if (listing_info.image_url) {
+      
+      // Add main image if available
+      if (listing_info.image) {
         images.push({
-          url: listing_info.image_url,
+          url: listing_info.image,
           type: 'main',
           source: productData.source_details?.source_name || 'unknown',
           scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
         });
       }
-
-      const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes, supabase);
       
-      // Update images if we have new image data
-      if (images.length > 0) {
-        const existingImages = variant.images || [];
-        const imageUrls = existingImages.map(img => img.url);
-        
-        // Add new images that don't already exist
-        const newImages = images.filter(img => !imageUrls.includes(img.url));
-        if (newImages.length > 0) {
-          const updatedImages = [...existingImages, ...newImages];
-          
-          // Equivalent to: await variant.update({ images: updatedImages });
-          const { error: updateError } = await supabase
-            .from('product_variants')
-            .update({ images: updatedImages })
-            .eq('id', variant.id);
-
-          if (updateError) throw updateError;
+      // Add other images if available
+      if (listing_info.images && Array.isArray(listing_info.images)) {
+        for (const imageUrl of listing_info.images) {
+          if (imageUrl && typeof imageUrl === 'string') {
+            images.push({
+              url: imageUrl,
+              type: 'other',
+              source: productData.source_details?.source_name || 'unknown',
+              scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
+            });
+          }
         }
       }
+
+      const { variant, created } = await ProductVariant.findOrCreateByAttributes(productId, attributes, supabase, images);
       
       cache.set(variantKey, variant.id);
       
-      if (created) {
-        stats.variants.created++;
-        if (isApple && (ram === null || ram === undefined)) {
-          // FIXED: Original code doesn't initialize this counter, just increments
-          stats.deduplication.apple_variants = (stats.deduplication.apple_variants || 0) + 1;
-        }
-      } else {
-        stats.deduplication.variant_match++;
-        stats.variants.existing++;
-      }
+             if (created) {
+         stats.variants.created++;
+         
+         // Increment variant_count in the product table when new variant is created
+         try {
+           if (supabase) {
+             // Supabase approach - first get current count, then increment
+             const { data: currentProduct, error: fetchError } = await supabase
+               .from('products')
+               .select('variant_count')
+               .eq('id', productId)
+               .single();
+             
+             if (!fetchError && currentProduct) {
+               const { error: updateError } = await supabase
+                 .from('products')
+                 .update({ 
+                   variant_count: (currentProduct.variant_count || 0) + 1
+                 })
+                 .eq('id', productId);
+               
+               if (updateError) {
+                 console.error(`❌ Error updating product variant count: ${updateError.message}`);
+               }
+             }
+           } else {
+             // Sequelize approach - this will be handled by the calling service
+             console.log(`📈 New variant created for product ${productId} - variant count will be updated by service layer`);
+           }
+         } catch (error) {
+           console.error(`❌ Error updating product variant count: ${error.message}`);
+         }
+         
+         if (isApple && (ram === null || ram === undefined)) {
+           // FIXED: Original code doesn't initialize this counter, just increments
+           stats.deduplication.apple_variants = (stats.deduplication.apple_variants || 0) + 1;
+         }
+       } else {
+         stats.deduplication.variant_match++;
+         stats.variants.existing++;
+       }
       
       return variant.id;
     } catch (error) {
@@ -190,73 +209,5 @@ class ProductVariant extends Model {
     }
   }
 }
-
-ProductVariant.init({
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
-  },
-  product_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'products',
-      key: 'id'
-    }
-  },
-  sku: {
-    type: DataTypes.STRING(100),
-    allowNull: true,
-    unique: true
-  },
-  name: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [1, 255]
-    }
-  },
-  attributes: {
-    type: DataTypes.JSONB,
-    allowNull: false,
-    defaultValue: {}
-  },
-  images: {
-    type: DataTypes.JSONB,
-    allowNull: true
-  },
-  is_active: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-    allowNull: false
-  }
-}, {
-  sequelize,
-  modelName: 'ProductVariant',
-  tableName: 'product_variants',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    {
-      name: 'product_variants_product_id_idx',
-      fields: ['product_id']
-    },
-    {
-      name: 'product_variants_sku_idx',
-      fields: ['sku']
-    },
-    {
-      name: 'product_variants_active_idx',
-      fields: ['is_active']
-    },
-    {
-      name: 'product_variants_attributes_idx',
-      fields: ['attributes'],
-      using: 'gin'
-    }
-  ]
-});
 
 module.exports = ProductVariant; 

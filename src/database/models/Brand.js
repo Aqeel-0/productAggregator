@@ -3,19 +3,6 @@ const { sequelize } = require('../../config/sequelize');
 
 class Brand extends Model {
   /**
-   * Helper method for defining associations.
-   * This method is not a part of Sequelize lifecycle.
-   * The `models/index` file will call this method automatically.
-   */
-  static associate(models) {
-    // A brand has many products
-    Brand.hasMany(models.Product, {
-      foreignKey: 'brand_id',
-      as: 'products'
-    });
-  }
-
-  /**
    * Create a URL-friendly slug from the brand name
    */
   static generateSlug(name) {

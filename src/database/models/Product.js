@@ -2,33 +2,10 @@ const { DataTypes, Model, Op } = require('sequelize');
 const { sequelize } = require('../../config/sequelize');
 
 class Product extends Model {
-  /**
-   * Helper method for defining associations.
-   */
-  static associate(models) {
-    // A product belongs to a brand
-    Product.belongsTo(models.Brand, {
-      foreignKey: 'brand_id',
-      as: 'brand'
-    });
-
-    // A product belongs to a category
-    Product.belongsTo(models.Category, {
-      foreignKey: 'category_id',
-      as: 'category'
-    });
-
-    // A product has many variants
-    Product.hasMany(models.ProductVariant, {
-      foreignKey: 'product_id',
-      as: 'variants'
-    });
-  }
 
   /**
    * Create a URL-friendly slug from the product name
    */
-  // major issue, needs fixing.
   static generateSlug(name) {
     return name
     .toLowerCase()
@@ -52,7 +29,7 @@ class Product extends Model {
   /**
    * Find or create product by name, brand, and category
    */
-  static async findOrCreateByDetails(name, original_model_name, brandId, categoryId, supabase) {
+  static async findOrCreateByDetails(name, original_model_name, store_name, brandId, categoryId, supabase) {
     const slug = this.generateSlug(name);
 
     // First try to find by slug (most reliable for variants)
@@ -107,10 +84,11 @@ class Product extends Model {
       .from('products')
       .insert([{
         original_model_name: original_model_name,
-        model_name: name.trim(), // Already normalized to lowercase
+        model_name: name.trim(),
         slug: slug,
         brand_id: brandId,
         category_id: categoryId,
+        Store: store_name, 
         status: 'active'
       }])
       .select();
@@ -136,9 +114,6 @@ class Product extends Model {
     const key_specifications = productData.key_specifications || {};
 
     if (!model_name) return null;
-
-    // Helper functions (exactly the same)
-    const hasNetworkSuffix = name => name.endsWith(' 5g') || name.endsWith(' 4g');
 
     const removeNetworkSuffix = name => {
       if (name.endsWith(' 5g') || name.endsWith(' 4g')) return name.slice(0, -3);
@@ -228,7 +203,7 @@ class Product extends Model {
 
       // Phase 3: Create New Product
       if (!matchedProduct) {
-        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, model_name, brandId, categoryId, supabase);
+        const { product, created } = await Product.findOrCreateByDetails(normalizedModelName, model_name, productData.source_name, brandId, categoryId, supabase);
         
         // Update with additional specifications and model_number
         const { error: updateError } = await supabase
@@ -275,148 +250,5 @@ class Product extends Model {
     }
   }  
 }
-
-Product.init({
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
-  },
-  model_name: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [1, 255]
-    }
-  },
-  slug: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-    unique: true,
-    validate: {
-      notEmpty: true,
-      len: [1, 255]
-    }
-  },
-  brand_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'brands',
-      key: 'id'
-    }
-  },
-  category_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'categories',
-      key: 'id'
-    }
-  },
-  specifications: {
-    type: DataTypes.JSONB,
-    allowNull: true
-  },
-  launch_date: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  status: {
-    type: DataTypes.ENUM('active', 'discontinued', 'coming_soon'),
-    allowNull: false,
-    defaultValue: 'active'
-  },
-  model_number: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  variant_count: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false,
-    validate: {
-      min: 0
-    }
-  },
-  min_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  max_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  avg_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  rating: {
-    type: DataTypes.DECIMAL(3, 2),
-    allowNull: true,
-    validate: {
-      min: 0,
-      max: 5
-    }
-  },
-  is_featured: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    allowNull: false
-  }
-}, {
-  sequelize,
-  modelName: 'Product',
-  tableName: 'products',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    {
-      name: 'products_brand_id_idx',
-      fields: ['brand_id']
-    },
-    {
-      name: 'products_category_id_idx',
-      fields: ['category_id']
-    },
-    {
-      name: 'products_slug_idx',
-      fields: ['slug']
-    },
-    {
-      name: 'products_status_idx',
-      fields: ['status']
-    },
-    {
-      name: 'products_featured_idx',
-      fields: ['is_featured']
-    },
-    {
-      name: 'products_price_range_idx',
-      fields: ['min_price', 'max_price']
-    },
-    {
-      name: 'products_rating_idx',
-      fields: ['rating']
-    }
-  ],
-  hooks: {
-    beforeValidate: (product) => {
-      if (product.name && !product.slug) {
-        product.slug = Product.generateSlug(product.name);
-      }
-    }
-  }
-});
 
 module.exports = Product; 

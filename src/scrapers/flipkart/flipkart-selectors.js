@@ -61,7 +61,7 @@ const PRODUCT_SELECTORS = {
   MAIN_IMAGE: [
     "(//img[@loading='eager' and @fetchpriority='high'])[1]"
   ],
-  
+  OTHER_IMAGES: ['._0DkuPH'],
   // Category/Breadcrumb - Enhanced patterns for proper category extraction
   CATEGORY_BREADCRUMB: [
     '//nav//a[text() != ""]',

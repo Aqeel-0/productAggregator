@@ -70,7 +70,8 @@ class FlipkartNormalizer {
         price: this.normalizePrice(product.price),
         availability: product.availability,
         rating: this.normalizeRating(product.rating),
-        image_url: product.image || null
+        image: this.processFlipkartImage(product.image),
+        images: this.processFlipkartImages(product.images, product.image)
       },
       
       key_specifications: {
@@ -518,6 +519,45 @@ class FlipkartNormalizer {
     }
     
     return Object.keys(design).length > 0 ? design : null;
+  }
+
+  processFlipkartImage(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    
+    // Change size from 128/128, 416/416, etc. to 845/845
+    const processedUrl = imageUrl.replace(/\/\d+\/\d+\//, '/845/845/');
+    
+    return processedUrl;
+  }
+
+  processFlipkartImages(images, mainImage = null) {
+    if (!Array.isArray(images) || images.length === 0) return [];
+    
+    const processedImages = [];
+    const seenUrls = new Set();
+    
+    // Add main image to seen URLs if provided
+    if (mainImage) {
+      const processedMainImage = this.processFlipkartImage(mainImage);
+      if (processedMainImage) {
+        seenUrls.add(processedMainImage);
+      }
+    }
+    
+    for (const imageUrl of images) {
+      if (!imageUrl || typeof imageUrl !== 'string') continue;
+      
+      // Change size from 128/128 to 845/845
+      const processedUrl = imageUrl.replace(/\/\d+\/\d+\//, '/845/845/');
+      
+      // Only add if we haven't seen this URL before (including main image)
+      if (!seenUrls.has(processedUrl)) {
+        seenUrls.add(processedUrl);
+        processedImages.push(processedUrl);
+      }
+    }
+    
+    return processedImages;
   }
 
   /**

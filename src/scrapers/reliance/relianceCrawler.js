@@ -34,7 +34,7 @@ class RelianceCrawler extends BaseCrawler {
     super({ ...defaultConfig, ...config });
 
     // Placeholder category URL
-    this.categoryUrl = config.categoryUrl || 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true&page_type=number&page_size=12';
+    this.categoryUrl = config.categoryUrl || 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true';
     this.checkpointFile = config.checkpointFile || path.join(__dirname, 'checkpoint.json');
     this.outputFile = config.outputFile || path.join(__dirname, 'reliance_raw.json');
     this.productLinks = [];
@@ -243,7 +243,7 @@ class RelianceCrawler extends BaseCrawler {
   }
 
   // Waits for first product href to change from beforeHref
-  async  waitForPageAdvance(page, targetNo, beforeHref, timeoutMs = 5000) {
+  async waitForPageAdvance(page, targetNo, beforeHref, timeoutMs = 5000) {
 
     const gridWait = page.waitForFunction(
       (before) => {
@@ -406,31 +406,6 @@ class RelianceCrawler extends BaseCrawler {
     this.logger.info(
       `✅ Complete: ${this.productLinks.length} total (${newLinksAdded} new) across ${this.checkpoint.pagesScraped.length} pages`
     );
-  }
-
-  addBaseUrl(url) {
-    if (!url) return url;
-    if (url.startsWith('/')) {
-      return 'https://www.reliancedigital.in' + url;
-    }
-    return url;
-  }
-
-  buildCategoryPageUrl(baseUrl, pageNum) {
-    try {
-      const u = new URL(baseUrl);
-      if (u.searchParams.has('page_no')) {
-        u.searchParams.set('page_no', String(pageNum));
-      } else if (u.searchParams.has('page')) {
-        u.searchParams.set('page', String(pageNum));
-      } else {
-        // Default to page_no since Reliance listings use it
-        u.searchParams.set('page_no', String(pageNum));
-      }
-      return u.toString();
-    } catch (_) {
-      return baseUrl;
-    }
   }
 
   async scrapeProductDetails() {
@@ -629,26 +604,22 @@ class RelianceCrawler extends BaseCrawler {
    async _extractImage($) { 
     try {
       let mainImage = null;
-      let altImages = [];
-      for (const selector of PRODUCT_SELECTORS.IMAGE) {
-        const element = $(selector).first();
-        if (element.length > 0) {
-          mainImage = element.attr('src') || element.attr('data-src');
-          if (mainImage) {
-            break;
-          }
-        }
-      }
+      let allImages = [];
+      let first = true;
       for (const selector of PRODUCT_SELECTORS.ALT_IMAGE) {
         const element = $(selector);
         element.each((_, el) => {
           const src = $(el).attr('src') || $(el).attr('data-src');
           if (src) {
-            altImages.push(src);
+            if (first) {
+              mainImage = src;
+              first = false;
+            }
+            else allImages.push(src);
           }
         });
       }
-      return { mainImage, altImages };
+      return { mainImage, allImages };
     } catch (error) {
       this.logger.error(`Error extracting image: ${error.message}`);
       return null;
@@ -699,7 +670,7 @@ class RelianceCrawler extends BaseCrawler {
       maxPages: 60,
       maxConcurrent: 1, // Reduced to prevent blocking
       maxRetries: 1,
-      maxProducts: 700,
+      maxProducts: 800,
     });
   crawler
     .start()

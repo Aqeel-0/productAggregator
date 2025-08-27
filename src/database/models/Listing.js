@@ -1,17 +1,4 @@
-const { DataTypes, Model, Op } = require('sequelize');
-const { sequelize } = require('../../config/sequelize');
-
-class Listing extends Model {
-  /**
-   * Helper method for defining associations.
-   */
-  static associate(models) {
-    // A listing belongs to a product variant
-    Listing.belongsTo(models.ProductVariant, {
-      foreignKey: 'variant_id',
-      as: 'variant'
-    });
-  }
+class Listing {
 
   getFormattedPrice() {
     const currencySymbols = {
@@ -41,77 +28,77 @@ class Listing extends Model {
     }
   }
   /**
-   * Create or update listing
+   * Create or update listing with optimized database calls
    */
   static async createOrUpdate(variantId, listingData, supabase) {
-    const { data: existingListing, error: findError } = await supabase
+    // Use upsert with URL as the unique identifier for better performance
+    const upsertData = {
+      ...listingData,
+      variant_id: variantId,
+      scraped_at: new Date().toISOString(),
+      last_seen_at: new Date().toISOString()
+    };
+
+    // For upsert, we need to specify the conflict resolution columns
+    const { data: result, error: upsertError } = await supabase
       .from('listings')
-      .select('*')
-      .eq('variant_id', variantId)
-      .eq('store_name', listingData.store_name)
-      .eq('url', listingData.url)
-      .maybeSingle();
-
-    if (findError) throw findError;
-
-    if (!existingListing) {
-      // Create new listing - equivalent to the 'defaults' in findOrCreate
-      const { data: newListings, error: insertError } = await supabase
-        .from('listings')
-        .insert([{
-          ...listingData,
-          variant_id: variantId,
-          scraped_at: new Date().toISOString(),
-          last_seen_at: new Date().toISOString()
-        }])
-        .select();
-
-      if (insertError) throw insertError;
-      if (!newListings || newListings.length === 0) throw new Error('Listing creation failed');
-
-      return { listing: newListings[0], created: true };
-    }
-
-    // Update existing listing - exactly matching original logic
-    const priceChanged = parseFloat(existingListing.price) !== parseFloat(listingData.price);
-    
-    // Add to price history if price changed
-    let updatedListingData = { ...listingData };
-    if (priceChanged) {
-      const priceHistory = existingListing.price_history || [];
-      priceHistory.push({
-        price: existingListing.price,
-        date: existingListing.updated_at
-      });
-      
-      // Keep only last 30 price points
-      if (priceHistory.length > 30) {
-        priceHistory.shift();
-      }
-      
-      updatedListingData.price_history = priceHistory;
-    }
-
-    // Equivalent to: await listing.update({...listingData, scraped_at: new Date(), last_seen_at: new Date()})
-    const { data: updatedListings, error: updateError } = await supabase
-      .from('listings')
-      .update({
-        ...updatedListingData,
-        scraped_at: new Date().toISOString(),
-        last_seen_at: new Date().toISOString()
+      .upsert([upsertData], {
+        onConflict: 'url',
+        ignoreDuplicates: false
       })
-      .eq('id', existingListing.id)
-      .select();
+      .select('*')
+      .single();
 
-    if (updateError) throw updateError;
+    if (upsertError) throw upsertError;
+    if (!result) throw new Error('Listing upsert failed');
 
-    return { listing: updatedListings[0] || existingListing, created: false };
+    // Check if this was a new listing by looking for created_at vs updated_at
+    const wasCreated = result.created_at === result.updated_at;
+    
+    // If it's a new listing, increment the variant's listing_count
+    if (wasCreated) {
+      try {
+        await this.incrementVariantListingCount(variantId, supabase);
+      } catch (error) {
+        console.warn(`⚠️ Warning: Could not increment listing count for variant ${variantId}:`, error.message);
+        // Continue processing even if listing count increment fails
+      }
+    }
+
+    return { listing: result, created: wasCreated };
   }
 
   /**
-   * Enhanced listing creation with statistics
-   * Used by DatabaseInserter for optimized listing creation
+   * Increment listing_count for a product variant
    */
+  static async incrementVariantListingCount(variantId, supabase) {
+    try {
+      // First get the current listing_count
+      const { data: variant, error: fetchError } = await supabase
+        .from('product_variants')
+        .select('listing_count')
+        .eq('id', variantId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Then update with the incremented value
+      const currentCount = variant?.listing_count || 0;
+      const { error: updateError } = await supabase
+        .from('product_variants')
+        .update({ 
+          listing_count: currentCount + 1
+        })
+        .eq('id', variantId);
+
+      if (updateError) {
+        console.warn(`⚠️ Warning: Could not increment listing_count for variant ${variantId}:`, updateError.message);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Warning: Error incrementing listing_count for variant ${variantId}:`, error.message);
+    }
+  }
+
   static async insertWithStats(productData, variantId, stats, supabase) {
     if (!variantId) return null;
 
@@ -140,7 +127,10 @@ class Listing extends Model {
         stats.listings.created++;
       } else {
         stats.listings.existing++;
-        console.log(`🔄 Updated listing: ${listingData.store_name} - ₹${listingData.price} (${listingData.stock_status})`);
+        // Only log price changes to reduce noise
+        if (listing.price !== listingData.price) {
+          console.log(`💰 Price update: ${listingData.store_name} - ₹${listing.price} → ₹${listingData.price}`);
+        }
       }
       
       return listing.id;
@@ -150,215 +140,45 @@ class Listing extends Model {
       return null;
     }
   }
-}
 
-Listing.init({
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
-  },
-  variant_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    references: {
-      model: 'product_variants',
-      key: 'id'
+  /**
+   * Update price history for an existing listing (called only when needed)
+   */
+  static async updatePriceHistory(listingId, oldPrice, newPrice, supabase) {
+    try {
+      // Get current price history
+      const { data: listing, error: fetchError } = await supabase
+        .from('listings')
+        .select('price_history')
+        .eq('id', listingId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const priceHistory = listing?.price_history || [];
+      
+      // Add old price to history
+      priceHistory.push({
+        price: oldPrice,
+        date: new Date().toISOString()
+      });
+      
+      // Keep only last 30 price points
+      if (priceHistory.length > 30) {
+        priceHistory.shift();
+      }
+      
+      // Update the listing with new price history
+      const { error: updateError } = await supabase
+        .from('listings')
+        .update({ price_history: priceHistory })
+        .eq('id', listingId);
+
+      if (updateError) throw updateError;
+    } catch (error) {
+      console.warn(`⚠️ Warning: Could not update price history for listing ${listingId}:`, error.message);
     }
-  },
-  store_name: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    validate: {
-      notEmpty: true,
-      len: [1, 100]
-    }
-  },
-  store_product_id: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  title: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
-  },
-  url: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: true,
-      isUrl: true
-    }
-  },
-  price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    validate: {
-      min: 0
-    }
-  },
-  original_price: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  discount_percentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  currency: {
-    type: DataTypes.STRING(3),
-    allowNull: false,
-    defaultValue: 'INR',
-    validate: {
-      isIn: [['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD']]
-    }
-  },
-  stock_status: {
-    type: DataTypes.ENUM('in_stock', 'out_of_stock', 'limited_stock', 'unknown'),
-    allowNull: false,
-    defaultValue: 'unknown'
-  },
-  stock_quantity: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    validate: {
-      min: 0
-    }
-  },
-  seller_name: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  seller_rating: {
-    type: DataTypes.DECIMAL(3, 2),
-    allowNull: true,
-    validate: {
-      min: 0,
-      max: 5
-    }
-  },
-  shipping_info: {
-    type: DataTypes.JSONB,
-    allowNull: true
-  },
-  rating: {
-    type: DataTypes.DECIMAL(3, 2),
-    allowNull: true,
-    validate: {
-      min: 0,
-      max: 5
-    }
-  },
-  review_count: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-    allowNull: false,
-    validate: {
-      min: 0
-    }
-  },
-  features: {
-    type: DataTypes.JSONB,
-    allowNull: true
-  },
-  scraped_at: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
-  is_active: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-    allowNull: false
-  },
-  is_sponsored: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    allowNull: false
-  },
-  affiliate_url: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  price_history: {
-    type: DataTypes.JSONB,
-    allowNull: true,
-    defaultValue: []
-  },
-  last_seen_at: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
   }
-}, {
-  sequelize,
-  modelName: 'Listing',
-  tableName: 'listings',
-  timestamps: true,
-  underscored: true,
-  indexes: [
-    {
-      name: 'listings_variant_id_idx',
-      fields: ['variant_id']
-    },
-    {
-      name: 'listings_store_name_idx',
-      fields: ['store_name']
-    },
-    {
-      name: 'listings_store_product_id_idx',
-      fields: ['store_product_id']
-    },
-    {
-      name: 'listings_price_idx',
-      fields: ['price']
-    },
-    {
-      name: 'listings_stock_status_idx',
-      fields: ['stock_status']
-    },
-    {
-      name: 'listings_active_idx',
-      fields: ['is_active']
-    },
-    {
-      name: 'listings_scraped_at_idx',
-      fields: ['scraped_at']
-    },
-    {
-      name: 'listings_last_seen_at_idx',
-      fields: ['last_seen_at']
-    },
-    {
-      name: 'listings_rating_idx',
-      fields: ['rating']
-    },
-    {
-      name: 'listings_discount_idx',
-      fields: ['discount_percentage']
-    },
-    {
-      name: 'listings_composite_idx',
-      fields: ['variant_id', 'store_name', 'is_active']
-    },
-    {
-      name: 'listings_price_range_idx',
-      fields: ['price', 'stock_status', 'is_active']
-    }
-  ],
-  hooks: {
-    // No automatic discount calculation - frontend will handle this
-  }
-});
+}
 
 module.exports = Listing; 

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const supabaseSingleton = require('./supabase');
 
-const { sequelize, Brand, Category, Product, ProductVariant, Listing } = require('../database/models');
+const {Brand, Category, Product, ProductVariant, Listing } = require('../database/models');
 
 class DatabaseInserter {
   constructor() {
@@ -191,32 +191,6 @@ class DatabaseInserter {
       return null;
     }
   }
-
-  /**
-   * Update product variant counts (removed price stats as they belong to listings)
-   */
-  async updateProductStats() {
-    try {
-      const products = await Product.findAll();
-      let updated = 0;
-
-      for (const product of products) {
-        const variantCount = await ProductVariant.count({
-          where: {
-            product_id: product.id,
-            is_active: true
-          }
-        });
-
-        await product.update({ variant_count: variantCount });
-        updated++;
-      }
-
-    } catch (error) {
-      console.error('❌ Error updating product statistics:', error.message);
-    }
-  }
-
   /**
    * Analyze cross-platform data and update stats
    */
@@ -436,7 +410,7 @@ class DatabaseInserter {
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
+      //{ file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
     ];
 
     console.log('🚀 Starting cross-platform database ingestion...\n');
@@ -464,11 +438,6 @@ class DatabaseInserter {
         // Continue with next file instead of stopping
       }
     }
-
-    // Update product statistics
-    console.log('\n📊 Updating product variant counts...');
-    await this.updateProductStats();
-
     // Print comprehensive final statistics
     this.printStats();
 
