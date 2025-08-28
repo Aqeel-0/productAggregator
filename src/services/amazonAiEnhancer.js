@@ -11,7 +11,7 @@ class AmazonAiEnhancer {
     // Initialize Gemini AI client
     this.genAI = new GoogleGenerativeAI('AIzaSyDiqCpBAzFWZFpe6Wg-M0zy2TLPRqFTkLk');
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    this.batchSize = 25; // Process 25 products per batch
+    this.batchSize = 50; // Process 50 products per batch
     this.stats = { totalProcessed: 0, successful: 0, failed: 0, apiCalls: 0 };
   }
 
@@ -124,23 +124,32 @@ class AmazonAiEnhancer {
         extractedDataArray = extractedDataArray.slice(0, batch.length);
       }
       
-      // Validate and merge with original products
+      // URL-based matching and merging
       const enhancedBatch = [];
-      for (let i = 0; i < batch.length; i++) {
-        const product = batch[i];
-        const extractedData = extractedDataArray[i] || {};
+      
+      for (const product of batch) {
+        // Find AI attributes that match this product's URL
+        const matchingAIData = extractedDataArray.find(aiData => aiData.url === product.url);
         
-        // Validate extracted data
-        const validatedData = this.validateExtractedData(extractedData);
-        
-        // Merge with original product
-        const enhancedProduct = this.mergeWithOriginalData(product, validatedData);
-        enhancedBatch.push(enhancedProduct);
-        
-        // Update stats
-        if (validatedData.model_name) {
-          this.stats.successful++;
+        if (matchingAIData) {
+          // Validate extracted data
+          const validatedData = this.validateExtractedData(matchingAIData);
+          
+          // Merge with original product
+          const enhancedProduct = this.mergeWithOriginalData(product, validatedData);
+          enhancedBatch.push(enhancedProduct);
+          
+          // Update stats
+          if (validatedData.brand_name && validatedData.model_name) {
+            this.stats.successful++;
+          } else {
+            this.stats.failed++;
+          }
         } else {
+          // No matching AI data found for this URL
+          console.log(`⚠️  No AI data found for URL: ${product.url?.substring(0, 50)}...`);
+          const enhancedProduct = this.mergeWithOriginalData(product, {});
+          enhancedBatch.push(enhancedProduct);
           this.stats.failed++;
         }
         this.stats.totalProcessed++;
@@ -173,6 +182,7 @@ class AmazonAiEnhancer {
     let prompt = `You are a product data analyst. Extract attributes from ${products.length} products and return a JSON ARRAY.
 
 IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects, one for each product.
+CRITICAL: Include the URL in each response object for accurate matching.
 
 `;
     
@@ -188,28 +198,36 @@ URL: "${url}"
     });
     
     prompt += `EXTRACTION RULES:
-- Extract model_name, color, ram, and storage for each product
-- For iPhones, always set ram to null
-- For storage, if it's 1TB, return 1024
-- If any field cannot be determined, use null
+- Extract brand_name, model_name, color, ram, and storage for each product
+- brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus")
+- model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G")
+- color: Extract the color variant (e.g., "Titanium Blue", "Mint Green", "Space Gray")
+- ram: Extract RAM in GB as integer (e.g., 6, 8, 12). For iPhones, always set to null
+- storage: Extract storage in GB as integer (e.g., 128, 256, 512). Convert 1TB to 1024
+- If any field cannot be determined from title/URL, use null
+- Be consistent with brand names (use "Apple" not "iPhone", "Samsung" not "Galaxy")
 
 RESPONSE FORMAT - MUST BE A JSON ARRAY:
 [
   {
-    "model_name": "Product 1 model name",
+    "url": "Product 1 URL exactly as provided",
+    "brand_name": "Product 1 brand",
+    "model_name": "Product 1 model without brand",
     "color": "Product 1 color",
     "ram": Product 1 RAM or null,
     "storage": Product 1 storage or null
   },
   {
-    "model_name": "Product 2 model name",
+    "url": "Product 2 URL exactly as provided",
+    "brand_name": "Product 2 brand",
+    "model_name": "Product 2 model without brand",
     "color": "Product 2 color",
     "ram": Product 2 RAM or null,
     "storage": Product 2 storage or null
   }
 ]
 
-CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. No explanations, no extra text. No markdown formatting.`;
+CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. Include the exact URL for each product. No explanations, no extra text. No markdown formatting.`;
     
     return prompt;
   }
@@ -218,7 +236,7 @@ CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. No
    * Validate extracted data
    */
   validateExtractedData(data) {
-    const required = ['model_name', 'color', 'ram', 'storage'];
+    const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage'];
     const validated = {};
     
     for (const field of required) {
