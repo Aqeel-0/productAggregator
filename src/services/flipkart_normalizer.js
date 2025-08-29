@@ -70,8 +70,8 @@ class FlipkartNormalizer {
         price: this.normalizePrice(product.price),
         availability: product.availability,
         rating: this.normalizeRating(product.rating),
-        image: this.processFlipkartImage(product.image),
-        images: this.processFlipkartImages(product.images, product.image)
+        image_url: this.processFlipkartImage(product.image),
+        image_urls: this.processFlipkartImages(product.images, product.image)
       },
       
       key_specifications: {

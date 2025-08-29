@@ -127,7 +127,7 @@ class AmazonNormalizer {
       },
 
       source_metadata: {
-        category_breadcrumb: product.categories || []
+        category_breadcrumb: this.getCategoryBreadcrumb(product)
       }
     };
   }
@@ -480,6 +480,36 @@ class AmazonNormalizer {
   }
 
   /**
+   * Get category breadcrumb with special handling for iPhone 16 models
+   */
+  getCategoryBreadcrumb(product) {
+    // Check if this is an iPhone 16 model
+    if (product.title && typeof product.title === 'string') {
+      const title = product.title.toLowerCase();
+      
+      // Check for various iPhone 16 naming patterns
+      if (title.includes('iphone 16') || 
+          title.includes('iphone16') || 
+          title.includes('iphone-16') ||
+          title.includes('iphone_16') ||
+          title.match(/iphone\s*16\s*(pro|max|plus|mini)?/i)) {
+        
+        console.log(`📱 Detected iPhone 16 model: "${product.title.substring(0, 60)}..." - Setting custom category structure`);
+        
+        return [
+          "Electronics",
+          "Mobiles & Accessories",
+          "Smartphones & Basic Mobiles",
+          "Smartphones"
+        ];
+      }
+    }
+    
+    // For other products, return original categories or default
+    return product.categories || [];
+  }
+
+  /**
    * Normalize products from file
    */
   async normalizeFromFile(filePath) {
@@ -548,13 +578,12 @@ async function main() {
     console.log(`🎯 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
 
     // Save results
-    const outputDir = path.join(__dirname, '../../normalized-output');
+    const outputDir = path.join(__dirname, '../../parsed_data');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const outputFilePath = path.join(outputDir, `amazon_normalized_${timestamp}.json`);
+    const outputFilePath = path.join(outputDir, 'amazon_normalized_data.json');
     
     console.log('\n💾 Saving normalized dataset...');
     fs.writeFileSync(outputFilePath, JSON.stringify(normalizedData, null, 2), 'utf8');

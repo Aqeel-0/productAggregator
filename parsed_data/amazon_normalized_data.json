@@ -174,6 +174,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -508,7 +509,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5500,
         "quick_charging": true
@@ -577,6 +580,7 @@
         "processor_cores": "1.8, 2.0 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -640,7 +644,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -701,7 +707,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -829,7 +837,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -961,6 +971,7 @@
         "processor_cores": "1.8, 2.0 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -1028,7 +1039,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5030
       },
@@ -1095,6 +1108,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -1229,7 +1243,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5030
       },
@@ -1291,7 +1307,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -1422,7 +1440,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5030
       },
@@ -1489,6 +1509,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -1623,6 +1644,7 @@
         "processor_cores": "1.8, 2.0 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -1691,7 +1713,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -1825,7 +1848,8 @@
         "processor_cores": "1.8, 2.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5160,
@@ -1894,7 +1918,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -2028,6 +2053,7 @@
         "processor_cores": "1.8, 2.0 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -2287,7 +2313,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -2546,6 +2573,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -2681,7 +2709,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -2812,7 +2841,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -2846,7 +2876,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 Ultra 5G",
+      "model_name": "Galaxy S24 Ultra 5G AI",
       "original_title": "Samsung Galaxy S24 Ultra 5G AI Smartphone with Galaxy AI (Titanium Gray, 12GB, 256GB Storage), Snapdragon 8 Gen 3, 200 MP Camera with ProVisual Engine and 5000mAh Battery",
       "model_number": "S928BZ"
     },
@@ -2880,7 +2910,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -3013,7 +3044,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -3078,6 +3110,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -3143,7 +3176,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -3211,7 +3245,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -3339,7 +3374,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -3374,7 +3410,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 Ultra 5G AI",
+      "model_name": "Galaxy S24 Ultra 5G",
       "original_title": "Samsung Galaxy S24 Ultra 5G AI Smartphone with Galaxy AI (Titanium Black, 12GB, 256GB Storage), Snapdragon 8 Gen 3, 200 MP Camera with ProVisual Engine and 5000mAh Battery",
       "model_number": "S928BZ"
     },
@@ -3408,7 +3444,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -3475,6 +3512,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -3661,7 +3699,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -3795,7 +3834,8 @@
         "processor_chipset": "A-Series"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -4121,7 +4161,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -4386,7 +4427,9 @@
         "operating_system": "Android 14",
         "processor_cores": "1.95, 2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -4512,7 +4555,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -4779,7 +4823,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.95 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -4812,7 +4858,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 FE 5G AI",
+      "model_name": "Galaxy S24 FE 5G",
       "original_title": "Samsung Galaxy S24 FE 5G AI Smartphone (Graphite, 8GB RAM, 128GB Storage)",
       "model_number": "SM-S721B"
     },
@@ -4846,7 +4892,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700,
@@ -5044,7 +5091,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -5179,7 +5227,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -5247,7 +5296,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -5313,7 +5363,8 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 7100
@@ -5375,7 +5426,9 @@
         "resolution": "1600 X 720 Pixels"
       },
       "performance": null,
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -5435,7 +5488,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -5570,6 +5624,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -5705,7 +5760,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500,
@@ -5735,7 +5791,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 FE 5G AI",
+      "model_name": "Galaxy S24 FE 5G",
       "original_title": "Samsung Galaxy S24 FE 5G AI Smartphone (Blue, 8GB RAM, 128GB Storage)",
       "model_number": "SM-S721B"
     },
@@ -5769,7 +5825,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700,
@@ -5964,7 +6021,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -6233,7 +6291,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5160,
@@ -6368,7 +6427,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -6570,7 +6630,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3600,
@@ -6701,7 +6762,9 @@
         "processor_chipset": "Others",
         "processor_cores": "1.95 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -6834,7 +6897,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -6903,6 +6967,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -6971,7 +7036,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700,
@@ -7039,7 +7105,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -7107,7 +7174,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -7241,7 +7309,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -7309,7 +7378,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -7510,6 +7580,7 @@
         "processor_cores": "1.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -7574,7 +7645,8 @@
       },
       "performance": null,
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -7699,7 +7771,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -7834,7 +7907,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -7900,6 +7974,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -7967,7 +8042,9 @@
         "processor_chipset": "Mediatek Dimensity 8300",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -8021,7 +8098,9 @@
       "performance": {
         "operating_system": "iOS"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -8034,7 +8113,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -8147,6 +8228,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -8212,6 +8294,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -8277,6 +8360,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -8342,6 +8426,7 @@
         "operating_system": "Android 15, OxygenOS 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -8410,7 +8495,8 @@
         "processor_cores": "4.32 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -8478,7 +8564,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -8545,7 +8632,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": null,
       "connectivity": {
@@ -8667,7 +8755,9 @@
         "processor_chipset": "V25",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -8727,6 +8817,7 @@
         "processor_cores": "1.2, 1.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -8924,7 +9015,10 @@
         "processor_chipset": "Others",
         "processor_cores": "1.95, 2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP",
+        "front_setup": "8mp front camera"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -8989,7 +9083,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -9186,6 +9281,7 @@
         "processor_chipset": "Others"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -9326,7 +9422,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -9372,6 +9470,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -9440,7 +9539,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -9508,7 +9608,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -9576,6 +9677,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -9644,6 +9746,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -9712,7 +9815,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -9774,7 +9878,9 @@
       "performance": {
         "operating_system": "iOS"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -9787,7 +9893,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -10018,7 +10126,9 @@
         "processor_chipset": "V25",
         "processor_cores": "2.39 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -10078,7 +10188,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -10147,6 +10258,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -10215,7 +10327,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -10285,7 +10398,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -10481,7 +10595,8 @@
         "processor_cores": "3.36 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -10551,7 +10666,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -10745,6 +10861,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -10808,6 +10925,7 @@
         "operating_system": "Android 14"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -10877,7 +10995,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -10945,7 +11064,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -11021,7 +11141,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -11067,6 +11189,7 @@
         "processor_cores": "1.95 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -11135,7 +11258,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -11335,7 +11459,8 @@
         "processor_cores": "1.95, 2.6, 2.9, 3.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -11465,6 +11590,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -11594,7 +11720,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -11670,7 +11797,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -11777,7 +11906,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -12042,6 +12173,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -12109,7 +12241,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -12242,6 +12376,7 @@
         "processor_cores": "1.8, 2.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -12376,7 +12511,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -12573,6 +12709,7 @@
         "processor_cores": "2.0, 2.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -12835,7 +12972,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -12899,7 +13037,9 @@
         "operating_system": "Funtouch OS 15 Based On Android 15",
         "processor_cores": "2.6 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "32MP"
+      },
       "battery": {
         "capacity_mah": 5700,
         "quick_charging": true
@@ -12965,7 +13105,8 @@
         "processor_cores": "4.32 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -13288,6 +13429,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -13412,7 +13554,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -13479,6 +13623,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -13613,7 +13758,9 @@
         "processor_chipset": "Others",
         "processor_cores": "1.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -13689,7 +13836,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -13735,7 +13884,8 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -13870,7 +14020,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.15E+3 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+2MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -13933,7 +14085,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -14066,7 +14220,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -14203,7 +14358,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -14271,6 +14427,7 @@
         "processor_cores": "2.63 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -14763,7 +14920,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "C71 5G Smartphone",
+      "model_name": "C71 5G",
       "original_title": "realme C71 5G Smartphone 6GB+128GB Blue, 6.745 inch Screen, 90Hz Eye Comfort Display, 6300mAh Battery, 18MP Cameras, Unisoc T7250 Chip, IP54",
       "model_number": "RMX5313"
     },
@@ -14795,6 +14952,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -14996,7 +15154,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -15254,7 +15414,8 @@
         "processor_cores": "1.8, 2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -15320,6 +15481,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -15354,8 +15516,8 @@
       "scraped_at_utc": "2025-08-22T18:55:33.449Z"
     },
     "product_identifiers": {
-      "brand": "CMF",
-      "model_name": "BY NOTHING Phone 1 5G",
+      "brand": "NOTHING",
+      "model_name": "Phone 1 5G",
       "original_title": "CMF BY NOTHING Phone 1 5G",
       "model_number": "A015"
     },
@@ -15388,7 +15550,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -15455,7 +15619,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -15649,7 +15814,10 @@
         "processor_chipset": "Mediatek Dimensity 8000",
         "processor_cores": "2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP + 2MP",
+        "front_setup": "16mp front camera"
+      },
       "battery": null,
       "connectivity": {
         "audio_jack_type": "3.5 mm",
@@ -15773,7 +15941,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -15847,7 +16017,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -15893,7 +16065,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -16090,7 +16263,8 @@
         "processor_cores": "2.2, 3.2, 3.35 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -16159,7 +16333,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -16295,7 +16470,8 @@
         "processor_cores": "2.75 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -16423,7 +16599,9 @@
         "processor_brand": "Others",
         "processor_chipset": "Others"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, NFC, USB, Wi-Fi",
@@ -16545,7 +16723,8 @@
         "processor_cores": "1.6, 1.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5200
@@ -16610,6 +16789,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -16796,6 +16976,7 @@
         "processor_chipset": "Others"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -16959,7 +17140,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 5G",
+      "model_name": "Galaxy S24 5G AI",
       "original_title": "Samsung Galaxy S24 5G AI Smartphone (Cobalt Violet, 8GB, 256GB Storage)",
       "model_number": "S921BZ"
     },
@@ -16993,7 +17174,8 @@
         "processor_cores": "3.2 GB"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -17063,7 +17245,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -17126,7 +17309,8 @@
         "operating_system": "Android 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5200
@@ -17193,7 +17377,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -17321,7 +17507,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -17386,7 +17573,9 @@
         "operating_system": "Android 14",
         "processor_cores": "1.95, 2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -17453,7 +17642,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -17522,6 +17712,7 @@
         "processor_cores": "1.95 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -17590,6 +17781,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -17789,7 +17981,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -17858,7 +18051,8 @@
         "processor_cores": "2.2, 3.2, 3.35 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -17993,6 +18187,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -18060,7 +18255,9 @@
         "operating_system": "Android 14",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -18187,7 +18384,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -18255,6 +18453,7 @@
         "processor_cores": "2.0, 2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -18323,7 +18522,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -18387,7 +18587,8 @@
         "processor_cores": "1800 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5200
@@ -18577,7 +18778,8 @@
         "processor_cores": "1.8, 2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -18711,6 +18913,7 @@
         "processor_cores": "1.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -18779,7 +18982,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -18980,7 +19184,8 @@
         "processor_cores": "2.15, 2.45, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4404
@@ -19236,7 +19441,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -19304,6 +19510,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -19555,7 +19762,8 @@
         "operating_system": "Android 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5200
@@ -19680,7 +19888,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -19876,7 +20085,9 @@
         "processor_chipset": "Snapdragon 7 Gen3",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+8MP+50MP"
+      },
       "battery": {
         "capacity_mah": 5200
       },
@@ -20008,7 +20219,9 @@
         "processor_chipset": "Others",
         "processor_cores": "3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+50MP+8MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -20142,7 +20355,8 @@
         "processor_cores": "3.2 GB"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -20219,7 +20433,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -20387,7 +20603,8 @@
         "processor_cores": "2.63 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500
@@ -20521,6 +20738,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -20653,7 +20871,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -20722,6 +20941,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -20789,6 +21009,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -21365,7 +21586,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -21430,7 +21652,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -21497,7 +21721,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -21566,6 +21791,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -21831,7 +22057,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -21965,6 +22192,7 @@
         "processor_cores": "2 GB"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -22096,7 +22324,8 @@
         "processor_cores": "3.25 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -22165,6 +22394,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -22233,7 +22463,8 @@
         "processor_cores": "3.35 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -22302,7 +22533,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5110
@@ -22433,7 +22665,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -22634,6 +22867,7 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -22836,7 +23070,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -22911,7 +23146,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -22957,7 +23194,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -23026,7 +23264,8 @@
         "processor_cores": "3.35E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -23159,7 +23398,9 @@
         "processor_brand": "Others",
         "processor_chipset": "Others"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -23358,7 +23599,9 @@
         "operating_system": "Android 14",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -23425,6 +23668,7 @@
         "processor_cores": "3.8 MHz"
       },
       "camera": {
+        "rear_setup": "Triple Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -23494,6 +23738,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -23562,7 +23807,8 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -23629,7 +23875,10 @@
         "processor_brand": "MediaTek",
         "processor_chipset": "MediaTek Kompanio 800T"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP",
+        "front_setup": "8mp front camera"
+      },
       "battery": {
         "capacity_mah": 5160
       },
@@ -23696,7 +23945,8 @@
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -23837,7 +24087,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -24014,7 +24266,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200,
         "quick_charging": true
@@ -24082,7 +24336,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -24208,6 +24463,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -24343,7 +24599,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -24538,6 +24795,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -24861,7 +25119,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2500 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200,
         "quick_charging": true
@@ -25062,7 +25322,8 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -25131,7 +25392,8 @@
         "processor_cores": "3.35 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -25198,7 +25460,8 @@
         "processor_cores": "1.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -25267,7 +25530,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -25402,6 +25666,7 @@
         "processor_cores": "3.53, 4.32 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -25478,7 +25743,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -25524,7 +25791,8 @@
         "processor_cores": "2, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -25717,7 +25985,8 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4404
@@ -25853,6 +26122,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -25922,7 +26192,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -25991,7 +26262,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -26060,7 +26332,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -26195,7 +26468,8 @@
         "processor_cores": "1.6, 2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -26389,7 +26663,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2500 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200
       },
@@ -26523,7 +26799,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -26648,6 +26925,7 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -26717,6 +26995,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -26898,7 +27177,8 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -26973,7 +27253,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -27082,7 +27364,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -27150,7 +27433,8 @@
         "processor_cores": "4.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -27273,6 +27557,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -27469,7 +27754,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -27538,7 +27824,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -27603,6 +27890,7 @@
         "operating_system": "Android 14"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -27672,7 +27960,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -27748,7 +28037,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -27849,7 +28140,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -27924,7 +28216,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -27977,7 +28271,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -28030,7 +28326,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -28076,7 +28374,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -28143,6 +28442,7 @@
         "operating_system": "Android 14.0 Go"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -28218,7 +28518,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -28395,7 +28697,8 @@
         "processor_cores": "2.2, 3.2, 3.35 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -28595,7 +28898,8 @@
         "processor_chipset": "A-Series Dual-Core A4-3420"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -28791,6 +29095,7 @@
         "operating_system": "Android 14.0 Go"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -28859,7 +29164,8 @@
         "processor_cores": "1.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -29052,7 +29358,8 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -29121,7 +29428,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -29303,7 +29611,10 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP + 50MP",
+        "front_setup": "50mp front camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -29370,7 +29681,8 @@
         "processor_cores": "1.92, 2.6, 3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -29437,7 +29749,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -29567,7 +29881,9 @@
         "operating_system": "Android 14",
         "processor_cores": "2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, USB, Wi-Fi",
@@ -29628,7 +29944,9 @@
         "processor_chipset": "Mediatek Dimensity 1100",
         "processor_cores": "2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -29694,6 +30012,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -29763,6 +30082,7 @@
         "processor_cores": "2.0, 2.5 GHz"
       },
       "camera": {
+        "rear_setup": "50MP+2MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -29892,6 +30212,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -30340,7 +30661,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -30386,7 +30709,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -30426,7 +30750,7 @@
     },
     "variant_attributes": {
       "color": "Golden Mist",
-      "ram": 4,
+      "ram": 8,
       "availability": "In stock",
       "storage": 128
     },
@@ -30451,6 +30775,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -30520,7 +30845,8 @@
         "processor_cores": "2.99 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -30656,7 +30982,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -30724,7 +31051,9 @@
         "processor_chipset": "Others",
         "processor_cores": "3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+50MP+8MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -30791,6 +31120,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -30934,7 +31264,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -31100,7 +31432,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500
@@ -31169,7 +31502,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -31244,7 +31578,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -31288,7 +31624,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -31481,6 +31818,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -31549,6 +31887,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -31619,6 +31958,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -31816,7 +32156,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -31884,7 +32225,9 @@
         "processor_chipset": "Core i7",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -32016,6 +32359,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -32082,6 +32426,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -32157,7 +32502,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -32203,7 +32550,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -32271,7 +32619,10 @@
         "processor_chipset": "Others",
         "processor_cores": "7025 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP",
+        "front_setup": "16mp front camera"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -32338,7 +32689,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -32474,7 +32826,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -32541,7 +32894,8 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -32609,6 +32963,7 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -32805,7 +33160,8 @@
         "processor_cores": "2.99 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -33307,7 +33663,8 @@
         "processor_cores": "1.8, 2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -33440,7 +33797,8 @@
         "processor_cores": "2.0, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -33509,6 +33867,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -33578,7 +33937,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -33645,6 +34005,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -33713,7 +34074,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -33781,7 +34144,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -33849,7 +34213,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -34048,7 +34413,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -34091,6 +34458,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -34226,7 +34594,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -34355,6 +34724,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -34424,7 +34794,8 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -34818,7 +35189,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -34887,6 +35260,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35021,7 +35395,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -35091,6 +35466,7 @@
         "processor_cores": "3.53, 4.32 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35158,6 +35534,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35226,6 +35603,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35420,6 +35798,7 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35488,6 +35867,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35627,7 +36007,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -35737,6 +36119,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -35864,7 +36247,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -35931,6 +36316,7 @@
         "processor_chipset": "Others"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -36179,7 +36565,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -36438,7 +36825,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "64MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -36501,7 +36890,9 @@
         "operating_system": "Android 14",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -36568,7 +36959,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -36635,7 +37027,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "64MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -36697,7 +37091,9 @@
         "operating_system": "Launched with Android 15, ensuring 7 years of OS, security, and Feature Drop updates for lasting performance and future-ready use.",
         "processor_cores": "2.9 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP+13MP"
+      },
       "battery": {
         "capacity_mah": 5100
       },
@@ -36825,6 +37221,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -36900,7 +37297,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -36953,7 +37352,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -36999,7 +37400,8 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -37261,7 +37663,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -37330,7 +37733,8 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -37399,7 +37803,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -37467,7 +37872,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.8, 2.0 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 4800
       },
@@ -37542,7 +37949,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -37587,6 +37996,7 @@
         "processor_chipset": "6X86"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -37716,7 +38126,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5110
@@ -37781,7 +38192,9 @@
         "processor_chipset": "Others",
         "processor_cores": "1.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "37MP"
+      },
       "battery": {
         "capacity_mah": 6300
       },
@@ -37842,7 +38255,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -37909,7 +38323,8 @@
         "processor_cores": "1.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -37978,7 +38393,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -38043,7 +38459,9 @@
         "processor_chipset": "Others",
         "processor_cores": "1.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "37MP"
+      },
       "battery": {
         "capacity_mah": 6300
       },
@@ -38107,7 +38525,10 @@
         "processor_chipset": "Mediatek Dimensity 8000",
         "processor_cores": "2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP + 2MP",
+        "front_setup": "16mp front camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "[INSUFFICIENT DATA]"
@@ -38177,7 +38598,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -38230,7 +38653,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -38275,7 +38700,8 @@
         "processor_chipset": "6X86"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "quick_charging": true
@@ -38341,7 +38767,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -38471,7 +38898,8 @@
         "operating_system": "Android 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -38538,7 +38966,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -38663,7 +39092,8 @@
         "operating_system": "Android 12"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -38731,7 +39161,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -38865,6 +39296,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -38934,7 +39366,8 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5003
@@ -39003,7 +39436,8 @@
         "processor_cores": "2.99 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -39073,7 +39507,8 @@
         "processor_cores": "2.0, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -39142,7 +39577,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -39210,7 +39646,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.8 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -39277,7 +39715,9 @@
         "processor_chipset": "Snapdragon 7 Gen3",
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200
       },
@@ -39344,7 +39784,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -39607,6 +40048,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -39867,7 +40309,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -39961,7 +40404,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 5G AI",
+      "model_name": "Galaxy S24 5G AI Smartphone",
       "original_title": "Samsung Galaxy S24 5G AI Smartphone (Onyx Black, 8GB, 128GB Storage)",
       "model_number": "S921BZ"
     },
@@ -39995,7 +40438,8 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -40071,7 +40515,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -40114,6 +40560,7 @@
         "operating_system": "Android 14.0 Go"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -40313,6 +40760,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -40382,6 +40830,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -40451,7 +40900,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -40520,7 +40970,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -40556,7 +41007,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "P3x 5G",
+      "model_name": "P3x 5G Smartphone",
       "original_title": "realme P3x 5G Smartphone 8+128GB Lunar Silver,6.72-inch Screen,120Hz Display,6000mAh Battery,45W SuperVOOC, 50MP Camera, MediaTek Dimensity 6400 Processor, IP64",
       "model_number": "RMX3944"
     },
@@ -40590,6 +41041,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -40712,7 +41164,9 @@
         "processor_chipset": "Mediatek Dimensity 8000",
         "processor_cores": "5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, USB, Wi-Fi",
@@ -40909,6 +41363,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -40977,7 +41432,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "64MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -41173,7 +41630,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, Wi-Fi",
@@ -41205,7 +41664,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "P3x 5G",
+      "model_name": "P3x 5G Smartphone",
       "original_title": "realme P3x 5G Smartphone 6+128GB Midnight Blue,6.72-inch Screen,120Hz Display,6000mAh Battery,45W SuperVOOC, 50MP Camera, MediaTek Dimensity 6400 Processor, IP64",
       "model_number": "RMX3944"
     },
@@ -41239,6 +41698,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -41305,7 +41765,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -41339,7 +41800,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 5G AI",
+      "model_name": "Galaxy S24 5G AI Smartphone",
       "original_title": "Samsung Galaxy S24 5G AI Smartphone (Marble Gray, 8GB, 256GB Storage)",
       "model_number": "E1"
     },
@@ -41373,7 +41834,8 @@
         "processor_cores": "5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3900,
@@ -41507,7 +41969,9 @@
         "processor_chipset": "Snapdragon 7 Gen3",
         "processor_cores": "2500 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200
       },
@@ -41581,7 +42045,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -41694,7 +42160,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -41880,7 +42347,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -41978,7 +42446,7 @@
     },
     "product_identifiers": {
       "brand": "Vivo",
-      "model_name": "T3 Lite 5G",
+      "model_name": "T3 Lite 5G Smartphone",
       "original_title": "Vivo T3 Lite 5G Smartphone (Vibrant Green, 6GB Ram 128GB Storage)",
       "model_number": null
     },
@@ -42077,7 +42545,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -42146,6 +42615,7 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -42212,7 +42682,8 @@
         "processor_cores": "2, 2.8, 3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -42351,6 +42822,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -42793,7 +43265,10 @@
         "resolution": "2400 x 1080 pixels"
       },
       "performance": null,
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP + 2MP",
+        "front_setup": "16mp front camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "5G, 4G, 3G, 2G, GSM, WCDMA, LTE, Wi-Fi, GPS",
@@ -42932,7 +43407,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -42985,7 +43462,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -43031,7 +43510,8 @@
         "processor_cores": "3.36E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -43098,7 +43578,9 @@
         "processor_chipset": "Others",
         "processor_cores": "3.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 4500
       },
@@ -43166,7 +43648,8 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -43297,6 +43780,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -43364,7 +43848,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -43500,7 +43985,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -43569,6 +44055,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -43638,6 +44125,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -43762,7 +44250,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 6000
       },
@@ -43888,7 +44378,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 4500
       },
@@ -43956,7 +44448,8 @@
         "processor_cores": "1.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500
@@ -44025,6 +44518,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -44351,7 +44845,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -44395,7 +44891,9 @@
         "processor_brand": "Others",
         "processor_chipset": "Others"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5500,
         "quick_charging": true
@@ -44463,6 +44961,7 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -44668,7 +45167,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -44735,7 +45235,8 @@
         "processor_chipset": "MediaTek Helio"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -44805,6 +45306,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -44934,6 +45436,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -45000,7 +45503,8 @@
         "processor_cores": "2.9 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -45065,7 +45569,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3855
@@ -45195,7 +45700,9 @@
         "processor_brand": "Mediatek",
         "processor_chipset": "Mediatek Dimensity 1100"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -45261,6 +45768,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "80MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -45328,6 +45836,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -45404,7 +45913,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -45449,7 +45960,9 @@
         "processor_chipset": "Mediatek Dimensity 8300",
         "processor_cores": "0.35 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+8MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -45582,7 +46095,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -45658,7 +46172,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -45698,7 +46214,9 @@
         "resolution": "1440 x 3040"
       },
       "performance": null,
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP+8MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -45757,7 +46275,8 @@
         "operating_system": "Android 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -45824,6 +46343,7 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -45958,6 +46478,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -46026,7 +46547,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -46093,6 +46616,7 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -46288,7 +46812,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "37MP"
+      },
       "battery": {
         "capacity_mah": 6300
       },
@@ -46603,7 +47129,9 @@
         "processor_brand": "Others",
         "processor_chipset": "Others"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -46668,7 +47196,8 @@
         "processor_cores": "1.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3000
@@ -46795,6 +47324,7 @@
         "operating_system": "Android 14"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -46862,6 +47392,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -46930,7 +47461,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -47054,7 +47586,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -47310,7 +47843,8 @@
         "processor_cores": "2.0, 2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5030
@@ -47433,7 +47967,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -47499,7 +48035,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -47567,6 +48104,7 @@
         "processor_cores": "2, 2.8, 3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -47635,7 +48173,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -47698,7 +48237,9 @@
         "resolution": "1024x600"
       },
       "performance": null,
-      "camera": null,
+      "camera": {
+        "rear_setup": "2MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -47758,6 +48299,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -47826,7 +48368,8 @@
         "processor_cores": "1.92, 2.6, 3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -48086,7 +48629,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -48154,6 +48698,7 @@
         "processor_cores": "2.63 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -48286,7 +48831,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -48421,6 +48967,7 @@
         "processor_cores": "3.35 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -48553,6 +49100,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -48622,7 +49170,8 @@
         "processor_cores": "1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -48759,6 +49308,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -48827,7 +49377,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2500 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 6200
       },
@@ -49130,6 +49682,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -49259,7 +49812,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "37MP"
+      },
       "battery": {
         "capacity_mah": 6300
       },
@@ -49447,6 +50002,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -49514,6 +50070,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -49582,7 +50139,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -49651,7 +50209,9 @@
         "processor_chipset": "Mediatek Dimensity 1100",
         "processor_cores": "2.0, 2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -49716,6 +50276,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -49786,7 +50347,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -49853,6 +50415,7 @@
         "processor_chipset": "Mediatek Dimensity 1100"
       },
       "camera": {
+        "rear_setup": "108MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -49986,7 +50549,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -50055,6 +50619,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -50188,6 +50753,7 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -50319,7 +50885,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -50461,7 +51028,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -50514,7 +51083,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -50692,7 +51263,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -50755,7 +51327,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -50886,6 +51459,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": null,
@@ -50987,7 +51561,7 @@
     },
     "product_identifiers": {
       "brand": "BLACKZONE",
-      "model_name": "Miniature 4g Volte Mini Smart Android",
+      "model_name": "Miniature 4g",
       "original_title": "BLACKZONE Miniature 4g Volte Mini Smart Android Mobile Phone| 3.0' Incell Display | 3GB RAM | 16 GB ROM | 8 MP Triple Rear Camera | USB Type C | 2000 mAh Battery (Purple)",
       "model_number": null
     },
@@ -51020,7 +51594,9 @@
         "processor_chipset": "Quad-Core",
         "processor_cores": "1.25 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 1100
       },
@@ -51218,7 +51794,8 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -51464,7 +52041,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -51599,7 +52177,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -51741,7 +52320,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -51787,7 +52368,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -51855,6 +52437,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -51920,6 +52503,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -51988,7 +52572,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -52181,7 +52766,9 @@
         "processor_chipset": "Mediatek Dimensity 900",
         "processor_cores": "2, 2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -52249,6 +52836,7 @@
         "processor_cores": "4.32 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -52324,7 +52912,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -52433,7 +53023,8 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -52498,6 +53089,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -52566,7 +53158,8 @@
         "processor_cores": "2.63 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -52632,7 +53225,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000
@@ -52700,6 +53294,7 @@
         "processor_cores": "4.32 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -52768,6 +53363,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -52837,7 +53433,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -52901,7 +53498,9 @@
       "performance": {
         "operating_system": "Android 10.0"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 1100
       },
@@ -53089,7 +53688,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, USB, Wi Fi",
@@ -53218,6 +53819,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -53353,6 +53955,7 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -53546,6 +54149,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -53614,7 +54218,8 @@
         "processor_cores": "1.92, 2.6, 3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700
@@ -53680,7 +54285,8 @@
         "processor_cores": "3.37 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": null,
       "connectivity": {
@@ -53743,7 +54349,8 @@
         "operating_system": "Android 15"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -53776,7 +54383,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S23 Ultra 5G AI",
+      "model_name": "Galaxy S23 Ultra 5G",
       "original_title": "Samsung Galaxy S23 Ultra 5G AI Smartphone (Green, 12GB, 512GB Storage)",
       "model_number": "SM-S918B"
     },
@@ -53810,7 +54417,8 @@
         "processor_cores": "3.36 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -53909,7 +54517,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 5G AI",
+      "model_name": "Galaxy S24 5G",
       "original_title": "Samsung Galaxy S24 5G AI Smartphone (Marble Gray, 8GB, 128GB Storage) with Other Offers",
       "model_number": "S921BZ"
     },
@@ -53943,7 +54551,8 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -54088,7 +54697,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -54190,6 +54801,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54258,7 +54870,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -54387,6 +55000,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54451,6 +55065,7 @@
         "operating_system": "Android 15"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54520,6 +55135,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54588,6 +55204,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54654,6 +55271,7 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54720,6 +55338,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "40MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54788,7 +55407,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -54854,6 +55474,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -54986,7 +55607,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -55178,7 +55800,8 @@
         "processor_cores": "2.84 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500,
@@ -55247,7 +55870,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "200MP"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, Infrared, NFC, USB, Wi-Fi",
@@ -55313,7 +55938,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -55440,7 +56066,8 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -55702,7 +56329,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -55833,7 +56461,9 @@
         "processor_brand": "A",
         "processor_chipset": "A Series A4-3305M"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -55967,6 +56597,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56036,7 +56667,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -56102,6 +56734,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56170,6 +56803,7 @@
         "processor_cores": "4.32 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56428,7 +57062,8 @@
         "processor_cores": "3.36 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": null,
       "connectivity": {
@@ -56560,6 +57195,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56626,6 +57262,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56814,6 +57451,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -56880,7 +57518,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000
@@ -57075,7 +57714,8 @@
         "operating_system": "Android 14"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": null,
       "connectivity": {
@@ -57140,7 +57780,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -57172,8 +57814,8 @@
       "scraped_at_utc": "2025-08-22T18:55:33.449Z"
     },
     "product_identifiers": {
-      "brand": "CMF",
-      "model_name": "BY NOTHING Phone 1 5G",
+      "brand": "CMF BY NOTHING",
+      "model_name": "Phone 1 5G",
       "original_title": "CMF BY NOTHING Phone 1 5G (128 GB) (6 GB RAM) (Orange)",
       "model_number": "1"
     },
@@ -57207,7 +57849,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -57400,7 +58043,8 @@
         "processor_cores": "2.4E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -57436,7 +58080,7 @@
     },
     "product_identifiers": {
       "brand": "BlackBerry",
-      "model_name": "KEYone",
+      "model_name": "KEYone 32GB BBB100-1",
       "original_title": "BlackBerry KEYone 32GB BBB100-1 - 4.5\" Inch Factory Unlocked LTE Smartphone (Silver) - International Version - No Warranty in The US - GSM ONLY, NO CDMA",
       "model_number": "PRD-63116-021"
     },
@@ -57470,7 +58114,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3505
@@ -57539,7 +58184,8 @@
         "processor_cores": "2.91E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -57677,7 +58323,8 @@
         "processor_cores": "3.1 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -57999,7 +58646,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -58066,6 +58715,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -58133,6 +58783,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -58265,6 +58916,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -58331,7 +58983,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -58400,7 +59053,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -58467,6 +59121,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -58596,7 +59251,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 6000
       },
@@ -58728,7 +59385,9 @@
         "processor_brand": "MediaTek",
         "processor_chipset": "MediaTek Helio"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "64MP+ 2MP"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "5G",
@@ -58850,7 +59509,8 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -58884,7 +59544,7 @@
     },
     "product_identifiers": {
       "brand": "DOMO",
-      "model_name": "Slate SSM28 OS13",
+      "model_name": "Slate SSM28",
       "original_title": "DOMO Slate SSM28 OS13 8-inch IPS 1280 * 800 LCD Display, 4G Calling Tablet PC 4GB RAM + 64GB Storage with GPS, OctaCore CPU, Bluetooth [Black]",
       "model_number": "SSM28"
     },
@@ -59093,7 +59753,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -59159,7 +59820,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -59351,6 +60013,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -59417,7 +60080,9 @@
         "processor_chipset": "Mediatek Dimensity 8200",
         "processor_cores": "3.1 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -59551,6 +60216,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -59619,7 +60285,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -59719,7 +60386,7 @@
     },
     "product_identifiers": {
       "brand": "CMF",
-      "model_name": "BY NOTHING Phone 1",
+      "model_name": "Phone 1",
       "original_title": "CMF BY NOTHING Phone 1 Orange 128GB 8GBRAM",
       "model_number": "CMF"
     },
@@ -59753,7 +60420,8 @@
         "processor_cores": "2.0, 2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -59817,7 +60485,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -59883,6 +60553,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -59946,6 +60617,7 @@
         "operating_system": "Android 14"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -60079,7 +60751,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -60148,7 +60821,8 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -60217,7 +60891,8 @@
         "processor_cores": "1.8, 2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -60248,7 +60923,7 @@
       "scraped_at_utc": "2025-08-22T18:55:33.449Z"
     },
     "product_identifiers": {
-      "brand": "Oppo",
+      "brand": "OPPO",
       "model_name": "A5 5G",
       "original_title": "OPPO A5 5G (Mist White, 8GB RAM, 128GB Storage) with No Cost EMI/Additional Exchange Offers",
       "model_number": "CPH2751"
@@ -60342,6 +61017,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "64MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -60469,7 +61145,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": null,
       "connectivity": {
@@ -60723,7 +61400,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -60989,6 +61668,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61055,7 +61735,8 @@
         "processor_chipset": "MediaTek Helio"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -61118,7 +61799,9 @@
       "performance": {
         "operating_system": "Android 14 || XOS 14 (Based on Android 14)"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -61182,6 +61865,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61248,7 +61932,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Quad Camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, USB, Wi-Fi",
@@ -61310,6 +61996,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61378,6 +62065,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61445,7 +62133,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -61511,6 +62201,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61761,6 +62452,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -61894,7 +62586,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "140MP"
+      },
       "battery": {
         "capacity_mah": 5500
       },
@@ -62007,7 +62701,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -62074,6 +62770,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "100MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -62275,7 +62972,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -62342,7 +63040,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -62542,6 +63241,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "80MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -62672,7 +63372,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -62805,7 +63506,10 @@
         "processor_chipset": "Cortex",
         "processor_cores": "2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP+2MP+2MP",
+        "front_setup": "32mp front camera"
+      },
       "battery": null,
       "connectivity": {
         "network_type": "Bluetooth, NFC, Wi-Fi",
@@ -62870,7 +63574,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4250
@@ -62938,7 +63643,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 22
@@ -63127,7 +63833,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -63330,6 +64037,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -63398,7 +64106,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -63467,6 +64177,7 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
+        "rear_setup": "100MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -63534,7 +64245,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -63732,6 +64444,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -63801,7 +64514,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3900,
@@ -64022,7 +64736,7 @@
     },
     "product_identifiers": {
       "brand": "IKALL",
-      "model_name": "N17 Plus 4G Tablet",
+      "model_name": "N17 Plus 4G",
       "original_title": "IKALL N17 Plus 4G Tablet – 8\" HD Display | Octa-Core Processor | 3GB RAM, 32GB ROM (Expandable to 64GB) | 4000mAh Battery | Dual SIM, 4G Calling | Android Tablet (Green)",
       "model_number": "N17 Plus"
     },
@@ -64107,7 +64821,9 @@
       "performance": {
         "operating_system": "Android 15"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "124MP"
+      },
       "battery": {
         "capacity_mah": 5800
       },
@@ -64234,7 +64950,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -64302,7 +65019,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -64433,7 +65151,9 @@
       "performance": {
         "operating_system": "Android 10.0"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 1100
       },
@@ -64635,7 +65355,8 @@
         "processor_cores": "2.73 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500,
@@ -64712,7 +65433,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -64875,6 +65598,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -64943,7 +65667,8 @@
         "processor_chipset": "Exynos 2200 S5E9925"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4500,
@@ -64978,7 +65703,7 @@
       "scraped_at_utc": "2025-08-22T18:55:33.449Z"
     },
     "product_identifiers": {
-      "brand": "Motorola",
+      "brand": "MOTOROLA",
       "model_name": "e32s",
       "original_title": "MOTOROLA e32s (Misty Silver, 4GB RAM 64GB Storage)",
       "model_number": "PATX0015IN"
@@ -65077,7 +65802,10 @@
         "operating_system": "Android 14 with Nothing OS 2.6",
         "processor_cores": "3 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP + 50MP",
+        "front_setup": "50mp front camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -65137,7 +65865,9 @@
       "performance": {
         "operating_system": "iOS"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -65150,7 +65880,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -65195,7 +65927,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 3000
       },
@@ -65284,7 +66018,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "15 Pro 5G",
+      "model_name": "15 Pro",
       "original_title": "realme 15 Pro 5G Smartphone 12+256GB Purple,4K 60FPS,144Hz HyperGlow 4D Curve Display,7000mAh Battery,80W SuperVOOC, Camera Triple 50MP, Snapdragon 7 Gen 4, IP69",
       "model_number": "RMX5101"
     },
@@ -65316,6 +66050,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -65349,7 +66084,7 @@
     },
     "product_identifiers": {
       "brand": "Oppo",
-      "model_name": "F25 Pro 5G",
+      "model_name": "F25 Pro",
       "original_title": "Oppo F25 Pro 5G (Ocean Blue, 8GB RAM, 128GB Storage) with No Cost EMI/Additional Exchange Offers",
       "model_number": "CPH2603"
     },
@@ -65383,7 +66118,8 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -65418,7 +66154,7 @@
     },
     "product_identifiers": {
       "brand": "Motorola",
-      "model_name": "G96 5G",
+      "model_name": "G96",
       "original_title": "Motorola G96 5G (Dresden Blue, 8GB RAM, 256GB Storage)",
       "model_number": null
     },
@@ -65536,7 +66272,7 @@
     },
     "product_identifiers": {
       "brand": "Oppo",
-      "model_name": "A59 5G",
+      "model_name": "A59",
       "original_title": "Oppo A59 5G (Starry Black, 6GB RAM, 128GB Storage) | 5000 mAh Battery with 33W SUPERVOOC Charger | 6.56\" HD+ 90Hz Display | with No Cost EMI/Additional Exchange Offers",
       "model_number": "CPH2617"
     },
@@ -65570,7 +66306,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -65639,7 +66376,8 @@
         "processor_cores": "2.3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -65742,7 +66480,7 @@
     },
     "product_identifiers": {
       "brand": "Redmi",
-      "model_name": "Note 14 Pro+ 5G",
+      "model_name": "Note 14 Pro+",
       "original_title": "Redmi Note 14 Pro+ 5G (Phantom Purple, 8GB RAM+ 256GB Storage) | Snapdragon 7s Gen 3 Processor | AMOLED Display | Dual Nano-SIM | 6200mAh Battery",
       "model_number": "Note 14 Pro+ 5G"
     },
@@ -65776,7 +66514,8 @@
         "processor_cores": "2.95E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -65842,7 +66581,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "108MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -65869,7 +66610,7 @@
     },
     "product_identifiers": {
       "brand": "Infinix",
-      "model_name": "Zero Flip 5G",
+      "model_name": "Zero Flip",
       "original_title": "Infinix Zero Flip 5G (Rock Black, 8GB RAM, 512GB Storage) 8GB Virtual RAM, 120HZ Punch Hole Display, MediaTek D8020, Dual JBL Speakers, 4720mAh Battery, 3D Pets",
       "model_number": "X6962"
     },
@@ -66032,7 +66773,9 @@
         "processor_brand": "MediaTek",
         "processor_chipset": "MediaTek Helio"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Quad Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -66064,7 +66807,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "15 5G",
+      "model_name": "15",
       "original_title": "realme 15 5G (Velvet Green, 8GB RAM, 128GB Storage) | 6.8\" FHD+ LCD 120Hz | 50MP Triple AI Camera | 50MP Selfie | Dimensity 7300+ 5G | 7000mAh | 80W Fast Charging | Android 15 | Dual SIM",
       "model_number": "RMX5106"
     },
@@ -66098,6 +66841,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -66133,7 +66877,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S24 FE 5G AI",
+      "model_name": "Galaxy S24 FE",
       "original_title": "Samsung Galaxy S24 FE 5G AI Smartphone (Graphite, 8GB RAM, 256GB Storage)",
       "model_number": "Galaxy S24 FE 5G"
     },
@@ -66324,7 +67068,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy M55 5G",
+      "model_name": "Galaxy M55",
       "original_title": "Samsung Galaxy M55 5G (Light Green,8GB RAM,256GB Storage) | 50MP Triple Cam| 5000mAh Battery| Snapdragon 7 Gen 1 | 4 Gen. OS Upgrade & 5 Year Security Update| Super AMOLED+ Display| Without Charger",
       "model_number": "SM-M556B"
     },
@@ -66358,6 +67102,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -66393,7 +67138,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "P3 Ultra 5G",
+      "model_name": "P3 Ultra",
       "original_title": "realme P3 Ultra 5G Smartphone 8+256 Red,6.83-inch Screen,20Hz Display,6000mAh Battery,80W Ultra Charge,58MP Camera,MediaTek Dimensity 8350 Ultra,IP69",
       "model_number": "RMX5030"
     },
@@ -66427,6 +67172,7 @@
         "processor_cores": "3.35 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -66489,7 +67235,9 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 10
       },
@@ -66556,7 +67304,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5160
@@ -66591,7 +67340,7 @@
     },
     "product_identifiers": {
       "brand": "Oppo",
-      "model_name": "Reno 11 5G",
+      "model_name": "Reno 11",
       "original_title": "Oppo Reno 11 5G (Wave Green,128 GB) (8 GB RAM)",
       "model_number": "CPH2599"
     },
@@ -66728,7 +67477,7 @@
     },
     "product_identifiers": {
       "brand": "Oppo",
-      "model_name": "Reno 11 5G",
+      "model_name": "Reno 11",
       "original_title": "Oppo Reno 11 5G (Rock Grey, 256 GB) (8 GB RAM)",
       "model_number": "CPH2599"
     },
@@ -66796,7 +67545,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "14x 5G",
+      "model_name": "14x",
       "original_title": "realme 14x 5G (Crystal Black, 6GB RAM, 128GB Storage)",
       "model_number": "RMX3940"
     },
@@ -66830,7 +67579,8 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000,
@@ -66898,7 +67648,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -66933,7 +67684,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "14 Pro+ 5G",
+      "model_name": "14 Pro+",
       "original_title": "realme 14 Pro+ 5G (Bikaner Purple, 8GB RAM, 256GB Storage)| 6.83\" Curved AMOLED Display| 50MP Sony IMX896 OIS + 50MP Periscope Rear Cam |6000mAh Battery | Snapdragon 7s Gen 3 Processor | 80W SUPERVOOC",
       "model_number": "RMX5051"
     },
@@ -66966,7 +67717,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.8, 2.4, 2.5 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 6000
       },
@@ -67054,7 +67807,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy Z Flip7 5G AI",
+      "model_name": "Galaxy Z Flip7",
       "original_title": "Samsung Galaxy Z Flip7 5G Smartphone with Galaxy AI (JetBlack, 12GB RAM, 512GB Storage), Ultra Sleek Design with 50MP High-Resolution Camera, Exynos 2500, Google Gemini",
       "model_number": "SM-F766B"
     },
@@ -67086,6 +67839,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -67120,7 +67874,7 @@
     },
     "product_identifiers": {
       "brand": "Nothing",
-      "model_name": "Phone (3A) 5G",
+      "model_name": "Phone (3A)",
       "original_title": "Nothing Phone (3A) 5G | Snapdragon 7s Gen 3 | 50MP+50MP+8MP Cameras | 32MP Front | 6.77” 120Hz AMOLED | 5000mAh Battery | 50W Fast Charging | Up to 16GB RAM Expansion (Blue, 8GB RAM + 256GB Storage)",
       "model_number": "A059"
     },
@@ -67152,6 +67906,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -67186,7 +67941,7 @@
       "scraped_at_utc": "2025-08-22T18:55:33.449Z"
     },
     "product_identifiers": {
-      "brand": "Poco",
+      "brand": "POCO",
       "model_name": "M4 Pro",
       "original_title": "POCO M4 Pro (Power Black, 6GB RAM 128GB Storage)",
       "model_number": "MZB0B5PIN"
@@ -67285,6 +68040,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -67320,7 +68076,7 @@
     },
     "product_identifiers": {
       "brand": "Infinix",
-      "model_name": "Note 40X 5G",
+      "model_name": "Note 40X",
       "original_title": "Infinix Note 40X 5G, Palm Blue (12GB, 256GB)",
       "model_number": "X6838"
     },
@@ -67492,6 +68248,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -67525,7 +68282,7 @@
     },
     "product_identifiers": {
       "brand": "Oppo",
-      "model_name": "Reno 12 Pro 5G",
+      "model_name": "Reno 12 Pro",
       "original_title": "Oppo Reno 12 Pro 5G (Space Brown, 256 GB) (12 GB RAM)",
       "model_number": "CPH2629"
     },
@@ -67592,7 +68349,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy Z Fold4 5G",
+      "model_name": "Galaxy Z Fold4",
       "original_title": "Samsung Galaxy Z Fold4 5G (Graygreen, 12GB RAM, 512GB Storage) with No Cost EMI/Additional Exchange Offers",
       "model_number": "SM-F936BZAGINU"
     },
@@ -67626,7 +68383,8 @@
         "processor_cores": "3.18 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4400,
@@ -67695,6 +68453,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -67729,7 +68488,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy A33 5G",
+      "model_name": "Galaxy A33",
       "original_title": "Samsung Galaxy A33 5G (Light Blue, 8GB RAM, 128GB Storage) | 48 MP No Shake Cam | Voice Focus | 16 GB RAM with RAM Plus | Travel Adapter to be Purchased Separately",
       "model_number": "SM-A336ELBPINS"
     },
@@ -67763,7 +68522,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -67898,7 +68658,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Quad Camera"
+      },
       "battery": {
         "capacity_mah": 4000
       },
@@ -67931,7 +68693,7 @@
     },
     "product_identifiers": {
       "brand": "OPPO",
-      "model_name": "Find X8 Pro 5G",
+      "model_name": "Find X8 Pro",
       "original_title": "OPPO Find X8 Pro 5G Mediatek Dimensity 9400 16GB RAM 512GB Storage 6.7 inch QHD+ AMOLED Smartphone ColorOS - Black",
       "model_number": "Find X8 Pro"
     },
@@ -67992,7 +68754,7 @@
     },
     "product_identifiers": {
       "brand": "VIV0",
-      "model_name": "T4 Ultra 5G AI",
+      "model_name": "T4 Ultra",
       "original_title": "VIV0 T4 Ultra 5G AI Smartphone (Meteor Grey, 8GB RAM + 256GB Storage)",
       "model_number": "T4 Ultra 5G"
     },
@@ -68026,7 +68788,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -68257,7 +69020,7 @@
     },
     "product_identifiers": {
       "brand": "realme",
-      "model_name": "15 5G",
+      "model_name": "15",
       "original_title": "realme 15 5G (Flowing Silver, 8GB RAM, 128GB Storage) | 6.8\" FHD+ LCD 120Hz | 50MP Triple AI Camera | 50MP Selfie | Dimensity 7300+ 5G | 7000mAh | 80W Fast Charging | Android 15 | Dual SIM",
       "model_number": "RMX5106"
     },
@@ -68291,6 +69054,7 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -68421,6 +69185,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -68545,7 +69310,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -68614,6 +69380,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -68679,6 +69446,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -68805,7 +69573,8 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -68868,7 +69637,9 @@
       "performance": {
         "operating_system": "iOS"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "48MP"
+      },
       "battery": null,
       "connectivity": null,
       "design": {
@@ -68881,7 +69652,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -68984,7 +69757,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3500
@@ -69304,7 +70078,8 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -69339,7 +70114,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy S25+ 5G AI",
+      "model_name": "Galaxy S25+ 5G",
       "original_title": "Samsung Galaxy S25+ 5G AI Smartphone (Navy, 12GB RAM, 512GB Storage), 50MP Camera with Galaxy AI",
       "model_number": "SM-S936B"
     },
@@ -69373,6 +70148,7 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -69441,7 +70217,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -69509,7 +70286,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Quad Camera"
+      },
       "battery": {
         "capacity_mah": 4000
       },
@@ -69572,7 +70351,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -69698,6 +70478,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -69823,6 +70604,7 @@
         "operating_system": "Android 14.0"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -69891,6 +70673,7 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70079,6 +70862,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70143,6 +70927,7 @@
         "operating_system": "Android 14.0 Go"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70471,6 +71256,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70598,6 +71384,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70664,6 +71451,7 @@
         "processor_cores": "1.8 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70733,7 +71521,8 @@
         "processor_cores": "2.2 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -70802,7 +71591,9 @@
         "processor_chipset": "5X86",
         "processor_cores": "0.02 MHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 800
       },
@@ -70869,6 +71660,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -70934,7 +71726,8 @@
         "operating_system": "Android 12.0"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -71001,7 +71794,8 @@
         "processor_cores": "3.25 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5400,
@@ -71254,7 +72048,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -71391,7 +72186,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700,
@@ -71461,6 +72257,7 @@
         "processor_cores": "2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -71530,6 +72327,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -71599,7 +72397,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -71664,7 +72463,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -71730,7 +72530,10 @@
         "processor_brand": "Snapdragon",
         "processor_chipset": "Snapdragon"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "64MP",
+        "front_setup": "32mp selfie camera"
+      },
       "battery": {
         "quick_charging": true
       },
@@ -71921,7 +72724,9 @@
         "processor_chipset": "Allwinner A20",
         "processor_cores": "2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "quick_charging": true
       },
@@ -72052,7 +72857,8 @@
         "processor_cores": "2.99 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -72120,6 +72926,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -72446,7 +73253,8 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -72573,6 +73381,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -72642,7 +73451,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -72711,7 +73521,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5100,
@@ -72780,7 +73591,9 @@
         "processor_chipset": "Others",
         "processor_cores": "1.8, 2.85, 3.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5750,
         "quick_charging": true
@@ -72969,7 +73782,8 @@
         "operating_system": "Android 14, Xiaomi HyperOS"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500
@@ -73032,7 +73846,9 @@
       "performance": {
         "operating_system": "Android 14"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "50MP"
+      },
       "battery": {
         "capacity_mah": 5000,
         "quick_charging": true
@@ -73226,7 +74042,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.0, 2.8, 3.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 4805
       },
@@ -73260,7 +74078,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy Z Flip6 5G AI",
+      "model_name": "Galaxy Z Flip6 5G AI Smartphone",
       "original_title": "Samsung Galaxy Z Flip6 5G AI Smartphone (Blue, 12GB RAM, 256GB Storage) with Other Offers",
       "model_number": "SM-F741B"
     },
@@ -73294,7 +74112,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -73363,6 +74182,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -73397,7 +74217,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy Z Flip7 FE 5G",
+      "model_name": "Galaxy Z Flip7 FE 5G Smartphone",
       "original_title": "Samsung Galaxy Z Flip7 FE 5G Smartphone with Galaxy AI (Black, 8GB RAM, 128GB Storage), Ultra Sleek Compact Design, 50MP High-Resolution FlexCam, Long-Lasting 4000 mAh Battery, All-New One UI 8",
       "model_number": "SM-F761B"
     },
@@ -73431,6 +74251,7 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -73563,6 +74384,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -73657,7 +74479,7 @@
     },
     "product_identifiers": {
       "brand": "Samsung",
-      "model_name": "Galaxy Z Flip6 5G AI",
+      "model_name": "Galaxy Z Flip6 5G AI Smartphone",
       "original_title": "Samsung Galaxy Z Flip6 5G AI Smartphone (Mint, 12GB RAM, 512GB Storage) with Other Offers",
       "model_number": "SM-F741B"
     },
@@ -73691,7 +74513,8 @@
         "processor_cores": "3.39 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4000,
@@ -73760,7 +74583,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5500,
@@ -74151,7 +74975,8 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4350,
@@ -74221,7 +75046,8 @@
         "processor_cores": "2.5 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -74426,7 +75252,8 @@
         "processor_cores": "3.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4700,
@@ -74494,6 +75321,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -74561,6 +75389,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -74697,7 +75526,8 @@
         "processor_chipset": "MediaTek Helio"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -74829,7 +75659,8 @@
         "processor_cores": "2.95E+3 MHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6200,
@@ -74898,7 +75729,8 @@
         "processor_cores": "4.47 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 3900,
@@ -74966,7 +75798,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "1.8, 2.2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 5000
       },
@@ -75164,7 +75998,8 @@
         "processor_cores": "2.0, 2.8, 3.0 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -75230,7 +76065,9 @@
         "processor_chipset": "Others",
         "processor_cores": "2.4 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Rear Camera"
+      },
       "battery": {
         "capacity_mah": 6000
       },
@@ -75297,6 +76134,7 @@
         "processor_cores": "2.6 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -75682,7 +76520,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -75850,7 +76689,7 @@
       "model_number": "6902048268203"
     },
     "variant_attributes": {
-      "color": "Green",
+      "color": "Green Color",
       "ram": null,
       "availability": "In stock",
       "storage": null
@@ -75931,6 +76770,7 @@
         "processor_chipset": "Snapdragon"
       },
       "camera": {
+        "rear_setup": "64MP",
         "front_setup": "Front Camera"
       },
       "battery": null,
@@ -75998,7 +76838,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -76067,6 +76908,7 @@
         "processor_cores": "3.3 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -76136,6 +76978,7 @@
         "processor_cores": "3.2 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -76332,7 +77175,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 4600,
@@ -76592,6 +77436,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -76847,7 +77692,8 @@
         "operating_system": "Android 14"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000,
@@ -76914,6 +77760,7 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
+        "rear_setup": "Rear Camera",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -77118,7 +77965,8 @@
         "processor_chipset": "A Series"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -77187,6 +78035,7 @@
         "processor_cores": "3 GHz"
       },
       "camera": {
+        "rear_setup": "50MP + 50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -77452,7 +78301,9 @@
         "processor_chipset": "Snapdragon",
         "processor_cores": "2 GHz"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "Triple Camera"
+      },
       "battery": null,
       "connectivity": {
         "sim_type": "Dual Sim"
@@ -77522,7 +78373,9 @@
     "source_metadata": {
       "category_breadcrumb": [
         "Electronics",
-        "Mobile Phones"
+        "Mobiles & Accessories",
+        "Smartphones & Basic Mobiles",
+        "Smartphones"
       ]
     }
   },
@@ -77568,7 +78421,8 @@
         "processor_cores": "3.63 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 6000
@@ -77698,7 +78552,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "quick_charging": true
@@ -77764,6 +78619,7 @@
         "processor_cores": "2.8 GHz"
       },
       "camera": {
+        "rear_setup": "50MP",
         "front_setup": "Front Camera"
       },
       "battery": {
@@ -78026,7 +78882,8 @@
         "processor_cores": "2.4 GHz"
       },
       "camera": {
-        "front_setup": "Front Camera"
+        "front_setup": "Front Camera",
+        "rear_setup": "Rear Camera"
       },
       "battery": {
         "capacity_mah": 5000
@@ -78091,7 +78948,9 @@
       "performance": {
         "operating_system": "Android 15"
       },
-      "camera": null,
+      "camera": {
+        "rear_setup": "140MP"
+      },
       "battery": {
         "capacity_mah": 5800
       },

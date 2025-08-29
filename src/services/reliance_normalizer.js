@@ -75,8 +75,8 @@ class RelianceNormalizer {
         price: this.normalizePrice(product.price),
         availability: product.availability || null,
         rating: this.normalizeRating(product.rating),
-        image: this.processRelianceImage(product.image.mainImage),
-        images: this.processRelianceImages(product.image.allImages, product.image.mainImage)
+        image_url: this.processRelianceImage(product.image.mainImage),
+        image_urls: this.processRelianceImages(product.image.allImages, product.image.mainImage)
       },
       key_specifications: {
         display: this.extractDisplaySpecs(specs),

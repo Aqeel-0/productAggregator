@@ -68,20 +68,18 @@ class ProductVariant extends Model {
     if (!product) return 'Unknown Product Variant';   
     let name = `${product.brands.name} ${product.original_model_name}`;
     
-    if (attributes.ram_gb) name += `(${attributes.ram_gb}GB RAM`;
-    if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB)`;
+    if (attributes.ram_gb !== null) {
+      name += ` ( ${attributes.ram_gb}GB RAM`;
+      if (attributes.storage_gb) name += `, ${attributes.storage_gb}GB`;
+      name += ' )';
+    } else if (attributes.storage_gb) {
+      name += ` (${attributes.storage_gb}GB) `;
+    }
+    
     if (attributes.color) name += ` - ${attributes.color}`;
     return name;
   }
 
-
-  /**
-   * Enhanced variant insertion with caching and statistics
-   * Used by DatabaseInserter for optimized variant creation
-   */
-  /**
-   * Normalize color names to prevent duplicates
-   */
   static normalizeColor(color) {
     if (!color) return null;
     
@@ -130,27 +128,40 @@ class ProductVariant extends Model {
 
       // Prepare images array from listing info
       const images = [];
+      let mainImageAdded = false;
       
       // Add main image if available
-      if (listing_info.image) {
+      if (listing_info.image_url) {
         images.push({
-          url: listing_info.image,
+          url: listing_info.image_url,
           type: 'main',
           source: productData.source_details?.source_name || 'unknown',
           scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
         });
+        mainImageAdded = true;
       }
       
       // Add other images if available
-      if (listing_info.images && Array.isArray(listing_info.images)) {
-        for (const imageUrl of listing_info.images) {
+      if (listing_info.image_urls && Array.isArray(listing_info.image_urls)) {
+        for (const imageUrl of listing_info.image_urls) {
           if (imageUrl && typeof imageUrl === 'string') {
-            images.push({
-              url: imageUrl,
-              type: 'other',
-              source: productData.source_details?.source_name || 'unknown',
-              scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
-            });
+            // If main image not added, make first image main
+            if (!mainImageAdded) {
+              images.push({
+                url: imageUrl,
+                type: 'main',
+                source: productData.source_details?.source_name || 'unknown',
+                scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
+              });
+              mainImageAdded = true;
+            } else {
+              images.push({
+                url: imageUrl,
+                type: 'other',
+                source: productData.source_details?.source_name || 'unknown',
+                scraped_at: productData.source_details?.scraped_at_utc || new Date().toISOString()
+              });
+            }
           }
         }
       }

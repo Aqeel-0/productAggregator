@@ -407,9 +407,9 @@ class DatabaseInserter {
   async insertAllNormalizedData() {
     this.supabase = supabaseSingleton.getClient();
     const normalizedFiles = [
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
-      // { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
     ];
 
