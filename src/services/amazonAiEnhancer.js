@@ -201,7 +201,10 @@ URL: "${url}"
 - Extract brand_name, model_name, color, ram, and storage for each product
 - brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus")
 - model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G")
-- color: Extract the color variant (e.g., "Titanium Blue", "Mint Green", "Space Gray")
+- color: Extract the color variant with proper formatting:
+  * Fix concatenated color names by adding spaces (e.g., "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "MidnightGreen" → "Midnight Green")
+  * Use proper color naming conventions (e.g., "Titanium Blue", "Mint Green", "Space Gray", "Jet Black", "Starlight", "Silver")
+  * Common corrections: "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "SpaceGray" → "Space Gray", "MidnightGreen" → "Midnight Green"
 - ram: Extract RAM in GB as integer (e.g., 6, 8, 12). For iPhones, always set to null
 - storage: Extract storage in GB as integer (e.g., 128, 256, 512). Convert 1TB to 1024
 - If any field cannot be determined from title/URL, use null
@@ -213,7 +216,7 @@ RESPONSE FORMAT - MUST BE A JSON ARRAY:
     "url": "Product 1 URL exactly as provided",
     "brand_name": "Product 1 brand",
     "model_name": "Product 1 model without brand",
-    "color": "Product 1 color",
+    "color": "Product 1 color (properly formatted, e.g., 'Jet Black' not 'JetBlack')",
     "ram": Product 1 RAM or null,
     "storage": Product 1 storage or null
   },
@@ -221,13 +224,15 @@ RESPONSE FORMAT - MUST BE A JSON ARRAY:
     "url": "Product 2 URL exactly as provided",
     "brand_name": "Product 2 brand",
     "model_name": "Product 2 model without brand",
-    "color": "Product 2 color",
+    "color": "Product 2 color (properly formatted, e.g., 'Jet Black' not 'JetBlack')",
     "ram": Product 2 RAM or null,
     "storage": Product 2 storage or null
   }
 ]
 
-CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. Include the exact URL for each product. No explanations, no extra text. No markdown formatting.`;
+CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. Include the exact URL for each product. No explanations, no extra text. No markdown formatting.
+
+REMEMBER: Always format colors properly with spaces (e.g., "Jet Black" not "JetBlack", "Titanium Blue" not "TitaniumBlue").`;
     
     return prompt;
   }
