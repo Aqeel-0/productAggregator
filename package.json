@@ -35,6 +35,7 @@
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.2.3",
     "@google-cloud/storage": "^7.16.0",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.55.0",
     "axios": "^1.6.0",
     "bull": "^4.12.0",
