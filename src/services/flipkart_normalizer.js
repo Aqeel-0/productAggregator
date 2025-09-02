@@ -97,7 +97,6 @@ class FlipkartNormalizer {
     } else {
       return ["Electronics", "Mobiles & Accessories", "Smartphones & Basic Mobiles", "Basic Mobiles"];
     }
-  
   }
 
   isSmartphone(product) {

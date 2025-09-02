@@ -549,68 +549,109 @@ async function main() {
   const path = require('path');
   
   try {
-    console.log('🚀 Running Amazon Normalizer Directly on Full Dataset...\n');
+    console.log('🚀 Running Amazon Normalizer on Multiple Categories...\n');
 
-    // Read the complete Amazon scraped data
-    const inputFilePath = path.join(__dirname, '../scrapers/amazon/amazon_scraped_data.json');
-    console.log('📂 Reading Amazon data from:', inputFilePath);
-    
-    if (!fs.existsSync(inputFilePath)) {
-      throw new Error(`Input file not found: ${inputFilePath}`);
-    }
+    // Define input files to process
+    const inputFiles = [
+      {
+        category: 'mobile',
+        inputPath: path.join(__dirname, '../scrapers/amazon/raw_data/amazon_mobile_scraped_data.json'),
+        outputPath: path.join(__dirname, '../../parsed_data/amazon_mobile_normalized_data.json')
+      },
+      {
+        category: 'tablet',
+        inputPath: path.join(__dirname, '../scrapers/amazon/raw_data/amazon_tablet_scraped_data.json'),
+        outputPath: path.join(__dirname, '../../parsed_data/amazon_tablet_normalized_data.json')
+      }
+    ];
 
-    const rawData = JSON.parse(fs.readFileSync(inputFilePath, 'utf8'));
-    console.log(`📊 Total products to process: ${rawData.length}`);
-
-    // Initialize and run normalizer
-    const normalizer = new AmazonNormalizer();
-    
-    console.log('⚡ Starting normalization with AI enhancement...\n');
-    const startTime = Date.now();
-    
-    const normalizedData = await normalizer.normalizeProducts(rawData);
-    
-    const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000;
-    
-    console.log(`\n⏱️  Processing completed in ${duration.toFixed(2)} seconds (${(duration/60).toFixed(2)} minutes)`);
-    console.log(`📈 Successfully normalized ${normalizedData.length} products`);
-    console.log(`🎯 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
-
-    // Save results
+    // Ensure output directory exists
     const outputDir = path.join(__dirname, '../../parsed_data');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    const outputFilePath = path.join(outputDir, 'amazon_normalized_data.json');
-    
-    console.log('\n💾 Saving normalized dataset...');
-    fs.writeFileSync(outputFilePath, JSON.stringify(normalizedData, null, 2), 'utf8');
-    
-    console.log(`✅ Normalized dataset saved to: ${outputFilePath}`);
+    let totalProcessed = 0;
+    let totalSuccessful = 0;
+    const overallStartTime = Date.now();
 
-    // Generate statistics
-    let successfulExtractions = 0;
-    normalizedData.forEach(product => {
-      if (product.product_identifiers?.brand && 
-          product.product_identifiers?.model_name &&
-          product.variant_attributes?.color &&
-          product.variant_attributes?.ram !== null &&
-          product.variant_attributes?.storage !== null) {
-        successfulExtractions++;
+    // Process each category file
+    for (const fileConfig of inputFiles) {
+      console.log(`\n📱 Processing ${fileConfig.category} category...`);
+      console.log('=' .repeat(50));
+      
+      // Check if input file exists
+      if (!fs.existsSync(fileConfig.inputPath)) {
+        console.log(`⚠️  Input file not found: ${fileConfig.inputPath}`);
+        console.log(`⏭️  Skipping ${fileConfig.category} category...\n`);
+        continue;
       }
-    });
 
-    console.log('\n📊 Final Statistics:');
+      console.log(`📂 Reading ${fileConfig.category} data from: ${fileConfig.inputPath}`);
+      
+      const rawData = JSON.parse(fs.readFileSync(fileConfig.inputPath, 'utf8'));
+      console.log(`📊 Total ${fileConfig.category} products to process: ${rawData.length}`);
+
+      if (rawData.length === 0) {
+        console.log(`⚠️  No data found in ${fileConfig.category} file, skipping...\n`);
+        continue;
+      }
+
+      // Initialize and run normalizer
+      const normalizer = new AmazonNormalizer();
+      
+      console.log(`⚡ Starting ${fileConfig.category} normalization with AI enhancement...\n`);
+      const startTime = Date.now();
+      
+      const normalizedData = await normalizer.normalizeProducts(rawData);
+      
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000;
+      
+      console.log(`\n⏱️  ${fileConfig.category} processing completed in ${duration.toFixed(2)} seconds (${(duration/60).toFixed(2)} minutes)`);
+      console.log(`📈 Successfully normalized ${normalizedData.length} ${fileConfig.category} products`);
+      console.log(`🎯 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
+
+      // Save results
+      console.log(`\n💾 Saving ${fileConfig.category} normalized dataset...`);
+      fs.writeFileSync(fileConfig.outputPath, JSON.stringify(normalizedData, null, 2), 'utf8');
+      
+      console.log(`✅ ${fileConfig.category} normalized dataset saved to: ${fileConfig.outputPath}`);
+
+      // Generate statistics for this category
+      let successfulExtractions = 0;
+      normalizedData.forEach(product => {
+        if (product.product_identifiers?.brand && 
+            product.product_identifiers?.model_name &&
+            product.variant_attributes?.color &&
+            product.variant_attributes?.ram !== null &&
+            product.variant_attributes?.storage !== null) {
+          successfulExtractions++;
+        }
+      });
+
+      console.log(`\n📊 ${fileConfig.category.toUpperCase()} Statistics:`);
+      console.log(`📦 Total products: ${rawData.length}`);
+      console.log(`✅ Successfully normalized: ${normalizedData.length}`);
+      console.log(`🎯 Complete extractions: ${successfulExtractions} (${((successfulExtractions/normalizedData.length)*100).toFixed(1)}%)`);
+      console.log(`⏱️  Processing time: ${(duration/60).toFixed(2)} minutes`);
+      console.log(`🚀 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
+
+      // Update totals
+      totalProcessed += rawData.length;
+      totalSuccessful += normalizedData.length;
+    }
+
+    const overallEndTime = Date.now();
+    const overallDuration = (overallEndTime - overallStartTime) / 1000;
+
+    console.log('\n🎉 All Amazon normalization completed successfully!');
+    console.log('\n📊 OVERALL STATISTICS:');
     console.log('=' .repeat(50));
-    console.log(`📦 Total products: ${rawData.length}`);
-    console.log(`✅ Successfully normalized: ${normalizedData.length}`);
-    console.log(`🎯 Complete extractions: ${successfulExtractions} (${((successfulExtractions/normalizedData.length)*100).toFixed(1)}%)`);
-    console.log(`⏱️  Total time: ${(duration/60).toFixed(2)} minutes`);
-    console.log(`🚀 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
-
-    console.log('\n🎉 Amazon normalization completed successfully!');
+    console.log(`📦 Total products processed: ${totalProcessed}`);
+    console.log(`✅ Total successfully normalized: ${totalSuccessful}`);
+    console.log(`⏱️  Total processing time: ${(overallDuration/60).toFixed(2)} minutes`);
+    console.log(`🚀 Overall processing rate: ${(totalSuccessful / overallDuration).toFixed(2)} products/second`);
     
   } catch (error) {
     console.error('\n❌ Normalization failed:', error.message);

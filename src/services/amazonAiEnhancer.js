@@ -18,13 +18,14 @@ class AmazonAiEnhancer {
   /**
    * Main method to enhance Amazon data
    */
-  async enhanceAmazonData(rawData) {
+  async enhanceAmazonData(rawData, productType = 'mobile') {
     try {
-      console.log('🚀 Starting Amazon AI Enhancement...\n');
-      console.log(`📊 Processing ${rawData.length} products in batches of ${this.batchSize}\n`);
+      const productTypeLabel = productType === 'tablet' ? 'Tablet' : 'Mobile';
+      console.log(`🚀 Starting Amazon ${productTypeLabel} AI Enhancement...\n`);
+      console.log(`📊 Processing ${rawData.length} ${productType} products in batches of ${this.batchSize}\n`);
 
       // Process all products in batches
-      const enhancedProducts = await this.processBatches(rawData);
+      const enhancedProducts = await this.processBatches(rawData, productType);
       
       console.log(`\n✅ AI Enhancement completed!`);
       console.log(`📊 Final Stats:`, this.stats);
@@ -36,15 +37,14 @@ class AmazonAiEnhancer {
       throw error;
     }
   }
-
   /**
    * Process products in batches
    */
-  async processBatches(products) {
+  async processBatches(products, productType = 'mobile') {
     const totalBatches = Math.ceil(products.length / this.batchSize);
     const enhancedProducts = [];
     
-    console.log(`📦 Processing ${products.length} products in ${totalBatches} batches...`);
+    console.log(`📦 Processing ${products.length} ${productType} products in ${totalBatches} batches...`);
     console.log(`🎯 Each batch will contain ${this.batchSize} products in a single API call\n`);
     
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -56,7 +56,7 @@ class AmazonAiEnhancer {
       console.log('=' .repeat(60));
       
       try {
-        const batchResults = await this.processBatch(batch);
+        const batchResults = await this.processBatch(batch, productType);
         enhancedProducts.push(...batchResults);
         
         // Progress update
@@ -83,11 +83,11 @@ class AmazonAiEnhancer {
   /**
    * Process a single batch - send all products in one prompt
    */
-  async processBatch(batch) {
-    console.log(`  📤 Sending ${batch.length} products to Gemini AI in single prompt...`);
+  async processBatch(batch, productType = 'mobile') {
+    console.log(`  📤 Sending ${batch.length} ${productType} products to Gemini AI in single prompt...`);
     
     try {
-      const prompt = this.buildBatchPrompt(batch);
+      const prompt = this.buildBatchPrompt(batch, productType);
       const response = await this.model.generateContent(prompt);
       const responseText = response.response.text();
       
@@ -178,7 +178,12 @@ class AmazonAiEnhancer {
   /**
    * Build prompt for batch processing
    */
-  buildBatchPrompt(products) {
+  buildBatchPrompt(products, productType = 'mobile') {
+    if (productType === 'tablet') {
+      return this.buildTabletBatchPrompt(products);
+    }
+    
+    // Default mobile prompt
     let prompt = `You are a product data analyst. Extract attributes from ${products.length} products and return a JSON ARRAY.
 
 IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects, one for each product.
@@ -197,18 +202,19 @@ URL: "${url}"
 `;
     });
     
-    prompt += `EXTRACTION RULES:
+         prompt += `EXTRACTION RULES:
 - Extract brand_name, model_name, color, ram, and storage for each product
-- brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus")
-- model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G")
+- brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus", "Xiaomi", "Realme", "OPPO", "Vivo")
+- model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G", "iPad Pro", "Galaxy Tab S9", "Redmi Note 13")
 - color: Extract the color variant with proper formatting:
   * Fix concatenated color names by adding spaces (e.g., "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "MidnightGreen" → "Midnight Green")
-  * Use proper color naming conventions (e.g., "Titanium Blue", "Mint Green", "Space Gray", "Jet Black", "Starlight", "Silver")
-  * Common corrections: "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "SpaceGray" → "Space Gray", "MidnightGreen" → "Midnight Green"
-- ram: Extract RAM in GB as integer (e.g., 6, 8, 12). For iPhones, always set to null
-- storage: Extract storage in GB as integer (e.g., 128, 256, 512). Convert 1TB to 1024
+  * Use proper color naming conventions (e.g., "Titanium Blue", "Mint Green", "Space Gray", "Jet Black", "Starlight", "Silver", "Rose Gold", "Pacific Blue")
+  * Common corrections: "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "SpaceGray" → "Space Gray", "MidnightGreen" → "Midnight Green", "RoseGold" → "Rose Gold"
+- ram: Extract RAM in GB as integer (e.g., 6, 8, 12, 16). For iPhones and iPads, always set to null
+- storage: Extract storage in GB as integer (e.g., 64, 128, 256, 512, 1024). Convert 1TB to 1024, 2TB to 2048
 - If any field cannot be determined from title/URL, use null
 - Be consistent with brand names (use "Apple" not "iPhone", "Samsung" not "Galaxy")
+- Handle both mobile phones and tablets with the same extraction logic
 
 RESPONSE FORMAT - MUST BE A JSON ARRAY:
 [
@@ -234,6 +240,52 @@ CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. In
 
 REMEMBER: Always format colors properly with spaces (e.g., "Jet Black" not "JetBlack", "Titanium Blue" not "TitaniumBlue").`;
     
+    return prompt;
+  }
+
+  /**
+   * Build tablet-specific prompt for batch processing
+   */
+  buildTabletBatchPrompt(products) {
+    let prompt = `You are a product data analyst specializing in TABLETS. Extract attributes from ${products.length} tablet products and return a JSON ARRAY.
+
+IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects, one for each product.
+CRITICAL: Include the URL in each response object for accurate matching.
+
+EXTRACTION RULES FOR TABLETS:
+1. If the product is NOT a tablet (e.g., smartphone, laptop, phone), set all fields to null and add "not_tablet": true
+2. Extract brand_name, model_name, ram, storage, color from titles
+3. For color names, fix concatenated names (e.g., "jetBlack" → "Jet Black", "spaceGray" → "Space Gray")
+4. Use proper naming conventions and separate compound names with spaces
+5. CRITICAL: Extract RAM and storage as NUMBERS ONLY:
+   - Look for patterns like "RAM 8 GB", "8 GB RAM", "8GB RAM" → ram: 8
+   - Look for patterns like "128 GB", "128GB", "ROM 128 GB" → storage: 128
+   - Extract ONLY the numeric value, not the unit
+   - If no RAM/storage found, use null
+
+REQUIRED OUTPUT FORMAT (JSON ARRAY):
+[
+  {
+    "url": "product_url_here",
+    "brand_name": "Brand Name",
+    "model_name": "Model Name",
+    "ram": 8,
+    "storage": 128,
+    "color": "Color Name"
+  }
+]
+
+PRODUCTS TO ANALYZE:
+`;
+
+    // Add each product to the prompt
+    products.forEach((product, index) => {
+      prompt += `\n${index + 1}. URL: ${product.url}\n`;
+      prompt += `   Title: ${product.title}\n`;
+    });
+
+    prompt += `\n\nReturn ONLY the JSON array. No explanations or markdown formatting.`;
+
     return prompt;
   }
 
