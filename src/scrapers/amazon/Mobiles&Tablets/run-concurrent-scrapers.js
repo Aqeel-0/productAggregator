@@ -1,4 +1,5 @@
 const AmazonDetailCrawler = require('./amazonElectronicsCrawler');
+const Logger = require('../../../utils/logger');
 
 // Configuration for different categories
 const configs = {
@@ -10,24 +11,33 @@ const configs = {
   //   maxConcurrent: 2,
   //   delayBetweenPages: 2000
   // },
-  tablet: {
-    category: 'tablet',
-    categoryUrl: 'https://www.amazon.in/s?i=computers&rh=n%3A1375458031&s=popularity-rank&page=1',
+  // tablet: {
+  //   category: 'tablet',
+  //   categoryUrl: 'https://www.amazon.in/s?i=computers&rh=n%3A1375458031&s=popularity-rank&page=1',
+  //   maxProducts: 1000,
+  //   maxPages: 40,
+  //   maxConcurrent: 7,
+  //   delayBetweenPages: 3000
+  // },
+  Mouse: {
+    category: 'mouse',
+    categoryUrl: 'https://www.amazon.in/s?i=computers&rh=n%3A1375420031%2Cp_36%3A48000-1620000%2Cp_n_feature_ten_browse-bin%3A27264558031%257C27264560031%257C56613383031&s=popularity-rank&dc&fs=true&page=1',
     maxProducts: 1000,
-    maxPages: 40,
+    maxPages: 50,
     maxConcurrent: 7,
-    delayBetweenPages: 3000
-  }
+    delayBetweenPages: 2000
+  },
 };
 
 async function runScrapers() {
-  console.log('🚀 Starting concurrent Amazon scrapers...\n');
+  const logger = new Logger('AMAZON');
+  logger.info('Starting concurrent Amazon scrapers...');
   
   const scrapers = [];
   
   // Create scrapers for each category
   for (const [category, config] of Object.entries(configs)) {
-    console.log(`📱 Initializing ${category} scraper...`);
+    logger.info(`Initializing ${category} scraper...`);
     const scraper = new AmazonDetailCrawler({
       ...config,
       headless: true
@@ -38,11 +48,11 @@ async function runScrapers() {
   // Run all scrapers concurrently
   const promises = scrapers.map(async ({ category, scraper }) => {
     try {
-      console.log(`▶️  Starting ${category} scraper...`);
+      logger.info(`Starting ${category} scraper...`);
       await scraper.start();
-      console.log(`✅ ${category} scraper completed successfully`);
+      logger.success(`${category} scraper completed successfully`);
     } catch (error) {
-      console.error(`❌ ${category} scraper failed:`, error.message);
+      logger.error(`${category} scraper failed: ${error.message}`);
       throw error;
     }
   });
@@ -50,9 +60,9 @@ async function runScrapers() {
   // Wait for all scrapers to complete
   try {
     await Promise.all(promises);
-    console.log('\n🎉 All scrapers completed successfully!');
+    logger.success('All scrapers completed successfully!');
   } catch (error) {
-    console.error('\n💥 One or more scrapers failed:', error.message);
+    logger.error(`One or more scrapers failed: ${error.message}`);
     process.exit(1);
   }
 }

@@ -5,6 +5,7 @@ const { CATEGORY_SELECTORS, PRODUCT_SELECTORS, ERROR_INDICATORS } = require('./a
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const AmazonRateLimitConfig = require('../../../rate-limiter/configs/amazon-config');
 const cheerio = require('cheerio'); // Added for Cheerio
+const Logger = require('../../../utils/logger');
 
 class AmazonDetailCrawler extends BaseCrawler {
   constructor(config = {}) {
@@ -91,6 +92,9 @@ class AmazonDetailCrawler extends BaseCrawler {
       this.checkpoint.lastPageScraped = 0;
     }
 
+    // Initialize logger for this scraper
+    this.logger = new Logger(this.category);
+    
     // Rate limiter and memory management initialized
   }
 
@@ -100,7 +104,7 @@ class AmazonDetailCrawler extends BaseCrawler {
   ensureDirectory(dir) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created directory: ${dir}`);
+      this.logger.info(`Created directory: ${dir}`);
     }
   }
 
@@ -111,10 +115,10 @@ class AmazonDetailCrawler extends BaseCrawler {
     const selectorPath = path.join(__dirname, '..', this.category, 'amazon-selectors.js');
     
     if (fs.existsSync(selectorPath)) {
-      console.log(`📋 Loading category-specific selectors: ${selectorPath}`);
+      this.logger.info(`Loading category-specific selectors: ${selectorPath}`);
       return require(selectorPath);
     } else {
-      console.log(`⚠️  Category-specific selectors not found, using default selectors`);
+      this.logger.warning(`Category-specific selectors not found, using default selectors`);
       return this.getDefaultSelectors();
     }
   }
@@ -275,7 +279,7 @@ class AmazonDetailCrawler extends BaseCrawler {
     try {
       this.checkpoint.lastRunTimestamp = new Date().toISOString();
       fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      this.logger.debug('Checkpoint saved');
+      this.logger.checkpointSaved();
     } catch (error) {
       this.logger.error(`Error saving checkpoint: ${error.message}`);
     }
@@ -347,36 +351,29 @@ class AmazonDetailCrawler extends BaseCrawler {
   }
 
   async start() {
-    console.log(`🚀 Starting Amazon ${this.category} scraping...`);
-    console.log(`📊 Category: ${this.category}`);
-    console.log(`🔗 URL: ${this.categoryUrl}`);
-    console.log(`📁 Output: ${this.outputFile}`);
-    console.log(`💾 Checkpoint: ${this.checkpointFile}\n`);
+    this.logger.startScraper(this.category, this.maxProducts || this.maxPages * this.productsPerPage);
 
     try {
-      this.logger.info(`🚀 Amazon ${this.category} Crawler Starting`);
-      
-      // Initialize memory monitoring
-      
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
       } else {
         this.productLinks = this.checkpoint.productLinks;
-        this.logger.info(`📋 Resuming: ${this.productLinks.length} products from checkpoint`);
+        this.logger.info(`Resuming: ${this.productLinks.length} products from checkpoint`);
       }
 
+      // Set total count for progress tracking
+      this.logger.setTotalCount(this.productLinks.length);
+      
       await this.scrapeProductDetails();
       
       // Retry failed products if any
       if (this.checkpoint.failedProducts.length > 0) {
-        this.logger.info(`🔄 Retrying ${this.checkpoint.failedProducts.length} failed products`);
+        this.logger.info(`Retrying ${this.checkpoint.failedProducts.length} failed products`);
         await this.retryFailedProducts();
       }
       
-      console.log(`✅ Amazon ${this.category} scraping completed!`);
-      console.log(`📊 Total products scraped: ${this.productLinks.length}`);
-      this.logger.info(`✅ Amazon ${this.category} crawling completed successfully`);
+      this.logger.completeScraper();
       
       // Enhanced cleanup to ensure proper shutdown
       await this.shutdown();
@@ -682,13 +679,16 @@ class AmazonDetailCrawler extends BaseCrawler {
         const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'amazon');
         if (!rateLimitResult.allowed) {
           const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
-          this.logger.warn(`Rate limit hit, waiting ${delayMs}ms`);
+          this.logger.rateLimit(delayMs);
           await new Promise(resolve => setTimeout(resolve, delayMs));
           continue; // Don't count this as a retry
         }
         
-                  // Processing product
+        // Processing product
         const productData = await this._scrapeProductDetail(url);
+        
+        // Update progress
+        this.logger.updateProgress();
         
         // Adaptive delay based on rate limit status
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, AmazonRateLimitConfig.baseDelay);
@@ -698,11 +698,10 @@ class AmazonDetailCrawler extends BaseCrawler {
         
       } catch (error) {
         lastError = error;
-        this.logger.warn(`Attempt ${attempt} failed for ${url}: ${error.message}`);
+        this.logger.productError(index, error.message);
         
         if (attempt < this.maxRetries) {
           const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff
-          this.logger.debug(`Retrying in ${backoffMs}ms`);
           await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
       }
@@ -1064,16 +1063,12 @@ class AmazonDetailCrawler extends BaseCrawler {
 
   async _extractTechnicalDetails($) {
      try {
-       console.log('=== EXTRACTING FROM TECHNICAL DETAILS TABLES ===');
-       
        const specifications = {};
        
        // Method 1: Extract from the main technical details table
        const specificTable = $('#productDetails_techSpec_section_1');
        
        if (specificTable.length > 0) {
-         console.log('✅ Found main technical details table, extracting data...');
-         
          specificTable.find('tr').each((index, row) => {
            const $row = $(row);
            
@@ -1088,14 +1083,10 @@ class AmazonDetailCrawler extends BaseCrawler {
              
              if (fieldName && cleanValue) {
                specifications[fieldName] = cleanValue;
-               console.log(`Specific info: ${fieldName}: ${cleanValue}`);
              }
            }
          });
-       } else {
-         console.log('❌ Main technical details table not found');
        }
-       console.log(`✅ Extracted ${Object.keys(specifications).length} items from technical details tables`);
        return specifications;
        
       } catch (error) {
@@ -1106,12 +1097,8 @@ class AmazonDetailCrawler extends BaseCrawler {
   
   async _extractSpecs($) {
     try {
-      console.log('=== EXTRACTING ALL FIELDS FROM FIRST COLUMN ===');
-      
       const specifications = {};
       const rows = $('tr:has(td[class*="tableAttributeName"])');
-      
-      console.log(`Found ${rows.length} specification rows`);
       
       for (let i = 0; i < rows.length; i++) {
         const row = rows.eq(i);
@@ -1125,14 +1112,10 @@ class AmazonDetailCrawler extends BaseCrawler {
           
           if (firstColumnValue) {
             specifications[headerCell] = firstColumnValue;
-            console.log(`${headerCell}: "${firstColumnValue}"`);
-          } else {
-            console.log(`❌ No value found for field: "${headerCell}"`);
           }
         }
       }
       
-      console.log(`✅ Extracted ${Object.keys(specifications).length} fields from first column`);
       return specifications;
       
     } catch (error) {

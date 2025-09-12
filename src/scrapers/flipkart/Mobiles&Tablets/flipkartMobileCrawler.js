@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const { CATEGORY_SELECTORS, PRODUCT_SELECTORS } = require('./flipkart-selectors');
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const FlipkartRateLimitConfig = require('../../../rate-limiter/configs/flipkart-config');
+const Logger = require('../../../utils/logger');
 
 class FlipkartCrawler extends BaseCrawler {
   constructor(config = {}) {
@@ -33,6 +34,9 @@ class FlipkartCrawler extends BaseCrawler {
     };
     
     super({ ...defaultConfig, ...config });
+    
+    // Initialize logger for this scraper
+    this.logger = new Logger(config.category || 'FLIPKART');
     
     // Configuration
     this.category = config.category || 'mobile';
@@ -154,7 +158,7 @@ class FlipkartCrawler extends BaseCrawler {
   saveCheckpoint() {
     try {
       fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      // Checkpoint saved
+      this.logger.checkpointSaved();
     } catch (error) {
       this.logger.error(`Error saving checkpoint: ${error.message}`);
     }
@@ -224,15 +228,9 @@ class FlipkartCrawler extends BaseCrawler {
   }
 
   async start() {
-    console.log(`🚀 Starting Flipkart ${this.category} scraping...`);
-    console.log(`📊 Category: ${this.category}`);
-    console.log(`🔗 URL: ${this.categoryUrl}`);
-    console.log(`📁 Output: ${this.outputFile}`);
-    console.log(`💾 Checkpoint: ${this.checkpointFile}\n`);
+    this.logger.startScraper(this.category, this.maxProducts || this.maxPages * this.productsPerPage);
 
     try {
-      this.logger.info(`🚀 Flipkart ${this.category} Crawler Starting`);
-      
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
@@ -240,6 +238,9 @@ class FlipkartCrawler extends BaseCrawler {
         this.productLinks = this.checkpoint.productLinks;
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
       }
+
+      // Set total count for progress tracking
+      this.logger.setTotalCount(this.productLinks.length);
 
       await this.scrapeProductDetails();
 
@@ -266,9 +267,7 @@ class FlipkartCrawler extends BaseCrawler {
         this.logger.info('Related products processing disabled in configuration');
       }
 
-      console.log(`✅ Flipkart ${this.category} scraping completed!`);
-      console.log(`📊 Total products scraped: ${this.productLinks.length}`);
-      this.logger.info(`✅ Flipkart ${this.category} crawling completed successfully`);
+      this.logger.completeScraper();
       
       // Enhanced cleanup to ensure proper shutdown
       await this.shutdown();
@@ -498,13 +497,18 @@ class FlipkartCrawler extends BaseCrawler {
         const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'flipkart');
         if (!rateLimitResult.allowed) {
           const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
-          this.logger.warn(`Rate limit hit, waiting ${delayMs}ms`);
+          this.logger.rateLimit(delayMs);
           await new Promise(resolve => setTimeout(resolve, delayMs));
           continue; // Don't count this as a retry
         }
         
-        // Processing product ${index + 1}
+        // Processing product
         const productData = await this._scrapeProductDetail(url, isRelated);
+        
+        // Update progress (only for main products, not related)
+        if (!isRelated) {
+          this.logger.updateProgress();
+        }
         
         // Adaptive delay based on rate limit status
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
@@ -515,11 +519,10 @@ class FlipkartCrawler extends BaseCrawler {
       } catch (error) {
         lastError = error;
         const errorMessage = error?.message || 'Unknown error occurred';
-        this.logger.warn(`Attempt ${attempt} failed for ${url}: ${errorMessage}`);
+        this.logger.productError(index, errorMessage);
         
         if (attempt < this.maxRetries) {
           const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff
-          this.logger.debug(`Retrying in ${backoffMs}ms`);
           await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
       }

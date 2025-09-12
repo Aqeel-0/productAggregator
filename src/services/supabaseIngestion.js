@@ -3,6 +3,7 @@ const path = require('path');
 const supabaseSingleton = require('./supabase');
 
 const {Brand, Category, Product, ProductVariant, Listing } = require('../database/models');
+const ProductVariantTablet = require('../database/models/ProductVariantTablet');
 
 class DatabaseInserter {
   constructor() {
@@ -72,7 +73,13 @@ class DatabaseInserter {
    * Get or create product variant using model method
    */
   async getOrCreateVariant(productData, productId, brandName = null) {
-    return await ProductVariant.insertWithCache(productData, productId, brandName, this.variantCache, this.stats, this.supabase);
+    // Use tablet-specific handler for tablet products
+    if (productData.category === 'Tablets') {
+      return await ProductVariantTablet.insertWithCache(productData, productId, brandName, this.variantCache, this.stats, this.supabase);
+    } else {
+      // Use standard handler for mobile products
+      return await ProductVariant.insertWithCache(productData, productId, brandName, this.variantCache, this.stats, this.supabase);
+    }
   }
 
   /**
@@ -407,6 +414,8 @@ class DatabaseInserter {
   async insertAllNormalizedData() {
     this.supabase = supabaseSingleton.getClient();
     const normalizedFiles = [
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_tablet_normalized_data.json'), source: 'Flipkart' },
+      { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_tablet_normalized_data.json'), source: 'Amazon' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
       { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },

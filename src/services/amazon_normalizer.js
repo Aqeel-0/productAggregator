@@ -104,17 +104,20 @@ class AmazonNormalizer {
         model_number: this.extractModelNumber(specs)
       },
 
+      category: this.extractCategory(product),
+
       variant_attributes: {
         color: this.getAiColor(product),
         ram: this.getAiRAM(product),
-        availability: product.availability,
+        
         storage: this.getAiStorage(product)
       },
 
       listing_info: {
         price: this.normalizePrice(product.price),
         rating: this.normalizeRating(product.rating),
-        image_url: this.cleanAmazonImageUrl(product.image)
+        image_url: this.cleanAmazonImageUrl(product.image),
+        availability: product.availability,
       },
 
       key_specifications: {
@@ -507,6 +510,15 @@ class AmazonNormalizer {
     
     // For other products, return original categories or default
     return product.categories || [];
+  }
+
+  /**
+   * Extract category from breadcrumb
+   */
+  extractCategory(product) {
+    const breadcrumb = this.getCategoryBreadcrumb(product);
+    // For mobiles, use breadcrumb[3] (index 3)
+    return breadcrumb[3] || null;
   }
 
   /**

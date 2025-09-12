@@ -69,19 +69,23 @@ class FlipkartTabletNormalizer {
         original_title: product.title || null,
         model_number: this.extractModelNumber(specs)
       },
+
+      category: this.extractCategory(product),
       
       variant_attributes: {
         color: this.extractColor(specs),
         ram: this.extractRAM(specs),
-        storage: this.extractStorage(specs)
+        storage: this.extractStorage(specs),
+        display_size: this.extractDisplaySize(specs),
+        connectivity_type: this.extractConnectivityType(product)
       },
       
       listing_info: {
         price: this.normalizePrice(product.price),
-        availability: product.availability,
         rating: this.normalizeRating(product.rating),
         image_url: this.processFlipkartImage(product.image),
-        image_urls: this.processFlipkartImages(product.images, product.image)
+        image_urls: this.processFlipkartImages(product.images, product.image),
+        availability: product.availability || null
       },
       
       key_specifications: {
@@ -90,13 +94,7 @@ class FlipkartTabletNormalizer {
         camera: this.extractCameraSpecs(specs),
         battery: this.extractBatterySpecs(specs),
         connectivity: this.extractConnectivitySpecs(specs),
-        design: this.extractDesignSpecs(specs),
-        storage: this.extractStorageSpecs(specs),
-        multimedia: this.extractMultimediaSpecs(specs),
-        navigation: this.extractNavigationSpecs(specs),
-        sensors: this.extractSensorSpecs(specs),
-        warranty: this.extractWarrantySpecs(specs),
-        general: this.extractGeneralSpecs(specs)
+        design: this.extractDesignSpecs(specs)
       },
       
       source_metadata: {
@@ -108,6 +106,15 @@ class FlipkartTabletNormalizer {
   generateCategoryBreadcrumb(product) {
     // Since we're filtering out laptops, all remaining products are tablets
     return ["Electronics", "Mobiles & Accessories", "Tablets"];
+  }
+
+  /**
+   * Extract category from breadcrumb
+   */
+  extractCategory(product) {
+    const breadcrumb = this.generateCategoryBreadcrumb(product);
+    // For tablets, use breadcrumb[2] (index 2)
+    return breadcrumb[2] || null;
   }
 
   extractBrand(product) {
@@ -131,21 +138,17 @@ class FlipkartTabletNormalizer {
       }
     }
     
-    // Fallback to title extraction
+    // Fallback to title extraction - first word approach
     if (product.title) {
-      const title = product.title.toLowerCase();
-      if (title.includes('samsung')) return 'Samsung';
-      if (title.includes('apple') || title.includes('ipad')) return 'Apple';
-      if (title.includes('xiaomi') || title.includes('mi')) return 'Xiaomi';
-      if (title.includes('dell')) return 'Dell';
-      if (title.includes('lenovo')) return 'Lenovo';
-      if (title.includes('hp')) return 'HP';
-      if (title.includes('asus')) return 'ASUS';
-      if (title.includes('acer')) return 'Acer';
-      if (title.includes('realme')) return 'Realme';
-      if (title.includes('oneplus')) return 'OnePlus';
-      if (title.includes('oppo')) return 'OPPO';
-      if (title.includes('vivo')) return 'Vivo';
+      const firstWord = product.title.split(' ')[0]
+        .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+        .trim();
+      
+      // If we have a valid first word, return it as brand name
+      if (firstWord && firstWord.length > 0) {
+        // Normalize the brand name (capitalize first letter)
+        return firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase();
+      }
     }
     
     return null;
@@ -241,7 +244,15 @@ class FlipkartTabletNormalizer {
     
     for (const storageStr of storagePaths) {
       if (storageStr) {
-        const match = storageStr.match(/(\d+)\s*GB/i);
+        // Try TB format first
+        let match = storageStr.match(/(\d+)\s*TB/i);
+        if (match) {
+          // Convert TB to GB (multiply by 1024)
+          return parseInt(match[1]) * 1024;
+        }
+        
+        // Try GB format
+        match = storageStr.match(/(\d+)\s*GB/i);
         if (match) {
           return parseInt(match[1]);
         }
@@ -250,13 +261,116 @@ class FlipkartTabletNormalizer {
     
     // Fallback: try to extract from title
     if (this.currentTitle) {
-      const titleMatch = this.currentTitle.match(/,\s*(\d+)\s*GB\s*ROM\s*\)/i);
+      // Try pattern: "16 GB RAM 2 TB ROM" (no comma, TB format)
+      let titleMatch = this.currentTitle.match(/(\d+)\s*GB\s*RAM\s+(\d+)\s*TB\s*ROM/i);
+      if (titleMatch) {
+        // Convert TB to GB (multiply by 1024)
+        return parseInt(titleMatch[2]) * 1024;
+      }
+      
+      // Try pattern: "16 GB RAM 128 GB ROM" (no comma, GB format)
+      titleMatch = this.currentTitle.match(/(\d+)\s*GB\s*RAM\s+(\d+)\s*GB\s*ROM/i);
+      if (titleMatch) {
+        return parseInt(titleMatch[2]);
+      }
+      
+      // Try pattern: ", 128 GB ROM)" (with comma, GB format)
+      titleMatch = this.currentTitle.match(/,\s*(\d+)\s*GB\s*ROM\s*\)/i);
       if (titleMatch) {
         return parseInt(titleMatch[1]);
+      }
+      
+      // Try pattern: ", 2 TB ROM)" (with comma, TB format)
+      titleMatch = this.currentTitle.match(/,\s*(\d+)\s*TB\s*ROM\s*\)/i);
+      if (titleMatch) {
+        // Convert TB to GB (multiply by 1024)
+        return parseInt(titleMatch[1]) * 1024;
       }
     }
 
     return null;
+  }
+
+  /**
+   * Extract display size in inches
+   */
+  extractDisplaySize(specs) {
+    const displaySize = specs['Product Details']?.['Display Size'];
+    if (!displaySize) return null;
+    
+    // Extract inch value from parentheses (more reliable)
+    const inchMatch = displaySize.match(/\((\d+\.?\d*)\s*inch\)/i);
+    if (inchMatch) {
+      const size = parseFloat(inchMatch[1]);
+      // Filter unrealistic sizes
+      if (size >= 6 && size <= 15) {
+        return Math.round(size * 10) / 10; // Round to 1 decimal
+      }
+    }
+    
+    // Fallback: extract any numeric value and convert if needed
+    const match = displaySize.match(/(\d+\.?\d*)/);
+    if (!match) return null;
+    
+    let size = parseFloat(match[1]);
+    
+    // Convert cm to inches if needed
+    if (displaySize.toLowerCase().includes('cm') && !displaySize.toLowerCase().includes('inch')) {
+      size = size / 2.54;
+    }
+    
+    // Filter unrealistic sizes
+    if (size < 6 || size > 15) return null;
+    
+    return Math.round(size * 10) / 10; // Round to 1 decimal
+  }
+
+  /**
+   * Extract connectivity type - primary from connectivity specs, fallback to category
+   */
+  extractConnectivityType(product) {
+    const specs = product.specifications || {};
+    
+    // Primary method: Use connectivity.type field from specs
+    const connectivityType = specs['General']?.['Connectivity'];
+    if (connectivityType) {
+      // Map specific connectivity types
+      switch (connectivityType) {
+        case 'Wi-Fi+5G':
+          return 'Wi-Fi+5G';
+        case 'Wi-Fi+4G':
+          return 'Wi-Fi+4G';
+        case '4G':
+          return 'Wi-Fi+4G'; // Assume 4G tablets also have Wi-Fi
+        case 'Wi-Fi+3G':
+          return 'Wi-Fi+3G';
+        case '3G':
+          return 'Wi-Fi+3G'; // Assume 3G tablets also have Wi-Fi
+        case 'Wi-Fi Only':
+          return 'Wi-Fi Only';
+        default:
+          // If we have a connectivity type but it's not recognized, continue to fallback
+          break;
+      }
+    }
+    
+    // Fallback method: Use category breadcrumb
+    if (product.category && Array.isArray(product.category) && product.category.length >= 3) {
+      const category3 = product.category[3]; // e.g., "Apple Tablets", "Samsung Tablets", etc.
+      
+      // Check if category indicates cellular capability
+      if (category3 && category3.toLowerCase().includes('with call facility')) {
+        return 'Wi-Fi+Cellular';
+      }
+      
+      // Check if category indicates Wi-Fi only
+      if (category3 && category3.toLowerCase().includes('without call facility')) {
+        return 'Wi-Fi Only';
+      }
+    }
+    
+    // Default fallback - assume Wi-Fi Only for tablets without clear indication
+    return 'Wi-Fi Only';
   }
 
   /**
@@ -311,25 +425,45 @@ class FlipkartTabletNormalizer {
    * Process Flipkart image URL
    */
   processFlipkartImage(imageUrl) {
-    if (!imageUrl) return null;
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
     
-    // Convert to higher resolution if possible
-    if (imageUrl.includes('/128/128/')) {
-      return imageUrl.replace('/128/128/', '/845/845/');
-    }
+    // Change size from 128/128, 416/416, etc. to 845/845
+    const processedUrl = imageUrl.replace(/\/\d+\/\d+\//, '/845/845/');
     
-    return imageUrl;
+    return processedUrl;
   }
 
   /**
    * Process Flipkart images array
    */
   processFlipkartImages(images, mainImage) {
-    if (!images || !Array.isArray(images)) {
-      return [];
+    if (!Array.isArray(images) || images.length === 0) return [];
+    
+    const processedImages = [];
+    const seenUrls = new Set();
+    
+    // Add main image to seen URLs if provided
+    if (mainImage) {
+      const processedMainImage = this.processFlipkartImage(mainImage);
+      if (processedMainImage) {
+        seenUrls.add(processedMainImage);
+      }
     }
-
-    return images.map(img => this.processFlipkartImage(img));
+    
+    for (const imageUrl of images) {
+      if (!imageUrl || typeof imageUrl !== 'string') continue;
+      
+      // Change size from 128/128 to 845/845
+      const processedUrl = imageUrl.replace(/\/\d+\/\d+\//, '/845/845/');
+      
+      // Only add if we haven't seen this URL before (including main image)
+      if (!seenUrls.has(processedUrl)) {
+        seenUrls.add(processedUrl);
+        processedImages.push(processedUrl);
+      }
+    }
+    
+    return processedImages;
   }
 
   /**
@@ -537,14 +671,59 @@ class FlipkartTabletNormalizer {
   extractDesignSpecs(specs) {
     const design = {};
     
-    // Weight
-    if (specs['Dimensions']?.['Weight']) {
-      design.weight = specs['Dimensions']['Weight'];
+    // Color (from General section)
+    if (specs['General']?.['Color']) {
+      design.color = specs['General']['Color'];
     }
     
-    // Dimensions
+    // Weight (check multiple possible locations)
+    if (specs['Dimensions']?.['Weight']) {
+      design.weight = specs['Dimensions']['Weight'];
+    } else if (specs['General']?.['Weight']) {
+      design.weight = specs['General']['Weight'];
+    } else if (specs['Product Details']?.['Weight']) {
+      design.weight = specs['Product Details']['Weight'];
+    }
+    
+    // Dimensions (check multiple possible locations)
     if (specs['Dimensions']?.['Dimensions']) {
       design.dimensions = specs['Dimensions']['Dimensions'];
+    } else if (specs['General']?.['Dimensions']) {
+      design.dimensions = specs['General']['Dimensions'];
+    } else if (specs['Product Details']?.['Dimensions']) {
+      design.dimensions = specs['Product Details']['Dimensions'];
+    }
+    
+    // Height, Width, Depth (check multiple possible locations)
+    if (specs['Dimensions']?.['Height']) {
+      design.height = specs['Dimensions']['Height'];
+    } else if (specs['General']?.['Height']) {
+      design.height = specs['General']['Height'];
+    }
+    
+    if (specs['Dimensions']?.['Width']) {
+      design.width = specs['Dimensions']['Width'];
+    } else if (specs['General']?.['Width']) {
+      design.width = specs['General']['Width'];
+    }
+    
+    if (specs['Dimensions']?.['Depth']) {
+      design.depth = specs['Dimensions']['Depth'];
+    } else if (specs['General']?.['Depth']) {
+      design.depth = specs['General']['Depth'];
+    }
+    
+    // Material/Build (check multiple possible locations)
+    if (specs['General']?.['Material']) {
+      design.material = specs['General']['Material'];
+    } else if (specs['Product Details']?.['Material']) {
+      design.material = specs['Product Details']['Material'];
+    }
+    
+    if (specs['General']?.['Build']) {
+      design.build = specs['General']['Build'];
+    } else if (specs['Product Details']?.['Build']) {
+      design.build = specs['Product Details']['Build'];
     }
     
     return Object.keys(design).length > 0 ? design : null;

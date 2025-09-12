@@ -8,7 +8,7 @@
 const CATEGORY_SELECTORS = {
   PRODUCT_GRID: '//div[contains(@class, "_1YokD2")]',
   PRODUCT_CARD: '//div[contains(@class, "_2kHMtA")]',
-  PRODUCT_LINK: '//a[contains(@class, "CGtC98")]',
+  PRODUCT_LINK: '//a[contains(@class, "wjcEIp")]',
   NEXT_PAGE: '//a[span[text()="Next"]]'
 };
 

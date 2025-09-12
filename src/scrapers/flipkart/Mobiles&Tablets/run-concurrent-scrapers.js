@@ -1,4 +1,5 @@
 const FlipkartCrawler = require('./flipkartMobileCrawler');
+const Logger = require('../../../utils/logger');
 
 // Configuration for different categories
 const configs = {
@@ -14,16 +15,29 @@ const configs = {
   //     enabled: false // Disable related products for mobile
   //   }
   // },
-  tablet: {
-    category: 'tablet',
-    categoryUrl: 'https://www.flipkart.com/tablets/pr?sid=tyy%2Chry&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&page=1',
-    maxProducts: 600,
+  // tablet: {
+  //   category: 'tablet',
+  //   categoryUrl: 'https://www.flipkart.com/tablets/pr?sid=tyy%2Chry&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&page=1',
+  //   maxProducts: 600,
+  //   totalMaxProducts: 3000,
+  //   maxPages: 40,
+  //   maxConcurrent: 5,
+  //   delayBetweenPages: 3000,
+  //   // Related products configuration
+  //   totalMaxProducts: 1000, // Total products including related
+  //   relatedProducts: {
+  //     enabled: true,
+  //     maxPerProduct: 5 // Max related products per main product
+  //   }
+  // },
+  Mouse: {
+    category: 'mouse',
+    categoryUrl: 'https://www.flipkart.com/computers/computer-peripherals/keyboards-mouse-accessories/mouse/pr?sid=6bo%2Ctia%2C8pp%2Cp0w&otracker=categorytree&page=1',
+    maxProducts: 1000,
     totalMaxProducts: 3000,
     maxPages: 40,
     maxConcurrent: 5,
     delayBetweenPages: 3000,
-    // Related products configuration
-    totalMaxProducts: 1000, // Total products including related
     relatedProducts: {
       enabled: true,
       maxPerProduct: 5 // Max related products per main product
@@ -32,13 +46,14 @@ const configs = {
 };
 
 async function runScrapers() {
-  console.log('🚀 Starting concurrent Flipkart scrapers...\n');
+  const logger = new Logger('FLIPKART');
+  logger.info('Starting concurrent Flipkart scrapers...');
   
   const scrapers = [];
   
   // Create scrapers for each category
   for (const [category, config] of Object.entries(configs)) {
-    console.log(`📱 Initializing ${category} scraper...`);
+    logger.info(`Initializing ${category} scraper...`);
     const scraper = new FlipkartCrawler({
       ...config,
       headless: true
@@ -49,11 +64,11 @@ async function runScrapers() {
   // Run all scrapers concurrently
   const promises = scrapers.map(async ({ category, scraper }) => {
     try {
-      console.log(`▶️  Starting ${category} scraper...`);
+      logger.info(`Starting ${category} scraper...`);
       await scraper.start();
-      console.log(`✅ ${category} scraper completed successfully`);
+      logger.success(`${category} scraper completed successfully`);
     } catch (error) {
-      console.error(`❌ ${category} scraper failed:`, error.message);
+      logger.error(`${category} scraper failed: ${error.message}`);
       throw error;
     }
   });
@@ -61,9 +76,9 @@ async function runScrapers() {
   // Wait for all scrapers to complete
   try {
     await Promise.all(promises);
-    console.log('\n🎉 All scrapers completed successfully!');
+    logger.success('All scrapers completed successfully!');
   } catch (error) {
-    console.error('\n💥 One or more scrapers failed:', error.message);
+    logger.error(`One or more scrapers failed: ${error.message}`);
     process.exit(1);
   }
 }

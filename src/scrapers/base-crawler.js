@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+const Logger = require('../utils/logger');
 puppeteer.use(StealthPlugin())
 
 class BaseCrawler {
@@ -28,12 +29,7 @@ class BaseCrawler {
     };
     
     this.browser = null;
-    this.logger = {
-      info: console.log,
-      error: console.error,
-      warn: console.warn,
-      debug: console.log
-    };
+    this.logger = new Logger(config.category || 'CRAWLER');
     
     // Memory management state
     this.pagePool = [];

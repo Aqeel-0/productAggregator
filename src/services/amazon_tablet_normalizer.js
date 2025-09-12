@@ -30,9 +30,9 @@ class AmazonTabletNormalizer {
       this.enhancedProducts = await this.aiEnhancer.enhanceAmazonData(products, 'tablet');
       console.log(`✅ AI Enhancement completed for ${this.enhancedProducts.length} products`);
       
-      // Calculate success/failure stats
+      // Calculate success/filtered stats
       let successCount = 0;
-      let failureCount = 0;
+      let filteredCount = 0;
       
       for (const product of this.enhancedProducts) {
         if (product.extracted_attributes && 
@@ -40,13 +40,13 @@ class AmazonTabletNormalizer {
             product.extracted_attributes.model_name) {
           successCount++;
         } else {
-          failureCount++;
+          filteredCount++;
         }
       }
       
       console.log(`📊 AI Enhancement Results:`);
       console.log(`   ✅ Successful: ${successCount} products (${((successCount / products.length) * 100).toFixed(1)}%)`);
-      console.log(`   ❌ Failed: ${failureCount} products (${((failureCount / products.length) * 100).toFixed(1)}%)`);
+      console.log(`   🔍 Filtered: ${filteredCount} products (${((filteredCount / products.length) * 100).toFixed(1)}%)`);
       
     } catch (error) {
       console.error(`❌ AI Enhancement failed: ${error.message}`);
@@ -66,13 +66,22 @@ class AmazonTabletNormalizer {
           continue;
         }
 
-        // Skip non-tablet products
-        if (!this.isTablet(enhancedProduct)) {
+        // Check if product is in tablets category - filter out non-tablets
+        if (!this.isTabletCategory(enhancedProduct)) {
           skippedCount++;
           continue;
         }
 
-        const normalizedProduct = this.normalizeProduct(enhancedProduct);
+        // Get AI attributes
+        const aiAttributes = this.getAiAttributes(enhancedProduct);
+
+        // Check if AI marked it as not a tablet
+        if (aiAttributes && aiAttributes.not_tablet === true) {
+          skippedCount++;
+          continue;
+        }
+
+        const normalizedProduct = this.normalizeProduct(enhancedProduct, aiAttributes);
         if (normalizedProduct) {
           normalized.push(normalizedProduct);
         }
@@ -82,40 +91,12 @@ class AmazonTabletNormalizer {
     }
 
     if (skippedCount > 0) {
-      console.log(`⚠️  Skipped ${skippedCount} non-tablet or invalid products`);
+      console.log(`🔍 Filtered ${skippedCount} non-tablet or invalid products (category filtering + AI filtering)`);
     }
 
     return normalized;
   }
 
-  /**
-   * Check if product is a tablet
-   */
-  isTablet(product) {
-    // Check categories
-    if (product.categories && Array.isArray(product.categories)) {
-      const categoryString = product.categories.join(' ').toLowerCase();
-      if (categoryString.includes('tablet')) {
-        return true;
-      }
-    }
-
-    // Check title
-    if (product.title && product.title.toLowerCase().includes('tablet')) {
-      return true;
-    }
-
-    // Check if it's clearly a phone or laptop
-    if (product.title) {
-      const titleLower = product.title.toLowerCase();
-      if (titleLower.includes('smartphone') || titleLower.includes('mobile') || 
-          titleLower.includes('laptop') || titleLower.includes('notebook')) {
-        return false;
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Get AI-enhanced attributes directly from the enhanced product
@@ -127,10 +108,14 @@ class AmazonTabletNormalizer {
   /**
    * Normalize single Amazon tablet product to match exact format specification
    */
-  normalizeProduct(product) {
+  normalizeProduct(product, aiAttributes) {
+    // Filter out non-tablet products based on AI flag
+    if (aiAttributes && aiAttributes.not_tablet === true) {
+      throw new Error('Product is not a tablet - skipping');
+    }
+
     const specs = product.specifications || {};
     const techDetails = specs['Technical Details']?.technicalDetails || {};
-    const aiAttributes = this.getAiAttributes(product);
 
     // Store current title for fallback extractions
     this.currentTitle = product.title;
@@ -144,20 +129,27 @@ class AmazonTabletNormalizer {
       },
 
       product_identifiers: {
-        brand_name: this.extractBrand(product, aiAttributes),
+        brand: this.extractBrand(product, aiAttributes),
         model_name: this.extractModel(product, aiAttributes),
-        model_number: this.extractModelNumber(product, aiAttributes),
-        category_breadcrumb: this.generateCategoryBreadcrumb(product)
+        original_title: product.title || null,
+        model_number: this.extractModelNumber(product, aiAttributes)
       },
 
-      product_details: {
-        title: product.title || null,
-        description: this.extractDescription(product),
+      category: this.extractCategory(product),
+
+      variant_attributes: {
+        color: this.extractColor(product, aiAttributes),
+        ram: this.extractRAM(specs, techDetails, aiAttributes),
+        storage: this.extractStorage(specs, techDetails, aiAttributes),
+        display_size: this.extractDisplaySize(specs, techDetails, aiAttributes),
+        connectivity_type: this.extractConnectivityType(specs, techDetails, aiAttributes)
+      },
+
+      listing_info: {
         price: this.extractPrice(product),
-        availability: product.availability || null,
         rating: this.extractRating(product),
-        image_url: product.image || null,
-        image_urls: this.extractImageUrls(product)
+        image_url: this.cleanAmazonImageUrl(product.image),
+        availability: product.availability || null,
       },
 
       key_specifications: {
@@ -166,18 +158,29 @@ class AmazonTabletNormalizer {
         camera: this.extractCameraSpecs(specs, techDetails),
         battery: this.extractBatterySpecs(specs, techDetails),
         connectivity: this.extractConnectivitySpecs(specs, techDetails),
-        design: this.extractDesignSpecs(specs, techDetails),
-        storage: this.extractStorageSpecs(specs, techDetails),
-        multimedia: this.extractMultimediaSpecs(specs, techDetails)
+        design: this.extractDesignSpecs(specs, techDetails)
       },
 
-      variant_attributes: {
-        ram_gb: this.extractRAM(specs, techDetails, aiAttributes),
-        storage_gb: this.extractStorage(specs, techDetails, aiAttributes),
-        color: this.extractColor(product, aiAttributes),
-        connectivity_type: this.extractConnectivityType(specs, techDetails)
+      source_metadata: {
+        category_breadcrumb: this.generateCategoryBreadcrumb(product)
       }
     };
+  }
+
+  /**
+   * Clean Amazon image URL
+   */
+  cleanAmazonImageUrl(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') return null;
+    
+    // Remove Amazon size suffixes like _SX679_, _SY679_, etc.
+    // Pattern: underscore, SX or SY, followed by numbers, then underscore
+    let cleanedUrl = imageUrl.replace(/_(SX|SY)\d+_/g, '');
+    
+    // Fix multiple consecutive dots that might occur after cleaning
+    cleanedUrl = cleanedUrl.replace(/\.{2,}/g, '.');
+    
+    return cleanedUrl;
   }
 
   /**
@@ -188,16 +191,30 @@ class AmazonTabletNormalizer {
   }
 
   /**
+   * Extract category from breadcrumb
+   */
+  extractCategory(product) {
+    // For tablet products, always return "Tablets" as the category
+    return "Tablets";
+  }
+
+  /**
+   * Check if product is in tablets category
+   */
+  isTabletCategory(product) {
+    // Check if product has categories array and categories[1] is "Tablets"
+    if (product.categories && Array.isArray(product.categories) && product.categories.length > 1) {
+      return product.categories[1] === 'Tablets';
+    }
+    return false;
+  }
+
+  /**
    * Extract brand name
    */
   extractBrand(product, aiAttributes) {
     const specs = product.specifications || {};
     const techDetails = specs['Technical Details']?.technicalDetails || {};
-
-    // Try AI first
-    if (aiAttributes?.brand_name) {
-      return aiAttributes.brand_name;
-    }
 
     // Try from specifications
     if (specs.Brand) {
@@ -208,7 +225,10 @@ class AmazonTabletNormalizer {
     if (techDetails.Brand) {
       return techDetails.Brand;
     }
-
+    // Try AI first
+    if (aiAttributes?.brand_name) {
+      return aiAttributes.brand_name;
+    }
     // Fallback to title extraction
     const title = product.title || '';
     const brandKeywords = ['samsung', 'apple', 'oneplus', 'xiaomi', 'huawei', 'lenovo', 'dell', 'hp', 'asus', 'acer', 'microsoft', 'amazon'];
@@ -278,12 +298,36 @@ class AmazonTabletNormalizer {
    * Extract price information
    */
   extractPrice(product) {
-    if (!product.price) return null;
+    if (!product.price) return {
+      current: null,
+      original: null,
+      discount_percent: null,
+      currency: "INR"
+    };
+
+    // Clean price strings and convert to numbers
+    const cleanPrice = (priceStr) => {
+      if (!priceStr) return null;
+      // Remove currency symbols, commas, and extra spaces
+      const cleaned = priceStr.replace(/[₹,\s]/g, '').trim();
+      const match = cleaned.match(/(\d+)/);
+      return match ? parseInt(match[1]) : null;
+    };
+
+    // Extract discount percentage
+    let discountPercent = null;
+    if (product.price.discount) {
+      const discountMatch = product.price.discount.match(/-?(\d+)%/);
+      if (discountMatch) {
+        discountPercent = parseInt(discountMatch[1]);
+      }
+    }
 
     return {
-      current: product.price.current ? parseFloat(product.price.current.replace(/[₹,]/g, '')) : null,
-      original: product.price.original ? parseFloat(product.price.original.replace(/[₹,]/g, '')) : null,
-      discount_percentage: product.price.discount ? parseFloat(product.price.discount.replace(/[%-]/g, '')) : null
+      current: cleanPrice(product.price.current),
+      original: cleanPrice(product.price.original),
+      discount_percent: discountPercent,
+      currency: "INR"
     };
   }
 
@@ -291,32 +335,23 @@ class AmazonTabletNormalizer {
    * Extract rating information
    */
   extractRating(product) {
-    if (!product.rating) return null;
+    if (!product.rating) return {
+      score: null,
+      count: null
+    };
 
     return {
-      value: product.rating.value || null,
+      score: product.rating.value || null,
       count: product.rating.count || null
     };
   }
-
-  /**
-   * Extract image URLs
-   */
-  extractImageUrls(product) {
-    const images = [];
-    if (product.image) {
-      images.push(product.image);
-    }
-    return images.length > 0 ? images : null;
-  }
-
   /**
    * Extract RAM
    */
   extractRAM(specs, techDetails, aiAttributes) {
     // Try AI first
-    if (aiAttributes?.ram_gb) {
-      return aiAttributes.ram_gb;
+    if (aiAttributes?.ram !== null && aiAttributes?.ram !== undefined) {
+      return aiAttributes.ram;
     }
 
     // Try from technical details
@@ -343,8 +378,8 @@ class AmazonTabletNormalizer {
    */
   extractStorage(specs, techDetails, aiAttributes) {
     // Try AI first
-    if (aiAttributes?.storage_gb) {
-      return aiAttributes.storage_gb;
+    if (aiAttributes?.storage !== null && aiAttributes?.storage !== undefined) {
+      return aiAttributes.storage;
     }
 
     // Try from specifications
@@ -376,6 +411,8 @@ class AmazonTabletNormalizer {
     }
 
     // Try from technical details
+    const specs = product.specifications || {};
+    const techDetails = specs['Technical Details']?.technicalDetails || {};
     if (techDetails.Colour) {
       return techDetails.Colour;
     }
@@ -386,9 +423,71 @@ class AmazonTabletNormalizer {
   /**
    * Extract connectivity type
    */
-  extractConnectivityType(specs, techDetails) {
+  extractConnectivityType(specs, techDetails, aiAttributes) {
+    // First try AI attributes
+    if (aiAttributes && aiAttributes.connectivity_type) {
+      return aiAttributes.connectivity_type;
+    }
+
+    // Fallback to raw data
     if (techDetails['Connectivity Type']) {
-      return techDetails['Connectivity Type'];
+      const connectivity = techDetails['Connectivity Type'];
+      // Normalize connectivity type
+      if (connectivity.toLowerCase().includes('cellular') || connectivity.toLowerCase().includes('5g') || connectivity.toLowerCase().includes('4g')) {
+        return 'Wi-Fi + Cellular';
+      } else if (connectivity.toLowerCase().includes('wi-fi') || connectivity.toLowerCase().includes('wifi')) {
+        return 'Wi-Fi Only';
+      }
+      return connectivity;
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract display size in inches
+   */
+  extractDisplaySize(specs, techDetails, aiAttributes) {
+    // First try AI attributes
+    if (aiAttributes && aiAttributes.display_size) {
+      return aiAttributes.display_size;
+    }
+
+    // Helper function to parse screen size
+    const parseScreenSize = (screenSize) => {
+      if (!screenSize) return null;
+      
+      // Extract number and unit
+      const match = screenSize.match(/(\d+\.?\d*)\s*(inch|inches|cm|centimetres?)?/i);
+      if (!match) return null;
+      
+      let size = parseFloat(match[1]);
+      const unit = match[2] ? match[2].toLowerCase() : '';
+      
+      // Convert cm to inches if needed
+      if (unit.includes('cm') || unit.includes('centimetre')) {
+        size = size / 2.54;
+      }
+      // If no unit specified, assume inches (most common case)
+      
+      // Filter out unrealistic sizes (likely misclassified products)
+      if (size < 6 || size > 20) {
+        return null; // Skip TVs, monitors, or other non-tablet products
+      }
+      
+      return Math.round(size * 10) / 10; // Round to 1 decimal place
+    };
+
+    // Try primary field
+    if (specs['Screen Size']) {
+      const result = parseScreenSize(specs['Screen Size']);
+      if (result) return result;
+    }
+
+    // Try alternative field
+    if (techDetails['Standing screen display size']) {
+      const result = parseScreenSize(techDetails['Standing screen display size']);
+      if (result) return result;
     }
 
     return null;

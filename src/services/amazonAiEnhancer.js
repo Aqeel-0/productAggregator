@@ -10,9 +10,9 @@ class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
     this.genAI = new GoogleGenerativeAI('AIzaSyDiqCpBAzFWZFpe6Wg-M0zy2TLPRqFTkLk');
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     this.batchSize = 50; // Process 50 products per batch
-    this.stats = { totalProcessed: 0, successful: 0, failed: 0, apiCalls: 0 };
+    this.stats = { totalProcessed: 0, successful: 0, filtered: 0, apiCalls: 0 };
   }
 
   /**
@@ -143,14 +143,14 @@ class AmazonAiEnhancer {
           if (validatedData.brand_name && validatedData.model_name) {
             this.stats.successful++;
           } else {
-            this.stats.failed++;
+            this.stats.filtered++;
           }
         } else {
           // No matching AI data found for this URL
           console.log(`⚠️  No AI data found for URL: ${product.url?.substring(0, 50)}...`);
           const enhancedProduct = this.mergeWithOriginalData(product, {});
           enhancedBatch.push(enhancedProduct);
-          this.stats.failed++;
+          this.stats.filtered++;
         }
         this.stats.totalProcessed++;
       }
@@ -167,8 +167,8 @@ class AmazonAiEnhancer {
         enhanced_at: new Date().toISOString()
       }));
       
-      // Update stats for failed batch
-      this.stats.failed += batch.length;
+      // Update stats for filtered batch
+      this.stats.filtered += batch.length;
       this.stats.totalProcessed += batch.length;
       
       return failedBatch;
@@ -247,34 +247,54 @@ REMEMBER: Always format colors properly with spaces (e.g., "Jet Black" not "JetB
    * Build tablet-specific prompt for batch processing
    */
   buildTabletBatchPrompt(products) {
-    let prompt = `You are a product data analyst specializing in TABLETS. Extract attributes from ${products.length} tablet products and return a JSON ARRAY.
+    let prompt = `You are a product classifier specializing in TABLET DEVICES. Analyze ${products.length} products and return a JSON ARRAY with exactly ${products.length} objects.
 
-IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects, one for each product.
-CRITICAL: Include the URL in each response object for accurate matching.
+CLASSIFICATION PRIORITY (Check in this order):
+1. NON-TABLET INDICATORS (High Priority):
+   - Books/Media: "for dummies", "guide", "book", "manual", "ebook"
+   - Accessories: "case", "cover", "keyboard", "stand", "protector", "stylus"
+   - Other Devices: "smartphone", "phone", "laptop", "computer", "desktop", "monitor"
+   - Medicine/Health: "mg", "ml", "capsule", "ayurved", "medicine", "supplement"
+   
+2. TABLET DEVICE INDICATORS:
+   - Device names: "ipad", "tablet", "tab" (when referring to device)
+   - Model patterns: "galaxy tab", "pixel tablet", "surface pro", "fire hd"
+   - Context: Screen sizes (7", 8", 10", 11", 12"), "wi-fi", "cellular", "android", "ios"
 
 EXTRACTION RULES FOR TABLETS:
-1. If the product is NOT a tablet (e.g., smartphone, laptop, phone), set all fields to null and add "not_tablet": true
-2. Extract brand_name, model_name, ram, storage, color from titles
-3. For color names, fix concatenated names (e.g., "jetBlack" → "Jet Black", "spaceGray" → "Space Gray")
-4. Use proper naming conventions and separate compound names with spaces
-5. CRITICAL: Extract RAM and storage as NUMBERS ONLY:
-   - Look for patterns like "RAM 8 GB", "8 GB RAM", "8GB RAM" → ram: 8
-   - Look for patterns like "128 GB", "128GB", "ROM 128 GB" → storage: 128
-   - Extract ONLY the numeric value, not the unit
-   - If no RAM/storage found, use null
+- brand_name: Apple, Samsung, Google, Amazon, etc.
+- model_name: iPad Air, Galaxy Tab S9, Pixel Tablet, etc.
+- ram: Extract as integer (4, 6, 8, 12, 16) - null if not found
+- storage: Extract as integer in GB (64, 128, 256, 512, 1024)
+- color: Proper case with spaces ("Space Gray", "Jet Black")
+- display_size: Screen size as decimal (8.0, 10.9, 11.0, 12.9)
+- connectivity_type: "Wi-Fi Only" or "Wi-Fi + Cellular" or "Wi-Fi + 4G" etc.
 
-REQUIRED OUTPUT FORMAT (JSON ARRAY):
+OUTPUT FORMAT:
 [
   {
     "url": "product_url_here",
-    "brand_name": "Brand Name",
-    "model_name": "Model Name",
+    "brand_name": "Apple",
+    "model_name": "iPad Air",
     "ram": 8,
-    "storage": 128,
-    "color": "Color Name"
+    "storage": 256,
+    "color": "Space Gray",
+    "display_size": 10.9,
+    "connectivity_type": "Wi-Fi + Cellular" or "Wi-Fi + 5G" etc.,
+    "not_tablet": false
+  },
+  {
+    "url": "non_tablet_url_here",
+    "brand_name": null,
+    "model_name": null,
+    "ram": null,
+    "storage": null,
+    "color": null,
+    "display_size": null,
+    "connectivity_type": null,
+    "not_tablet": true
   }
 ]
-
 PRODUCTS TO ANALYZE:
 `;
 
@@ -282,6 +302,23 @@ PRODUCTS TO ANALYZE:
     products.forEach((product, index) => {
       prompt += `\n${index + 1}. URL: ${product.url}\n`;
       prompt += `   Title: ${product.title}\n`;
+      
+      // Add RAM and storage information if available
+      const specs = product.specifications || {};
+      const techDetails = specs['Technical Details']?.technicalDetails || {};
+      
+      if (techDetails['RAM Size']) {
+        prompt += `   RAM: ${techDetails['RAM Size']}\n`;
+      }
+      if (specs['Memory Storage Capacity']) {
+        prompt += `   Storage: ${specs['Memory Storage Capacity']}\n`;
+      }
+      if (specs['Screen Size']) {
+        prompt += `   Screen Size: ${specs['Screen Size']}\n`;
+      }
+      if (techDetails['Connectivity Type']) {
+        prompt += `   Connectivity Type: ${techDetails['Connectivity Type']}\n`;
+      }
     });
 
     prompt += `\n\nReturn ONLY the JSON array. No explanations or markdown formatting.`;
@@ -293,7 +330,7 @@ PRODUCTS TO ANALYZE:
    * Validate extracted data
    */
   validateExtractedData(data) {
-    const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage'];
+    const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage', 'display_size', 'connectivity_type', 'not_tablet'];
     const validated = {};
     
     for (const field of required) {

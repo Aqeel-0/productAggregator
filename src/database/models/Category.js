@@ -4,15 +4,18 @@ const { sequelize } = require('../../config/sequelize');
 class Category extends Model {
 
   static async getCategoryForProduct(productData, cache, stats, supabase) {
-    const breadcrumb = productData.source_metadata?.category_breadcrumb || [];
-    
     // Determine if it's a smartphone or basic phone
-    let targetCategoryName = breadcrumb[3];
-
-    // Handle undefined category name
+    let targetCategoryName = productData.category;
+    
+    // Debug logging
+    console.log(`🔍 Category debug for ${productData.source_details?.url}:`);
+    console.log(`   Raw category: "${targetCategoryName}"`);
+    console.log(`   Type: ${typeof targetCategoryName}`);
+    
     if (!targetCategoryName) {
       // Default to smartphones category for mobile devices
-      targetCategoryName = 'others';
+      targetCategoryName = 'Smartphones';
+      console.log(`   Using default: "${targetCategoryName}"`);
     }
 
     // Use the same cache logic
