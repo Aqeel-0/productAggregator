@@ -59,6 +59,8 @@ class FlipkartNormalizer {
         original_title: product.title || null,
         model_number: this.extractModelNumber(specs)
       },
+
+      category: this.extractCategory(product),
       
       variant_attributes: {
         color: this.extractColor(specs),
@@ -97,7 +99,15 @@ class FlipkartNormalizer {
     } else {
       return ["Electronics", "Mobiles & Accessories", "Smartphones & Basic Mobiles", "Basic Mobiles"];
     }
-  
+  }
+
+  /**
+   * Extract category from breadcrumb
+   */
+  extractCategory(product) {
+    const breadcrumb = this.generateCategoryBreadcrumb(product);
+    // For mobiles, use breadcrumb[3] (index 3)
+    return breadcrumb[3] || null;
   }
 
   isSmartphone(product) {

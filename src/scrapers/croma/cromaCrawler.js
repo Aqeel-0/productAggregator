@@ -5,6 +5,7 @@ const { CATEGORY_SELECTORS, PRODUCT_SELECTORS, ERROR_INDICATORS } = require('./c
 const RateLimiter = require('../../rate-limiter/RateLimiter');
 const CromaRateLimitConfig = require('../../rate-limiter/configs/croma-config');
 const cheerio = require('cheerio');
+const Logger = require('../../utils/logger');
 
 class ChromeCrawler extends BaseCrawler {
   constructor(config = {}) {
@@ -32,6 +33,9 @@ class ChromeCrawler extends BaseCrawler {
       ...config
     };
     super({ ...defaultConfig, ...config });
+
+    // Initialize logger for this scraper
+    this.logger = new Logger('CROMA');
 
     // Initialize rate limiter
     this.rateLimiter = new RateLimiter({
@@ -160,7 +164,7 @@ class ChromeCrawler extends BaseCrawler {
     try {
       this.checkpoint.lastRunTimestamp = new Date().toISOString();
       fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      this.logger.debug('Checkpoint saved');
+      this.logger.checkpointSaved();
     } catch (error) {
       this.logger.error(`Error saving checkpoint: ${error.message}`);
     }
@@ -241,26 +245,29 @@ class ChromeCrawler extends BaseCrawler {
   }
 
   async start() {
+    this.logger.startScraper('croma', this.maxProducts || 1000);
+
     try {
-      this.logger.info('🚀 Croma Crawler Starting');
-      
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
       } else {
         this.productLinks = this.checkpoint.productLinks;
-        this.logger.info(`📋 Resuming: ${this.productLinks.length} products from checkpoint`);
+        this.logger.info(`Resuming: ${this.productLinks.length} products from checkpoint`);
       }
+
+      // Set total count for progress tracking
+      this.logger.setTotalCount(this.productLinks.length);
 
       await this.scrapeProductDetails();
       
       // Retry failed products if any
       if (this.checkpoint.failedProducts.length > 0) {
-        this.logger.info(`🔄 Retrying ${this.checkpoint.failedProducts.length} failed products`);
+        this.logger.info(`Retrying ${this.checkpoint.failedProducts.length} failed products`);
         await this.retryFailedProducts();
       }
       
-      this.logger.info('✅ Croma crawling completed successfully');
+      this.logger.completeScraper();
       
       await this.shutdown();
       
@@ -497,12 +504,15 @@ class ChromeCrawler extends BaseCrawler {
         const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'croma');
         if (!rateLimitResult.allowed) {
           const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
-          this.logger.warn(`Rate limit hit, waiting ${delayMs}ms`);
+          this.logger.rateLimit(delayMs);
           await new Promise(resolve => setTimeout(resolve, delayMs));
           continue;
         }
         
         const productData = await this._scrapeProductDetail(url);
+        
+        // Update progress
+        this.logger.updateProgress();
         
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, CromaRateLimitConfig.baseDelay);
         await new Promise(resolve => setTimeout(resolve, delayMs));
@@ -511,11 +521,10 @@ class ChromeCrawler extends BaseCrawler {
         
       } catch (error) {
         lastError = error;
-        this.logger.warn(`Attempt ${attempt} failed for ${url}: ${error.message}`);
+        this.logger.productError(index, error.message);
         
         if (attempt < this.maxRetries) {
           const backoffMs = Math.pow(2, attempt) * 1000;
-          this.logger.debug(`Retrying in ${backoffMs}ms`);
           await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
       }

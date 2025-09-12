@@ -5,6 +5,7 @@ const cheerio = require('cheerio');
 const { CATEGORY_SELECTORS, PRODUCT_SELECTORS } = require('./reliance-selectors');
 const RateLimiter = require('../../rate-limiter/RateLimiter');
 const RelianceRateLimitConfig = require('../../rate-limiter/configs/reliance-config');
+const Logger = require('../../utils/logger');
 
 class RelianceCrawler extends BaseCrawler {
   constructor(config = {}) {
@@ -32,6 +33,9 @@ class RelianceCrawler extends BaseCrawler {
     };
 
     super({ ...defaultConfig, ...config });
+
+    // Initialize logger for this scraper
+    this.logger = new Logger('RELIANCE');
 
     // Placeholder category URL
     this.categoryUrl = config.categoryUrl || 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true';
@@ -159,9 +163,9 @@ class RelianceCrawler extends BaseCrawler {
   }
 
   async start() {
+    this.logger.startScraper('reliance', this.maxProducts || this.maxPages * this.productsPerPage);
+
     try {
-      this.logger.info('Starting Reliance crawler');
-      
       // Initialize browser first - this is critical for proper page pooling
       await this.initialize();
 
@@ -173,9 +177,12 @@ class RelianceCrawler extends BaseCrawler {
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
       }
 
+      // Set total count for progress tracking
+      this.logger.setTotalCount(this.productLinks.length);
+
       await this.scrapeProductDetails();
 
-      this.logger.info('Reliance crawler completed');
+      this.logger.completeScraper();
     } catch (error) {
       this.logger.error(`Reliance crawler failed: ${error.message}`);
       throw error;
@@ -448,10 +455,15 @@ class RelianceCrawler extends BaseCrawler {
         const rate = await this.rateLimiter.checkLimit('scraper', 'reliance');
         if (!rate.allowed) {
           const wait = this.rateLimiter.calculateDelay(rate, RelianceRateLimitConfig.baseDelay);
+          this.logger.rateLimit(wait);
           await new Promise((r) => setTimeout(r, wait));
           continue;
         }
         const product = await this._scrapeProductDetail(url);
+        
+        // Update progress
+        this.logger.updateProgress();
+        
         const delayMs = this.rateLimiter.calculateDelay(rate, RelianceRateLimitConfig.baseDelay);
         // Add extra random delay to be more respectful
         const extraDelay = Math.random() * 2000 + 1000; // 1-3 seconds extra
@@ -459,6 +471,7 @@ class RelianceCrawler extends BaseCrawler {
         return product;
       } catch (err) {
         lastError = err;
+        this.logger.productError(index, err.message);
         if (attempt < this.maxRetries) {
           const backoff = Math.pow(2, attempt) * 1000;
           await new Promise((r) => setTimeout(r, backoff));

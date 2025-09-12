@@ -10,21 +10,22 @@ class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
     this.genAI = new GoogleGenerativeAI('AIzaSyDiqCpBAzFWZFpe6Wg-M0zy2TLPRqFTkLk');
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     this.batchSize = 50; // Process 50 products per batch
-    this.stats = { totalProcessed: 0, successful: 0, failed: 0, apiCalls: 0 };
+    this.stats = { totalProcessed: 0, successful: 0, filtered: 0, apiCalls: 0 };
   }
 
   /**
    * Main method to enhance Amazon data
    */
-  async enhanceAmazonData(rawData) {
+  async enhanceAmazonData(rawData, productType = 'mobile') {
     try {
-      console.log('🚀 Starting Amazon AI Enhancement...\n');
-      console.log(`📊 Processing ${rawData.length} products in batches of ${this.batchSize}\n`);
+      const productTypeLabel = productType === 'tablet' ? 'Tablet' : 'Mobile';
+      console.log(`🚀 Starting Amazon ${productTypeLabel} AI Enhancement...\n`);
+      console.log(`📊 Processing ${rawData.length} ${productType} products in batches of ${this.batchSize}\n`);
 
       // Process all products in batches
-      const enhancedProducts = await this.processBatches(rawData);
+      const enhancedProducts = await this.processBatches(rawData, productType);
       
       console.log(`\n✅ AI Enhancement completed!`);
       console.log(`📊 Final Stats:`, this.stats);
@@ -36,15 +37,14 @@ class AmazonAiEnhancer {
       throw error;
     }
   }
-
   /**
    * Process products in batches
    */
-  async processBatches(products) {
+  async processBatches(products, productType = 'mobile') {
     const totalBatches = Math.ceil(products.length / this.batchSize);
     const enhancedProducts = [];
     
-    console.log(`📦 Processing ${products.length} products in ${totalBatches} batches...`);
+    console.log(`📦 Processing ${products.length} ${productType} products in ${totalBatches} batches...`);
     console.log(`🎯 Each batch will contain ${this.batchSize} products in a single API call\n`);
     
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
@@ -56,7 +56,7 @@ class AmazonAiEnhancer {
       console.log('=' .repeat(60));
       
       try {
-        const batchResults = await this.processBatch(batch);
+        const batchResults = await this.processBatch(batch, productType);
         enhancedProducts.push(...batchResults);
         
         // Progress update
@@ -83,11 +83,11 @@ class AmazonAiEnhancer {
   /**
    * Process a single batch - send all products in one prompt
    */
-  async processBatch(batch) {
-    console.log(`  📤 Sending ${batch.length} products to Gemini AI in single prompt...`);
+  async processBatch(batch, productType = 'mobile') {
+    console.log(`  📤 Sending ${batch.length} ${productType} products to Gemini AI in single prompt...`);
     
     try {
-      const prompt = this.buildBatchPrompt(batch);
+      const prompt = this.buildBatchPrompt(batch, productType);
       const response = await this.model.generateContent(prompt);
       const responseText = response.response.text();
       
@@ -143,14 +143,14 @@ class AmazonAiEnhancer {
           if (validatedData.brand_name && validatedData.model_name) {
             this.stats.successful++;
           } else {
-            this.stats.failed++;
+            this.stats.filtered++;
           }
         } else {
           // No matching AI data found for this URL
           console.log(`⚠️  No AI data found for URL: ${product.url?.substring(0, 50)}...`);
           const enhancedProduct = this.mergeWithOriginalData(product, {});
           enhancedBatch.push(enhancedProduct);
-          this.stats.failed++;
+          this.stats.filtered++;
         }
         this.stats.totalProcessed++;
       }
@@ -167,8 +167,8 @@ class AmazonAiEnhancer {
         enhanced_at: new Date().toISOString()
       }));
       
-      // Update stats for failed batch
-      this.stats.failed += batch.length;
+      // Update stats for filtered batch
+      this.stats.filtered += batch.length;
       this.stats.totalProcessed += batch.length;
       
       return failedBatch;
@@ -178,7 +178,12 @@ class AmazonAiEnhancer {
   /**
    * Build prompt for batch processing
    */
-  buildBatchPrompt(products) {
+  buildBatchPrompt(products, productType = 'mobile') {
+    if (productType === 'tablet') {
+      return this.buildTabletBatchPrompt(products);
+    }
+    
+    // Default mobile prompt
     let prompt = `You are a product data analyst. Extract attributes from ${products.length} products and return a JSON ARRAY.
 
 IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects, one for each product.
@@ -197,18 +202,19 @@ URL: "${url}"
 `;
     });
     
-    prompt += `EXTRACTION RULES:
+         prompt += `EXTRACTION RULES:
 - Extract brand_name, model_name, color, ram, and storage for each product
-- brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus")
-- model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G")
+- brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus", "Xiaomi", "Realme", "OPPO", "Vivo")
+- model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G", "iPad Pro", "Galaxy Tab S9", "Redmi Note 13")
 - color: Extract the color variant with proper formatting:
   * Fix concatenated color names by adding spaces (e.g., "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "MidnightGreen" → "Midnight Green")
-  * Use proper color naming conventions (e.g., "Titanium Blue", "Mint Green", "Space Gray", "Jet Black", "Starlight", "Silver")
-  * Common corrections: "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "SpaceGray" → "Space Gray", "MidnightGreen" → "Midnight Green"
-- ram: Extract RAM in GB as integer (e.g., 6, 8, 12). For iPhones, always set to null
-- storage: Extract storage in GB as integer (e.g., 128, 256, 512). Convert 1TB to 1024
+  * Use proper color naming conventions (e.g., "Titanium Blue", "Mint Green", "Space Gray", "Jet Black", "Starlight", "Silver", "Rose Gold", "Pacific Blue")
+  * Common corrections: "JetBlack" → "Jet Black", "TitaniumBlue" → "Titanium Blue", "SpaceGray" → "Space Gray", "MidnightGreen" → "Midnight Green", "RoseGold" → "Rose Gold"
+- ram: Extract RAM in GB as integer (e.g., 6, 8, 12, 16). For iPhones and iPads, always set to null
+- storage: Extract storage in GB as integer (e.g., 64, 128, 256, 512, 1024). Convert 1TB to 1024, 2TB to 2048
 - If any field cannot be determined from title/URL, use null
 - Be consistent with brand names (use "Apple" not "iPhone", "Samsung" not "Galaxy")
+- Handle both mobile phones and tablets with the same extraction logic
 
 RESPONSE FORMAT - MUST BE A JSON ARRAY:
 [
@@ -238,10 +244,93 @@ REMEMBER: Always format colors properly with spaces (e.g., "Jet Black" not "JetB
   }
 
   /**
+   * Build tablet-specific prompt for batch processing
+   */
+  buildTabletBatchPrompt(products) {
+    let prompt = `You are a product classifier specializing in TABLET DEVICES. Analyze ${products.length} products and return a JSON ARRAY with exactly ${products.length} objects.
+
+CLASSIFICATION PRIORITY (Check in this order):
+1. NON-TABLET INDICATORS (High Priority):
+   - Books/Media: "for dummies", "guide", "book", "manual", "ebook"
+   - Accessories: "case", "cover", "keyboard", "stand", "protector", "stylus"
+   - Other Devices: "smartphone", "phone", "laptop", "computer", "desktop", "monitor"
+   - Medicine/Health: "mg", "ml", "capsule", "ayurved", "medicine", "supplement"
+   
+2. TABLET DEVICE INDICATORS:
+   - Device names: "ipad", "tablet", "tab" (when referring to device)
+   - Model patterns: "galaxy tab", "pixel tablet", "surface pro", "fire hd"
+   - Context: Screen sizes (7", 8", 10", 11", 12"), "wi-fi", "cellular", "android", "ios"
+
+EXTRACTION RULES FOR TABLETS:
+- brand_name: Apple, Samsung, Google, Amazon, etc.
+- model_name: iPad Air, Galaxy Tab S9, Pixel Tablet, etc.
+- ram: Extract as integer (4, 6, 8, 12, 16) - null if not found
+- storage: Extract as integer in GB (64, 128, 256, 512, 1024)
+- color: Proper case with spaces ("Space Gray", "Jet Black")
+- display_size: Screen size as decimal (8.0, 10.9, 11.0, 12.9)
+- connectivity_type: "Wi-Fi Only" or "Wi-Fi + Cellular" or "Wi-Fi + 4G" etc.
+
+OUTPUT FORMAT:
+[
+  {
+    "url": "product_url_here",
+    "brand_name": "Apple",
+    "model_name": "iPad Air",
+    "ram": 8,
+    "storage": 256,
+    "color": "Space Gray",
+    "display_size": 10.9,
+    "connectivity_type": "Wi-Fi + Cellular" or "Wi-Fi + 5G" etc.,
+    "not_tablet": false
+  },
+  {
+    "url": "non_tablet_url_here",
+    "brand_name": null,
+    "model_name": null,
+    "ram": null,
+    "storage": null,
+    "color": null,
+    "display_size": null,
+    "connectivity_type": null,
+    "not_tablet": true
+  }
+]
+PRODUCTS TO ANALYZE:
+`;
+
+    // Add each product to the prompt
+    products.forEach((product, index) => {
+      prompt += `\n${index + 1}. URL: ${product.url}\n`;
+      prompt += `   Title: ${product.title}\n`;
+      
+      // Add RAM and storage information if available
+      const specs = product.specifications || {};
+      const techDetails = specs['Technical Details']?.technicalDetails || {};
+      
+      if (techDetails['RAM Size']) {
+        prompt += `   RAM: ${techDetails['RAM Size']}\n`;
+      }
+      if (specs['Memory Storage Capacity']) {
+        prompt += `   Storage: ${specs['Memory Storage Capacity']}\n`;
+      }
+      if (specs['Screen Size']) {
+        prompt += `   Screen Size: ${specs['Screen Size']}\n`;
+      }
+      if (techDetails['Connectivity Type']) {
+        prompt += `   Connectivity Type: ${techDetails['Connectivity Type']}\n`;
+      }
+    });
+
+    prompt += `\n\nReturn ONLY the JSON array. No explanations or markdown formatting.`;
+
+    return prompt;
+  }
+
+  /**
    * Validate extracted data
    */
   validateExtractedData(data) {
-    const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage'];
+    const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage', 'display_size', 'connectivity_type', 'not_tablet'];
     const validated = {};
     
     for (const field of required) {
