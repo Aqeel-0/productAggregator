@@ -1,0 +1,46 @@
+{
+  "productLinks": [
+    "https://www.reliancedigital.in/product/apple-iphone-12-128-gb-black",
+    "https://www.reliancedigital.in/product/oneplus-nord-ce5-256-gb-8-gb-ram-black-infinity-mobile-phone-mcope2-9278267",
+    "https://www.reliancedigital.in/product/tecno-spark-go-2024-128-gb-4gb-ram-green-mobile-phone-lqqmaa-7535370",
+    "https://www.reliancedigital.in/product/redmi-15-5g-128-gb-6-gb-ram-frosted-white-mobile-phone-mev4jf-9347780",
+    "https://www.reliancedigital.in/product/poco-m4-5g-64-gb-4-gb-ram-poco-yellow-mobile-phone-l8ufag",
+    "https://www.reliancedigital.in/product/apple-iphone-16-plus-512-gb-black-m0xr1z-8590140",
+    "https://www.reliancedigital.in/product/apple-iphone-16-128-gb-pink-m0xrri-8590261",
+    "https://www.reliancedigital.in/product/realme-gt-7-5g-256-gb-8-gb-ram-black-mobile-phone-mbganz-9247296",
+    "https://www.reliancedigital.in/product/poco-x6-neo-128-gb-8-gb-ram-mobile-phone-orange-ltoalv-7537142",
+    "https://www.reliancedigital.in/product/samsung-galaxy-a16-5g-128-gb-8-gb-ram-green-mobile-phone-m4gvu8-8762458",
+    "https://www.reliancedigital.in/product/apple-iphone-16-plus-128-gb-black-m0xqp8-8590111",
+    "https://www.reliancedigital.in/product/apple-iphone-16-plus-256-gb-black-m0xr22-8590142",
+    "https://www.reliancedigital.in/product/samsung-galaxy-s25-plus-5g-256-gb-12-gb-ram-silver-shadow-mobile-phone-m69dfn-8850624",
+    "https://www.reliancedigital.in/product/samsung-galaxy-fold6-512-gb-12-gb-ram-dark-blue-mobile-phone-lyoevv-7918074",
+    "https://www.reliancedigital.in/product/samsung-galaxy-a55-5g-256-gb-12-gb-ram-awesome-navy-mobile-phone-ltx0jj-7537229",
+    "https://www.reliancedigital.in/product/samsung-galaxy-z-fold7-5g-512-gb-12-gb-ram-dark-blue-mobile-phone-mcymh3-9286507",
+    "https://www.reliancedigital.in/product/samsung-galaxy-m15-5g-128-gb-4-gb-ram-dark-blue-mobile-phone-lvdpr1-7598815",
+    "https://www.reliancedigital.in/product/samsung-s24-ultra-5g-512-gb-12-gb-ram-titanium-gray-mobile-phone-lrud1e-7536182",
+    "https://www.reliancedigital.in/product/vivo-v50e-5g-128-gb-8-gb-ram-pearl-white-mobile-phone-m9cola-9055641",
+    "https://www.reliancedigital.in/product/samsung-galaxy-s25-ultra-5g-256-gb-12-gb-ram-titanium-grey-mobile-phone-m69dyg-8850633",
+    "https://www.reliancedigital.in/product/samsung-galaxy-s25-ultra-5g-256-gb-12-gb-ram-titanium-black-mobile-phone-m69dg7-8850625",
+    "https://www.reliancedigital.in/product/vivo-t3-5g-256-gb-8-gb-ram-cosmic-blue-mobile-phone-lujq8l-7538013",
+    "https://www.reliancedigital.in/product/samsung-galaxy-s25-edge-512-gb-12-gb-ram-titanium-jetblack-mobile-phone-mao6zb-9204679",
+    "https://www.reliancedigital.in/product/vivo-v50-5g-128-gb-8-gb-ram-titanium-grey-mobile-phone-m790qx-8891148",
+    "https://www.reliancedigital.in/product/vivo-x200-512-gb-16-gb-ram-natural-green-mobile-phone-m4sgca-8771271",
+    "https://www.reliancedigital.in/product/oppo-reno-14-pro-5g-256-gb-12-gb-ram-titanium-grey-mobile-phone-mclv1p-9275649",
+    "https://www.reliancedigital.in/product/xiaomi-15-ultra-5g-512-gb-16-gb-ram-silver-mobile-phone-m8yh8m-9048500",
+    "https://www.reliancedigital.in/product/vivo-y200-pro-5g-128-gb-8-gb-ram-silk-green-mobile-phone-lwhs8g-7672939"
+  ],
+  "lastProcessedIndex": 3,
+  "failedProducts": [
+    {
+      "index": 4,
+      "url": "https://www.reliancedigital.in/product/poco-m4-5g-64-gb-4-gb-ram-poco-yellow-mobile-phone-l8ufag",
+      "error": "undefined",
+      "ts": 1757847106856
+    }
+  ],
+  "pagesScraped": [
+    1
+  ],
+  "lastPageScraped": 1,
+  "lastRunTimestamp": "2025-09-14T10:51:46.856Z"
+}

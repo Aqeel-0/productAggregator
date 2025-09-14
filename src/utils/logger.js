@@ -97,6 +97,17 @@ class Logger {
     console.warn(`[${this.category}] ⚠️  ${message}`);
   }
 
+  debug(message) {
+    // Debug messages are only shown in development or when explicitly enabled
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG) {
+      console.log(`[${this.category}] 🔧 ${message}`);
+    }
+  }
+
+  warn(message) {
+    console.warn(`[${this.category}] ⚠️  ${message}`);
+  }
+
   /**
    * Start scraper
    */
