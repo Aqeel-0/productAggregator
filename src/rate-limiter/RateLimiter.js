@@ -503,7 +503,9 @@ class RateLimiter extends EventEmitter {
    */
   calculateDelay(result, baseDelay = 700) {
     if (!result.allowed && result.retryAfter) {
-      return result.retryAfter * 1000; // Convert to ms
+      // Ensure we never return a negative delay
+      const delay = result.retryAfter * 1000; // Convert to ms
+      return Math.max(1000, delay); // Minimum 1 second delay
     }
     
     // Adaptive delay based on remaining quota
