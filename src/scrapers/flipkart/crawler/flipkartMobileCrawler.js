@@ -227,12 +227,32 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
+  getCurrentDataCount() {
+    try {
+      if (fs.existsSync(this.outputFile)) {
+        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
+        if (fileContent) {
+          const parsed = JSON.parse(fileContent);
+          if (Array.isArray(parsed)) return parsed.length;
+          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error reading current data count: ${error.message}`);
+    }
+    return 0;
+  }
+
   async start() {
     // Set the expected total count for progress tracking, not the actual collected links
     const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    this.logger.startScraper(this.category, expectedTotal);
+    const currentDataCount = this.getCurrentDataCount();
+    this.logger.startScraper(this.category, expectedTotal, currentDataCount);
 
     try {
+      // Initialize browser first - prevents multiple browser instances under concurrency
+      await this.initialize();
+
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
@@ -241,8 +261,8 @@ class FlipkartCrawler extends BaseCrawler {
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
       }
 
-      // Update logger with expected total for progress tracking
-      this.logger.setTotalCount(expectedTotal);
+      // Update logger with expected total and current processed for progress tracking
+      this.logger.setTotalCount(expectedTotal, currentDataCount);
 
       await this.scrapeProductDetails();
 

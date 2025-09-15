@@ -26,6 +26,8 @@ const PRODUCT_SELECTORS = {
     '.product-title-word-break'   
   ],
 
+  DEAL: ['#dealBadgeSupportingText span'],
+  
   PRODUCT_NAME: ['#prodDetails h2'],
   
   PRICE: [

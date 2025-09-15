@@ -182,10 +182,27 @@ class RelianceCrawler extends BaseCrawler {
     }
   }
 
+  getCurrentDataCount() {
+    try {
+      if (fs.existsSync(this.outputFile)) {
+        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
+        if (fileContent) {
+          const parsed = JSON.parse(fileContent);
+          if (Array.isArray(parsed)) return parsed.length;
+          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error reading current data count: ${error.message}`);
+    }
+    return 0;
+  }
+
   async start() {
     // Set the expected total count for progress tracking, not the actual collected links
     const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    this.logger.startScraper('reliance', expectedTotal);
+    const currentDataCount = this.getCurrentDataCount();
+    this.logger.startScraper('reliance', expectedTotal, currentDataCount);
 
     try {
       // Initialize browser first - this is critical for proper page pooling
@@ -200,7 +217,7 @@ class RelianceCrawler extends BaseCrawler {
       }
 
       // Update logger with expected total for progress tracking
-      this.logger.setTotalCount(expectedTotal);
+      this.logger.setTotalCount(expectedTotal, currentDataCount);
 
       await this.scrapeProductDetails();
 
