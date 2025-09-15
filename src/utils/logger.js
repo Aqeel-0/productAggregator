@@ -16,9 +16,9 @@ class Logger {
   /**
    * Set total count for progress tracking
    */
-  setTotalCount(total) {
+  setTotalCount(total, initialProcessed = 0) {
     this.totalCount = total;
-    this.processedCount = 0;
+    this.processedCount = initialProcessed;
   }
 
   /**
@@ -111,11 +111,11 @@ class Logger {
   /**
    * Start scraper
    */
-  startScraper(category, totalProducts) {
+  startScraper(category, totalProducts, initialProcessed = 0) {
     this.category = category.toUpperCase();
-    this.setTotalCount(totalProducts);
+    this.setTotalCount(totalProducts, initialProcessed);
     this.startTime = Date.now();
-    this.info(`Starting ${category} scraper - Target: ${totalProducts} products`);
+    this.info(`Starting ${category} scraper - Target: ${totalProducts} products${initialProcessed > 0 ? ` (Resuming from ${initialProcessed})` : ''}`);
   }
 
   /**

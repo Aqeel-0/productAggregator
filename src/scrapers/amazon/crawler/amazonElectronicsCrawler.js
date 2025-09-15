@@ -308,6 +308,21 @@ class AmazonDetailCrawler extends BaseCrawler {
     return false; // Duplicate
   }
 
+  getCurrentDataCount() {
+    try {
+      if (fs.existsSync(this.outputFile)) {
+        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
+        if (fileContent) {
+          const existingData = JSON.parse(fileContent);
+          return existingData.length;
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error reading current data count: ${error.message}`);
+    }
+    return 0;
+  }
+
   saveData(data) {
     try {
       let existingData = [];
@@ -344,7 +359,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       const combinedData = [...existingData, ...uniqueNewData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
+      //this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -353,9 +368,15 @@ class AmazonDetailCrawler extends BaseCrawler {
   async start() {
     // Set the expected total count for progress tracking, not the actual collected links
     const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    this.logger.startScraper(this.category, expectedTotal);
+    
+    // Get current data count for progress bar resumption
+    const currentDataCount = this.getCurrentDataCount();
+    this.logger.startScraper(this.category, expectedTotal, currentDataCount);
 
     try {
+      // Initialize browser first to prevent race conditions during concurrent processing
+      await this.initialize();
+
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
         this.saveCheckpoint();
@@ -365,7 +386,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       }
 
       // Update logger with actual collected links count, but keep expected total for progress
-      this.logger.setTotalCount(expectedTotal);
+      this.logger.setTotalCount(expectedTotal, currentDataCount);
       
       await this.scrapeProductDetails();
       
@@ -783,6 +804,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       
       // Pass $ (Cheerio object) to all extraction methods
       const title = await this._extractTitle($);
+      const deal = await this._extractDeal($);
       const productName = await this._extractProductName($);
       const pricing = await this._extractPricing($);
       const rating = await this._extractRating($);
@@ -796,6 +818,7 @@ class AmazonDetailCrawler extends BaseCrawler {
       
       return {
         title,
+        deal,
         productName,
         price: pricing,
         rating,
@@ -865,6 +888,19 @@ class AmazonDetailCrawler extends BaseCrawler {
     }
   }
   
+  async _extractDeal($) {
+    try {
+      for (const selector of PRODUCT_SELECTORS.DEAL) {
+        const dealElement = $(selector).first();
+        return dealElement.text().trim();
+      }
+      return null;
+    } catch (error) {
+      this.logger.error(`Error extracting deal: ${error.message}`);
+      return null;
+    }
+  }
+
   async _extractProductName($) {
     try {
       for (const selector of PRODUCT_SELECTORS.PRODUCT_NAME) {
@@ -1036,6 +1072,7 @@ class AmazonDetailCrawler extends BaseCrawler {
               
       const productDetails = await this._extractSpecs($);
       const technicalDetails = await this._extractTechnicalDetails($);
+      const additionalInformation = await this._extractAdditionalInformation($);
       const cleanedSpecs = {};
       Object.keys(specifications).forEach(key => {
         const value = specifications[key];
@@ -1054,6 +1091,9 @@ class AmazonDetailCrawler extends BaseCrawler {
       });
       cleanedSpecs['Product Details'] = {productDetails};
       cleanedSpecs['Technical Details'] = {technicalDetails};
+      if (additionalInformation && Object.keys(additionalInformation).length > 0) {
+        cleanedSpecs['Additional Information'] = {additionalInformation};
+      }
               // Extracted specifications
       return cleanedSpecs;
 
@@ -1095,6 +1135,32 @@ class AmazonDetailCrawler extends BaseCrawler {
        console.error('Error extracting from technical details tables:', error);
        return {};
      }
+  }
+
+  async _extractAdditionalInformation($) {
+    try {
+      const specifications = {};
+      const table = $('#productDetails_detailBullets_sections1');
+      if (table.length > 0) {
+        table.find('tr').each((_, row) => {
+          const $row = $(row);
+          const keyEl = $row.find('th.prodDetSectionEntry').first();
+          const valEl = $row.find('td').first();
+          if (keyEl.length > 0 && valEl.length > 0) {
+            const rawKey = keyEl.text().replace(/\s+/g, ' ').trim();
+            let rawVal = valEl.text().replace(/\s+/g, ' ').trim();
+            // Some cells contain nested elements (lists, spans). Use text() already; keep concise length.
+            if (rawKey && rawVal) {
+              specifications[rawKey] = rawVal;
+            }
+          }
+        });
+      }
+      return specifications;
+    } catch (error) {
+      this.logger.error(`Error extracting additional information: ${error.message}`);
+      return {};
+    }
   }
   
   async _extractSpecs($) {
