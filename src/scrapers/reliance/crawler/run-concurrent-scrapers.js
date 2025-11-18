@@ -3,12 +3,20 @@ const Logger = require('../../../utils/logger');
 
 // Configuration for different categories
 const configs = {
-  mobile: {
-    category: 'mobile',
-    categoryUrl: 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true',
-    maxProducts: 5,
-    maxPages: 60,
-    maxConcurrent: 5,
+  // mobile: {
+  //   category: 'mobile',
+  //   categoryUrl: 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true',
+  //   maxProducts: 5,
+  //   maxPages: 60,
+  //   maxConcurrent: 5,
+  //   delayBetweenPages: 2000
+  // }
+  mouse: {
+    category: 'Mouse',
+    categoryUrl: 'https://www.reliancedigital.in/products?q=mouse&page_no=1&page_size=12&page_type=number&is_available=true',
+    maxProducts: 200,
+    maxPages: 15,
+    maxConcurrent: 2,
     delayBetweenPages: 2000
   }
 };
@@ -24,7 +32,7 @@ async function runScrapers() {
     logger.info(`Initializing ${category} scraper...`);
     const scraper = new RelianceCrawler({
       ...config,
-      headless: true
+      headless: false
     });
     scrapers.push({ category, scraper });
   }
