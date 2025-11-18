@@ -32,9 +32,9 @@ const configs = {
   // },
   Mouse: {
     category: 'mouse',
-    categoryUrl: 'https://www.flipkart.com/computers/computer-peripherals/keyboards-mouse-accessories/mouse/pr?sid=6bo%2Ctia%2C8pp%2Cp0w&otracker=categorytree&page=1',
-    maxProducts: 1000,
-    totalMaxProducts: 3000,
+    categoryUrl: 'https://www.flipkart.com/computers/computer-peripherals/keyboards-mouse-accessories/mouse/pr?sid=6bo%2Ctia%2C8pp%2Cp0w&otracker=categorytree&sort=price_desc&page=1',
+    maxProducts: 800,
+    totalMaxProducts: 1500,
     maxPages: 40,
     maxConcurrent: 5,
     delayBetweenPages: 3000,
@@ -86,7 +86,7 @@ async function runScrapers() {
 // Run if this file is executed directly
 if (require.main === module) {
   runScrapers().catch(error => {
-    console.error('Fatal error:', error);
+    logger.error(`Fatal error: ${error.message}`);
     process.exit(1);
   });
 }

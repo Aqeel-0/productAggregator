@@ -258,7 +258,7 @@ class ChromeCrawler extends BaseCrawler {
       const combinedData = [...existingData, ...uniqueNewData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
+      //this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -453,16 +453,7 @@ class ChromeCrawler extends BaseCrawler {
         }
       });
       
-      this.logger.info(`📋 Found ${rawLinks.length} raw links, ${uniqueCount} unique | Total: ${this.productLinks.length}`);
-      
-      // Log sample links
-      if (this.productLinks.length > 0) {
-        this.logger.info('🔗 Sample links:');
-        this.productLinks.slice(0, 5).forEach((link, i) => {
-          this.logger.info(`  ${i + 1}. ${link}`);
-        });
-      }
-      
+      this.logger.info(`📋 Found ${rawLinks.length} raw links, ${uniqueCount} unique | Total: ${this.productLinks.length}`);  
       // Update checkpoint
       this.checkpoint.productLinks = this.productLinks;
       this.checkpoint.lastPageScraped = 1;

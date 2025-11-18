@@ -13,7 +13,9 @@ const CATEGORY_SELECTORS = {
   ],
   PRODUCT_LINK: [
     // Reliance Digital product links - captures all product links
-    'a[href*="/product/"]'
+    '.product-card-details a[href*="/product/"]',
+    'a[href*="/product/"]',
+    '.details-container[href*="/product/"]'
   ],
   NEXT_PAGE: [
     'span[aria-label="Goto Next Page"]', // Primary arrow button selector

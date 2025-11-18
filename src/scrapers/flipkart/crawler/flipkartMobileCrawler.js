@@ -132,7 +132,6 @@ class FlipkartCrawler extends BaseCrawler {
   ensureDirectory(dir) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log(`📁 Created directory: ${dir}`);
     }
   }
 
@@ -221,7 +220,7 @@ class FlipkartCrawler extends BaseCrawler {
       const combinedData = [...existingData, ...uniqueNewData];
       
       fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
+      //this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
     } catch (error) {
       this.logger.error(`Error saving data: ${error.message}`);
     }
@@ -275,6 +274,12 @@ class FlipkartCrawler extends BaseCrawler {
         }
 
         if (!relatedLimit || relatedLimit > 0) {
+          // Update progress bar total count for related products
+          const relatedProductsCount = relatedLimit ?
+            Math.min(relatedLimit, this.checkpoint.relatedLinks.length) :
+            this.checkpoint.relatedLinks.length;
+          this.logger.setTotalCount(relatedProductsCount, this.checkpoint.lastRelatedIndex + 1);
+          
           await this.processProductArray(
             this.checkpoint.relatedLinks,
             'lastRelatedIndex',
@@ -295,7 +300,7 @@ class FlipkartCrawler extends BaseCrawler {
       await this.shutdown();
       
     } catch (error) {
-      console.error(`❌ Flipkart ${this.category} scraping failed:`, error.message);
+      this.logger.error(`❌ Flipkart ${this.category} scraping failed: ${error.message}`);
       this.logger.error(`Error during crawling: ${error.message}`);
       this.saveCheckpoint();
       await this.shutdown();
@@ -527,10 +532,8 @@ class FlipkartCrawler extends BaseCrawler {
         // Processing product
         const productData = await this._scrapeProductDetail(url, isRelated);
         
-        // Update progress (only for main products, not related)
-        if (!isRelated) {
-          this.logger.updateProgress();
-        }
+        // Update progress for all products (main and related)
+        this.logger.updateProgress();
         
         // Adaptive delay based on rate limit status
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
@@ -565,9 +568,6 @@ class FlipkartCrawler extends BaseCrawler {
     
     const startIndex = this.checkpoint.lastProcessedIndex + 1;
     const endIndex = Math.min(processingCount, totalProducts);
-    
-    this.logger.info(`Scraping product details from index ${startIndex} to ${endIndex - 1} with max ${this.maxConcurrent} concurrent requests`);
-    
     const results = [];
     const concurrent = Math.min(this.maxConcurrent, endIndex - startIndex);
     
@@ -593,7 +593,7 @@ class FlipkartCrawler extends BaseCrawler {
           this.checkpoint.lastProcessedIndex = index;
         } else {
           const errorMessage = result.reason && result.reason.message ? result.reason.message : (result.reason || 'Unknown error');
-          this.logger.error(`Failed to process product at index ${index}: ${errorMessage}`);
+          this.logger.productError(index, errorMessage);
           this.checkpoint.failedProducts.push({
             index,
             url: this.productLinks[index],
@@ -621,8 +621,6 @@ class FlipkartCrawler extends BaseCrawler {
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
-    
-    this.logger.info(`Completed scraping ${endIndex - startIndex} products`);
   }
 
   async processProductArray(urlArray, indexKey, description, isRelated, maxToProcess = null) {
@@ -693,9 +691,7 @@ class FlipkartCrawler extends BaseCrawler {
     const page = await this.newPage();
     try {
       // Enable JavaScript for Flipkart
-      await page.setJavaScriptEnabled(true);
-      
-      this.logger.info(`Scraping product details from: ${url}`);
+      await page.setJavaScriptEnabled(true); 
       
       await this.navigate(page, url);
       await this.delay(500, 1000);
@@ -993,7 +989,6 @@ class FlipkartCrawler extends BaseCrawler {
   }
        
   async _getspecification($) {
-    this.logger.info('Extracting specifications with Cheerio...');
     try {
       const specifications = {};
       const mainContainer = $('div._1OjC5I');
@@ -1012,8 +1007,6 @@ class FlipkartCrawler extends BaseCrawler {
         }
 
         specifications[categoryName] = {};
-        this.logger.info(`Found specification category: ${categoryName}`);
-
         categorySection.find('tr.WJdYP6.row').each((_, rowEl) => {
           const row = $(rowEl);
           const fieldName = row.find('td.col-3-12').text().trim();
@@ -1145,11 +1138,9 @@ if (require.main === module) {
   
   crawler.start()
     .then(() => {
-      console.log('✅ Crawler completed successfully');
       process.exit(0);
     })
     .catch(error => {
-      console.error('❌ Crawler failed:', error.message);
       process.exit(1);
     });
 }
