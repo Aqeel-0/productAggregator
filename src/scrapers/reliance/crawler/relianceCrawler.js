@@ -37,7 +37,7 @@ class RelianceCrawler extends BaseCrawler {
     // Initialize logger for this scraper
     this.logger = new Logger('RELIANCE');
 
-    // Placeholder category URL
+    // Category URL from config
     this.categoryUrl = config.categoryUrl || 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true';
     
     // Create separate directories for checkpoints and raw data
@@ -309,8 +309,10 @@ class RelianceCrawler extends BaseCrawler {
     let currentPage = (this.checkpoint.lastPageScraped || 0) + 1;
     const targetPages = this.maxPages;
     let newLinksAdded = 0;
+    const initialLinkCount = this.productLinks.length;
 
-    this.logger.info(`🚀 Starting Reliance link collection (Next-button only): up to ${targetPages} pages`);
+    this.logger.info(`🚀 Starting Reliance: Pages ${currentPage}-${targetPages} | Target: ${this.maxProducts || 'ALL'} products | Starting with ${initialLinkCount} existing links`);
+    this.logger.info(`📍 Using URL: ${this.categoryUrl}`);
 
     const page = await this.newPage();
     await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1, isMobile: false });
@@ -321,8 +323,27 @@ class RelianceCrawler extends BaseCrawler {
     try {
       await page.setJavaScriptEnabled(true);
 
-      // Always start from the base category URL
+      // Clear cookies and set consistent headers to avoid session issues
+      await page.deleteCookie();
+      await page.setExtraHTTPHeaders({
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      });
+
+      // Always start from the base category URL with proper wait
+      this.logger.info(`🌐 Navigating to: ${this.categoryUrl}`);
       await this.navigate(page, this.categoryUrl);
+      
+      // Wait for page to fully load and verify we're on the right page
+      // Wait for network to be idle (Puppeteer equivalent)
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await new Promise(r => setTimeout(r, 2000)); // Additional wait for dynamic content
 
       while (currentPage <= targetPages) {
         // Rate limiting
@@ -336,7 +357,18 @@ class RelianceCrawler extends BaseCrawler {
 
         // Wait for product links to appear
         await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 1000)); // Increased wait for stability
+
+        // Verify we're on the correct page by checking URL and content
+        const currentUrl = page.url();
+        const pageTitle = await page.title();
+        this.logger.info(`🔍 Page ${currentPage}: URL="${currentUrl.substring(0, 80)}..." | Title="${pageTitle.substring(0, 40)}..."`);
+
+        // Check if we're on a valid product listing page
+        if (currentUrl.includes('no-search-results') || currentUrl.includes('error') || !currentUrl.includes('products')) {
+          this.logger.warn(`⚠️ Page ${currentPage}: Invalid page detected - ${currentUrl}`);
+          break;
+        }
 
         // Collect and normalize product links
         const pageLinks = await page.$$eval('a[href*="/product/"]', (as) =>
@@ -347,13 +379,20 @@ class RelianceCrawler extends BaseCrawler {
 
         // Apply normalization in Node context (using the separated function)
         let pageUnique = 0;
+        let pageDuplicates = 0;
         for (const rawHref of pageLinks) {
           const normalized = await this.normalizeRelianceProductUrl(rawHref);
-          if (normalized && this.addUniqueUrl(normalized)) {
-            pageUnique++;
-            newLinksAdded++;
+          if (normalized) {
+            if (this.addUniqueUrl(normalized)) {
+              pageUnique++;
+              newLinksAdded++;
+            } else {
+              pageDuplicates++;
+            }
           }
         }
+
+        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} links, ${pageUnique} unique, ${pageDuplicates} duplicates | Total: ${this.productLinks.length}`);
 
         if (pageLinks.length === 0) {
           this.logger.info(`✅ No products on page ${currentPage} — stopping`);
@@ -370,7 +409,7 @@ class RelianceCrawler extends BaseCrawler {
 
         // Respect max products if set
         if (this.maxProducts && this.productLinks.length >= this.maxProducts) {
-          this.logger.info(`🎯 Target reached: ${this.productLinks.length} products`);
+          this.logger.info(`🎯 Target reached: ${this.productLinks.length}/${this.maxProducts} products - stopping pagination`);
           break;
         }
 
@@ -405,7 +444,7 @@ class RelianceCrawler extends BaseCrawler {
             // Wait for either URL page_no change or grid refresh
             await this.waitForPageAdvance(page, targetNo, beforeFirstHref, this.delayBetweenPages || 2000);
         
-            // If neither URL nor grid changed, fall back to URL increment
+            // Verify page navigation was successful
             const pageNoAfter = new URL(page.url()).searchParams.get('page_no');
             const firstHrefAfter = await this.getFirstProductHref(page);
             const advanced =
@@ -413,11 +452,12 @@ class RelianceCrawler extends BaseCrawler {
               (beforeFirstHref && firstHrefAfter && beforeFirstHref !== firstHrefAfter);
         
             if (!advanced) {
-              // Fallback: programmatically increment page_no
-              const u = new URL(page.url());
-              const now = Number(u.searchParams.get('page_no') || String(currentPage));
-              u.searchParams.set('page_no', String(now));
+              // Fallback: programmatically increment page_no with proper URL construction
+              const u = new URL(this.categoryUrl);
+              u.searchParams.set('page_no', String(targetNo));
+              this.logger.info(`🔄 Fallback navigation to: ${u.toString()}`);
               await this.navigate(page, u.toString());
+              await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
               await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
             }
         
@@ -426,10 +466,12 @@ class RelianceCrawler extends BaseCrawler {
           } catch (err) {
             this.logger.warn(`❌ Failed to advance via Next, attempting URL fallback: ${err.message}`);
             try {
-              const u = new URL(page.url());
-              const now = Number(u.searchParams.get('page_no') || String(currentPage));
-              u.searchParams.set('page_no', String(now + 1));
+              // Use the original category URL as base for consistent navigation
+              const u = new URL(this.categoryUrl);
+              u.searchParams.set('page_no', String(currentPage + 1));
+              this.logger.info(`🔄 URL fallback navigation to: ${u.toString()}`);
               await this.navigate(page, u.toString());
+              await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
               await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
               currentPage++;
               this.logger.info(`🔄 Moved to page ${currentPage} (URL fallback)`);
@@ -449,8 +491,9 @@ class RelianceCrawler extends BaseCrawler {
       await this.returnPageToPool(page);
     }
 
+    const totalDuplicates = (this.checkpoint.pagesScraped.length * 24) - this.productLinks.length; // Estimate duplicates
     this.logger.info(
-      `✅ Complete: ${this.productLinks.length} total (${newLinksAdded} new) across ${this.checkpoint.pagesScraped.length} pages`
+      `✅ Link collection complete: ${this.productLinks.length} total links (${newLinksAdded} new, ~${totalDuplicates} duplicates filtered) across ${this.checkpoint.pagesScraped.length} pages`
     );
   }
 
