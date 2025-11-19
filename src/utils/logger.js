@@ -56,7 +56,7 @@ class Logger {
    * Create visual progress bar
    */
   createProgressBar(percentage, length = 30) {
-    const filled = Math.round((percentage / 100) * length);
+    const filled = Math.max(0, Math.min(length, Math.round((percentage / 100) * length)));
     const empty = length - filled;
     return `[${'█'.repeat(filled)}${'░'.repeat(empty)}]`;
   }

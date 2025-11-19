@@ -54,7 +54,7 @@ class FlipkartCrawler extends BaseCrawler {
     this.outputFile = config.outputFile || path.join(rawDataDir, `flipkart_${this.category}_scraped_data.json`);
     this.checkpointFile = config.checkpointFile || path.join(checkpointDir, `flipkart_${this.category}_checkpoint.json`);
     this.productLinks = [];
-    this.checkpoint = this.loadCheckpoint();
+    this.checkpoint = super.loadCheckpoint(this.checkpointFile);
     
     // Multi-page scraping configuration
     // maxProducts applies to MAIN links only
@@ -126,42 +126,9 @@ class FlipkartCrawler extends BaseCrawler {
 
   }
 
-  /**
-   * Ensure directory exists
-   */
-  ensureDirectory(dir) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  }
+  // ensureDirectory() moved to BaseCrawler
 
-  loadCheckpoint() {
-    try {
-      if (fs.existsSync(this.checkpointFile)) {
-        const data = fs.readFileSync(this.checkpointFile, 'utf8');
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      this.logger.error(`Error loading checkpoint: ${error.message}`);
-    }
-    return { 
-      productLinks: [], 
-      lastProcessedIndex: -1, 
-      failedProducts: [],
-      lastRunTimestamp: null,
-      pagesScraped: [],
-      lastPageScraped: 0
-    };
-  }
-
-  saveCheckpoint() {
-    try {
-      fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      this.logger.checkpointSaved();
-    } catch (error) {
-      this.logger.error(`Error saving checkpoint: ${error.message}`);
-    }
-  }
+  // loadCheckpoint() and saveCheckpoint() moved to BaseCrawler
 
   addBaseUrl(url) {
     if (!url) return url;
@@ -184,68 +151,12 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  saveData(data) {
-    try {
-      let existingData = [];
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          existingData = JSON.parse(fileContent);
-        }
-      }
-      
-      const newData = Array.isArray(data) ? data : [data];
-      
-      // Create a normalized URL-based deduplication map
-      const existingUrls = new Set();
-      existingData.forEach(product => {
-        if (product.url) {
-          const normalizedUrl = this.normalizeFlipkartUrl(product.url);
-          existingUrls.add(normalizedUrl);
-        }
-      });
-      
-      // Filter out products with normalized URLs that already exist
-      const uniqueNewData = newData.filter(product => {
-        if (!product.url) return true; // Keep products without URLs
-        const normalizedUrl = this.normalizeFlipkartUrl(product.url);
-        if (existingUrls.has(normalizedUrl)) {
-          this.logger.debug(`🔄 Skipping duplicate URL: ${normalizedUrl.substring(50)}`);
-          return false;
-        }
-        existingUrls.add(normalizedUrl);
-        return true;
-      });
-      
-      const combinedData = [...existingData, ...uniqueNewData];
-      
-      fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      //this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
-    } catch (error) {
-      this.logger.error(`Error saving data: ${error.message}`);
-    }
-  }
-
-  getCurrentDataCount() {
-    try {
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          const parsed = JSON.parse(fileContent);
-          if (Array.isArray(parsed)) return parsed.length;
-          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Error reading current data count: ${error.message}`);
-    }
-    return 0;
-  }
+  // saveData() and getCurrentDataCount() moved to BaseCrawler
 
   async start() {
     // Set the expected total count for progress tracking, not the actual collected links
     const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    const currentDataCount = this.getCurrentDataCount();
+    const currentDataCount = super.getCurrentDataCount(this.outputFile);
     this.logger.startScraper(this.category, expectedTotal, currentDataCount);
 
     try {
@@ -254,7 +165,7 @@ class FlipkartCrawler extends BaseCrawler {
 
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       } else {
         this.productLinks = this.checkpoint.productLinks;
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
@@ -302,7 +213,7 @@ class FlipkartCrawler extends BaseCrawler {
     } catch (error) {
       this.logger.error(`❌ Flipkart ${this.category} scraping failed: ${error.message}`);
       this.logger.error(`Error during crawling: ${error.message}`);
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       await this.shutdown();
       throw error;
     }
@@ -312,46 +223,12 @@ class FlipkartCrawler extends BaseCrawler {
    * Enhanced shutdown method to ensure complete cleanup
    */
   async shutdown() {
-    try {
-      this.logger.info('Starting enhanced shutdown process...');
-      
-      // Close rate limiter if it has cleanup methods
-      if (this.rateLimiter && typeof this.rateLimiter.close === 'function') {
-        await this.rateLimiter.close();
-        this.logger.debug('Rate limiter closed');
-      }
-      
-      // Close the base crawler (browser, memory management, etc.)
-      await this.close();
-      
-      // Force any remaining intervals to clear
-      const highestIntervalId = setTimeout(() => {}, 0);
-      for (let i = 0; i < highestIntervalId; i++) {
-        clearTimeout(i);
-        clearInterval(i);
-      }
-      
-      // Final garbage collection
-      if (global.gc) {
-        global.gc();
-        this.logger.debug('Final garbage collection performed');
-      }
-      
-      this.logger.info('Enhanced shutdown completed');
-      
+    await super.gracefulShutdown(() => {
       // Force process exit after a short delay to ensure everything is cleaned up
       setTimeout(() => {
-        this.logger.info('Forcing process exit');
         process.exit(0);
       }, 2000);
-      
-    } catch (error) {
-      this.logger.error(`Error during shutdown: ${error.message}`);
-      // Force exit even if cleanup fails
-      setTimeout(() => {
-        process.exit(1);
-      }, 3000);
-    }
+    });
   }
 
   /**
@@ -487,7 +364,7 @@ class FlipkartCrawler extends BaseCrawler {
         // Update checkpoint after successful page
         this.checkpoint.lastPageScraped = currentPage;
         this.checkpoint.pagesScraped.push(currentPage);
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
         
       } catch (error) {
         this.logger.error(`Error scraping page ${currentPage}: ${error.message}`);
@@ -510,7 +387,7 @@ class FlipkartCrawler extends BaseCrawler {
     // Final processing
     this.productLinks = allProductLinks;
     this.checkpoint.productLinks = this.productLinks;
-    this.saveCheckpoint();
+    super.saveCheckpoint(this.checkpoint, this.checkpointFile);
     
     this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
   }
@@ -604,12 +481,12 @@ class FlipkartCrawler extends BaseCrawler {
       }
       
       // Save progress
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       
       // Save data in batches
       if (results.length >= 5 || i + concurrent >= endIndex) {
         if (results.length > 0) {
-          this.saveData(results);
+          super.saveData(results, this.outputFile, this.normalizeFlipkartUrl.bind(this));
           results.length = 0; // Clear the array
         }
       }
@@ -666,12 +543,12 @@ class FlipkartCrawler extends BaseCrawler {
       }
 
       // Save progress
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
 
       // Save data in batches
       if (results.length >= 5 || i + concurrent >= endIndex) {
         if (results.length > 0) {
-          this.saveData(results);
+          super.saveData(results, this.outputFile, this.normalizeFlipkartUrl.bind(this));
           results.length = 0; // Clear the array
         }
       }
@@ -770,7 +647,7 @@ class FlipkartCrawler extends BaseCrawler {
 
   async _extractPricing(page) {
     try {
-      await page.waitForTimeout(500);
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const result = await page.evaluate((selectors) => {
         const getElementByXPath = (xpath) => {
@@ -1102,7 +979,7 @@ class FlipkartCrawler extends BaseCrawler {
 
       // Save checkpoint after adding new links
       if (addedCount > 0) {
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       }
 
     } catch (error) {

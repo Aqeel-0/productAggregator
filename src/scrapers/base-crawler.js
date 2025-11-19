@@ -5,6 +5,8 @@ const path = require('path');
 const os = require('os');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 const Logger = require('../utils/logger');
+
+// Apply stealth plugin with all evasions enabled
 puppeteer.use(StealthPlugin())
 
 class BaseCrawler {
@@ -48,10 +50,11 @@ class BaseCrawler {
     this.cleanupInterval = null;
     this.forceGCInterval = null;
     
-    // Initialize memory management
-    if (this.config.memoryManagement.enabled) {
-      this.initializeMemoryManagement();
-    }
+    // Track managed intervals to avoid clearing unrelated timers (Bug fix #2)
+    this.managedIntervals = new Set();
+    
+    // Memory management will be initialized after browser launch (Bug fix #3)
+    this.memoryManagementInitialized = false;
   }
 
   initializeMemoryManagement() {
@@ -59,16 +62,19 @@ class BaseCrawler {
     this.memoryMonitorInterval = setInterval(() => {
       this.checkMemoryUsage();
     }, this.config.memoryManagement.memoryCheckInterval);
+    this.managedIntervals.add(this.memoryMonitorInterval);
 
     // Regular cleanup
     this.cleanupInterval = setInterval(() => {
       this.performCleanup();
     }, this.config.memoryManagement.cleanupInterval);
+    this.managedIntervals.add(this.cleanupInterval);
 
     // Force garbage collection
     this.forceGCInterval = setInterval(() => {
       this.forceGarbageCollection();
     }, this.config.memoryManagement.forceGCInterval);
+    this.managedIntervals.add(this.forceGCInterval);
 
     this.logger.debug('Memory management initialized');
   }
@@ -76,7 +82,8 @@ class BaseCrawler {
   async initialize() {
     if (!this.browser) {
       const options = {
-        headless: this.config.headless,
+        // Use 'new' headless mode for better stealth (Puppeteer 21.4+)
+        headless: this.config.headless === true ? 'new' : this.config.headless,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -84,9 +91,11 @@ class BaseCrawler {
           '--disable-accelerated-2d-canvas',
           '--disable-gpu',
           '--window-size=1920,1080',
+          // Anti-detection flags
+          '--disable-blink-features=AutomationControlled',
+          '--disable-features=IsolateOrigins,site-per-process',
           // Memory optimization flags
           '--memory-pressure-off',
-          '--max-old-space-size=2048',
           '--disable-background-timer-throttling',
           '--disable-renderer-backgrounding',
           '--disable-backgrounding-occluded-windows',
@@ -94,8 +103,8 @@ class BaseCrawler {
           '--aggressive-cache-discard',
           '--disable-extensions',
           '--disable-plugins',
-          '--disable-images', // Disable image loading to save memory
-          '--disable-javascript', // Can be enabled per page if needed
+          // Note: --disable-images and --disable-javascript can break some sites
+          // and make automation more detectable. Only use if absolutely needed.
         ],
       };
 
@@ -112,6 +121,13 @@ class BaseCrawler {
       });
 
       this.logger.debug('Browser initialized with memory optimization');
+      
+      // Initialize memory management AFTER browser launch (Bug fix #3)
+      if (this.config.memoryManagement.enabled && !this.memoryManagementInitialized) {
+        this.initializeMemoryManagement();
+        this.memoryManagementInitialized = true;
+        this.logger.debug('Memory management initialized after browser launch');
+      }
     }
   }
 
@@ -119,22 +135,9 @@ class BaseCrawler {
     try {
       this.logger.debug('Starting comprehensive cleanup...');
       
-      // Clean up intervals first
-      if (this.memoryMonitorInterval) {
-        clearInterval(this.memoryMonitorInterval);
-        this.memoryMonitorInterval = null;
-        this.logger.debug('Memory monitor interval cleared');
-      }
-      if (this.cleanupInterval) {
-        clearInterval(this.cleanupInterval);
-        this.cleanupInterval = null;
-        this.logger.debug('Cleanup interval cleared');
-      }
-      if (this.forceGCInterval) {
-        clearInterval(this.forceGCInterval);
-        this.forceGCInterval = null;
-        this.logger.debug('Force GC interval cleared');
-      }
+      // Clean up intervals first (using our tracked intervals, not global cleanup)
+      this.cleanupManagedIntervals();
+      this.logger.debug('All managed intervals cleared');
 
       // Close all pages in pool
       await this.closeAllPages();
@@ -206,15 +209,18 @@ class BaseCrawler {
     }
 
     const page = this.pagePool.pop();
-    this.activePagesCount++;
 
     try {
-      // Reset page state
+      // Reset page state before marking as active (Bug fix #3)
       await this.resetPageState(page);
+      
+      // Only increment count after successful reset
+      this.activePagesCount++;
       this.logger.debug(`Reused page from pool. Pool size: ${this.pagePool.length}, Active: ${this.activePagesCount}`);
       return page;
     } catch (error) {
       this.logger.warn(`Failed to reuse page: ${error.message}`);
+      // Don't increment count since we're closing the page
       await this.safeClosePage(page);
       return null;
     }
@@ -226,20 +232,58 @@ class BaseCrawler {
       await this.forceCleanupOldestPages();
     }
 
-    const page = await this.browser.newPage();
-    this.activePagesCount++;
-    this.memoryStats.pagesCreated++;
+    let page;
+    try {
+      // Create the page
+      page = await this.browser.newPage();
+      
+      // Configure page for memory efficiency
+      await this.configurePageForMemoryEfficiency(page);
+      
+      // Only increment counters after successful creation and configuration (Bug fix #3)
+      this.activePagesCount++;
+      this.memoryStats.pagesCreated++;
 
-    // Configure page for memory efficiency
-    await this.configurePageForMemoryEfficiency(page);
-
-    this.logger.debug(`Created new page. Active pages: ${this.activePagesCount}`);
-    return page;
+      this.logger.debug(`Created new page. Active pages: ${this.activePagesCount}`);
+      return page;
+    } catch (error) {
+      // Clean up the page if it was created but configuration failed
+      if (page) {
+        try {
+          await page.close();
+        } catch (closeError) {
+          // Ignore errors during cleanup
+          this.logger.debug(`Error closing failed page: ${closeError.message}`);
+        }
+      }
+      // Re-throw the original error
+      throw error;
+    }
   }
 
   async configurePageForMemoryEfficiency(page) {
     try {
-      // Set user agent
+      // Add extra stealth: override navigator.webdriver
+      await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => false,
+        });
+        
+        // Override chrome object to look less automated
+        window.chrome = {
+          runtime: {},
+        };
+        
+        // Override permissions
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => (
+          parameters.name === 'notifications' ?
+            Promise.resolve({ state: Notification.permission }) :
+            originalQuery(parameters)
+        );
+      });
+      
+      // Set realistic user agent
       if (this.config.userAgent) {
         await page.setUserAgent(this.config.userAgent);
       } else {
@@ -247,23 +291,33 @@ class BaseCrawler {
         await page.setUserAgent(userAgent.toString());
       }
       
-      // Set viewport
+      // Set realistic viewport with slight randomization for stealth
+      const viewportWidth = this.config.viewport?.width || (1280 + Math.floor(Math.random() * 200));
+      const viewportHeight = this.config.viewport?.height || (720 + Math.floor(Math.random() * 100));
       const viewport = {
-        width: this.config.viewport?.width || 1366,
-        height: this.config.viewport?.height || 768,
+        width: viewportWidth,
+        height: viewportHeight,
         deviceScaleFactor: this.config.viewport?.deviceScaleFactor || 1,
+        hasTouch: false,
+        isLandscape: false,
+        isMobile: false
       };
       await page.setViewport(viewport);
       
-      // Set extra HTTP headers
-      // await page.setExtraHTTPHeaders({
-      //   'Accept-Language': 'en-US,en;q=0.9',
-      //   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      //   'Accept-Encoding': 'gzip, deflate, br',
-      //   'Connection': 'keep-alive',
-      //   'Cache-Control': 'no-cache'
-      // });
+      // Set realistic HTTP headers (stealth plugin handles most, but we can add extras)
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'Upgrade-Insecure-Requests': '1'
+      });
 
+      // Remove old request handlers to prevent memory leak (Bug fix #1)
+      page.removeAllListeners('request');
+      
       // Block unnecessary resources to save memory
       await page.setRequestInterception(true);
       page.on('request', (request) => {
@@ -286,6 +340,7 @@ class BaseCrawler {
 
     } catch (error) {
       this.logger.warn(`Error configuring page: ${error.message}`);
+      throw error; // Re-throw to ensure caller knows configuration failed
     }
   }
 
@@ -441,23 +496,33 @@ class BaseCrawler {
 
   cleanup() {
     // Emergency cleanup method
-    if (this.memoryMonitorInterval) {
-      clearInterval(this.memoryMonitorInterval);
-    }
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-    }
-    if (this.forceGCInterval) {
-      clearInterval(this.forceGCInterval);
-    }
+    this.cleanupManagedIntervals();
   }
 
-  // Enhanced navigation with memory management
-  async navigate(page, url) {
+  /**
+   * Clean up only intervals we created (Bug fix #2)
+   */
+  cleanupManagedIntervals() {
+    for (const intervalId of this.managedIntervals) {
+      clearInterval(intervalId);
+    }
+    this.managedIntervals.clear();
+    
+    // Also clear the individual references
+    this.memoryMonitorInterval = null;
+    this.cleanupInterval = null;
+    this.forceGCInterval = null;
+  }
+
+  // Simple navigation with memory management
+  async navigate(page, url, options = {}) {
+    const customTimeout = options.timeout || 30000;
+    const waitUntil = options.waitUntil || 'load';
+    
     try {
       await page.goto(url, { 
-        waitUntil: 'load',
-        timeout: 30000
+        waitUntil,
+        timeout: customTimeout
       });
       await this.delay();
     } catch (error) {
@@ -548,6 +613,154 @@ class BaseCrawler {
       poolSize: this.pagePool.length,
       config: this.config.memoryManagement
     };
+  }
+
+  ensureDirectory(dir) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      this.logger.info(`Created directory: ${dir}`);
+    }
+  }
+
+  loadCheckpoint(checkpointFile) {
+    try {
+      if (fs.existsSync(checkpointFile)) {
+        const data = fs.readFileSync(checkpointFile, 'utf8');
+        return JSON.parse(data);
+      }
+    } catch (error) {
+      this.logger.error(`Error loading checkpoint: ${error.message}`);
+    }
+    return {
+      productLinks: [],
+      relatedLinks: [],
+      lastProcessedIndex: -1,
+      lastRelatedIndex: -1,
+      failedProducts: [],
+      lastRunTimestamp: null,
+      pagesScraped: [],
+      lastPageScraped: 0
+    };
+  }
+
+  saveCheckpoint(checkpoint, checkpointFile) {
+    try {
+      checkpoint.lastRunTimestamp = new Date().toISOString();
+      fs.writeFileSync(checkpointFile, JSON.stringify(checkpoint, null, 2));
+      this.logger.checkpointSaved();
+    } catch (error) {
+      this.logger.error(`Error saving checkpoint: ${error.message}`);
+    }
+  }
+
+  saveData(data, outputFile, normalizeUrlFn = null) {
+    try {
+      let existingData = [];
+      if (fs.existsSync(outputFile)) {
+        const fileContent = fs.readFileSync(outputFile, 'utf8');
+        if (fileContent) {
+          const parsed = JSON.parse(fileContent);
+          existingData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.products) ? parsed.products : []);
+        }
+      }
+      
+      const newData = Array.isArray(data) ? data : [data];
+      
+      // Create a normalized URL-based deduplication map
+      const existingUrls = new Set();
+      existingData.forEach(product => {
+        if (product.url) {
+          const normalizedUrl = normalizeUrlFn ? normalizeUrlFn(product.url) : product.url;
+          existingUrls.add(normalizedUrl);
+        }
+      });
+      
+      // Filter out products with normalized URLs that already exist
+      const uniqueNewData = newData.filter(product => {
+        if (!product.url) return true; // Keep products without URLs
+        const normalizedUrl = normalizeUrlFn ? normalizeUrlFn(product.url) : product.url;
+        if (existingUrls.has(normalizedUrl)) {
+          this.logger.debug(`🔄 Skipping duplicate URL: ${normalizedUrl.substring(0, 50)}...`);
+          return false;
+        }
+        existingUrls.add(normalizedUrl);
+        return true;
+      });
+      
+      const combinedData = [...existingData, ...uniqueNewData];
+      
+      fs.writeFileSync(outputFile, JSON.stringify(combinedData, null, 2));
+    } catch (error) {
+      this.logger.error(`Error saving data: ${error.message}`);
+    }
+  }
+
+  getCurrentDataCount(outputFile) {
+    try {
+      if (fs.existsSync(outputFile)) {
+        const fileContent = fs.readFileSync(outputFile, 'utf8');
+        if (fileContent) {
+          const parsed = JSON.parse(fileContent);
+          if (Array.isArray(parsed)) return parsed.length;
+          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error reading current data count: ${error.message}`);
+    }
+    return 0;
+  }
+
+  addUniqueUrl(url, seenUrls, productLinks, normalizeUrlFn) {
+    const normalized = normalizeUrlFn(url);
+    if (!seenUrls.has(normalized)) {
+      seenUrls.add(normalized);
+      productLinks.push(normalized);
+      return true; // Added
+    }
+    return false; // Duplicate
+  }
+
+  async gracefulShutdown(callback = null) {
+    try {
+      this.logger.info('Starting graceful shutdown...');
+      
+      // Close rate limiter if present
+      if (this.rateLimiter && typeof this.rateLimiter.close === 'function') {
+        await this.rateLimiter.close();
+        this.logger.debug('Rate limiter closed');
+      }
+      
+      // Close the browser and cleanup memory management
+      await this.close();
+      
+      // Clear all intervals and timeouts
+      this.cleanupIntervals();
+      
+      // Final garbage collection
+      if (global.gc) {
+        global.gc();
+        this.logger.debug('Final garbage collection performed');
+      }
+      
+      this.logger.info('Graceful shutdown completed');
+      
+      // Execute callback if provided
+      if (callback && typeof callback === 'function') {
+        callback();
+      }
+      
+    } catch (error) {
+      this.logger.error(`Error during graceful shutdown: ${error.message}`);
+      if (callback && typeof callback === 'function') {
+        callback(error);
+      }
+    }
+  }
+
+  cleanupIntervals() {
+    this.cleanupManagedIntervals();
+    this.logger.debug('All managed intervals cleared');
   }
 }
 

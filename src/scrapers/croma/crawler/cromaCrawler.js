@@ -48,6 +48,7 @@ class ChromeCrawler extends BaseCrawler {
     this.rateLimiter.registerRules('croma', CromaRateLimitConfig);
 
     // Configuration
+    this.category = config.category || 'mobile';
     this.categoryUrl = config.categoryUrl || 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97';
     
     // Create separate directories for checkpoints and raw data
@@ -71,8 +72,8 @@ class ChromeCrawler extends BaseCrawler {
     this.productsPerPage = config.productsPerPage || 12;
     this.delayBetweenPages = config.delayBetweenPages || 3000;
 
-    // Load checkpoint
-    this.checkpoint = this.loadCheckpoint();
+    // Load checkpoint using base class method
+    this.checkpoint = super.loadCheckpoint(this.checkpointFile);
     this.productLinks = this.checkpoint.productLinks || [];
     this.seenUrls = new Set(); // Global deduplication set
     
@@ -120,15 +121,7 @@ class ChromeCrawler extends BaseCrawler {
     return page;
   }
 
-  /**
-   * Ensure directory exists
-   */
-  ensureDirectory(dir) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      this.logger.info(`Created directory: ${dir}`);
-    }
-  }
+  // ensureDirectory() moved to BaseCrawler
 
   async navigate(page, url) {
     try {
@@ -137,7 +130,7 @@ class ChromeCrawler extends BaseCrawler {
         timeout: 45000 
       });
 
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       try {
         await page.waitForSelector('body', { timeout: 10000 });
@@ -163,32 +156,7 @@ class ChromeCrawler extends BaseCrawler {
     }
   }
 
-  loadCheckpoint() {
-    try {
-      if (fs.existsSync(this.checkpointFile)) {
-        const data = fs.readFileSync(this.checkpointFile, 'utf8');
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      this.logger.error(`Error loading checkpoint: ${error.message}`);
-    }
-    return { 
-      productLinks: [], 
-      lastProcessedIndex: -1, 
-      failedProducts: [],
-      lastRunTimestamp: null
-    };
-  }
-
-  saveCheckpoint() {
-    try {
-      this.checkpoint.lastRunTimestamp = new Date().toISOString();
-      fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-      this.logger.checkpointSaved();
-    } catch (error) {
-      this.logger.error(`Error saving checkpoint: ${error.message}`);
-    }
-  }
+  // loadCheckpoint() and saveCheckpoint() moved to BaseCrawler
 
   normalizeCromaUrl(url) {
     if (!url) return url;
@@ -211,95 +179,27 @@ class ChromeCrawler extends BaseCrawler {
     }
   }
 
-  // Add URL to global set with normalization
-  addUniqueUrl(url) {
-    const normalized = this.normalizeCromaUrl(url);
-    if (!this.seenUrls.has(normalized)) {
-      this.seenUrls.add(normalized);
-      this.productLinks.push(normalized);
-      return true; // Added
-    }
-    return false; // Duplicate
-  }
+  // addUniqueUrl() moved to BaseCrawler
 
-  saveData(data) {
-    try {
-      let existingData = [];
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          existingData = JSON.parse(fileContent);
-        }
-      }
-      
-      const newData = Array.isArray(data) ? data : [data];
-      
-      // Create a normalized URL-based deduplication map
-      const existingUrls = new Set();
-      existingData.forEach(product => {
-        if (product.url) {
-          const normalizedUrl = this.normalizeCromaUrl(product.url);
-          existingUrls.add(normalizedUrl);
-        }
-      });
-      
-      // Filter out products with normalized URLs that already exist
-      const uniqueNewData = newData.filter(product => {
-        if (!product.url) return true;
-        const normalizedUrl = this.normalizeCromaUrl(product.url);
-        if (existingUrls.has(normalizedUrl)) {
-          this.logger.debug(`🔄 Skipping duplicate URL: ${normalizedUrl.substring(50)}`);
-          return false;
-        }
-        existingUrls.add(normalizedUrl);
-        return true;
-      });
-      
-      const combinedData = [...existingData, ...uniqueNewData];
-      
-      fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-      //this.logger.info(`💾 Saved ${uniqueNewData.length}/${newData.length} products (filtered ${newData.length - uniqueNewData.length} duplicates) | Total: ${combinedData.length}`);
-    } catch (error) {
-      this.logger.error(`Error saving data: ${error.message}`);
-    }
-  }
-
-  getCurrentDataCount() {
-    try {
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          const parsed = JSON.parse(fileContent);
-          if (Array.isArray(parsed)) return parsed.length;
-          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Error reading current data count: ${error.message}`);
-    }
-    return 0;
-  }
+  // saveData() and getCurrentDataCount() moved to BaseCrawler
 
   async start() {
-    // Set the expected total count for progress tracking, not the actual collected links
-    const expectedTotal = this.maxProducts || 1000;
-    const currentDataCount = this.getCurrentDataCount();
-    this.logger.startScraper('croma', expectedTotal, currentDataCount);
-
     try {
       // Initialize browser first - prevents multiple browser instances under concurrency
       await this.initialize();
 
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       } else {
         this.productLinks = this.checkpoint.productLinks;
         this.logger.info(`Resuming: ${this.productLinks.length} products from checkpoint`);
       }
 
-      // Update logger with expected total and current processed for progress tracking
-      this.logger.setTotalCount(expectedTotal, currentDataCount);
+      // Use actual product links count from checkpoint for accurate progress tracking
+      const totalProducts = this.checkpoint.productLinks.length;
+      const processedCount = this.checkpoint.lastProcessedIndex + 1;
+      this.logger.startScraper('croma', totalProducts, processedCount);
 
       await this.scrapeProductDetails();
       
@@ -319,42 +219,18 @@ class ChromeCrawler extends BaseCrawler {
       const errorMemory = this.getMemoryStats();
       this.logger.error(`Memory stats at error: ${JSON.stringify(errorMemory)}`);
       
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       await this.shutdown();
       throw error;
     }
   }
 
   async shutdown() {
-    try {
-      if (this.rateLimiter && typeof this.rateLimiter.close === 'function') {
-        await this.rateLimiter.close();
-        this.logger.debug('Rate limiter closed');
-      }
-      
-      await this.close();
-      
-      const highestIntervalId = setTimeout(() => {}, 0);
-      for (let i = 0; i < highestIntervalId; i++) {
-        clearTimeout(i);
-        clearInterval(i);
-      }
-      
-      if (global.gc) {
-        global.gc();
-        this.logger.debug('Final garbage collection performed');
-      }
-      
+    await super.gracefulShutdown(() => {
       setTimeout(() => {
         process.exit(0);
       }, 2000);
-      
-    } catch (error) {
-      this.logger.error(`Error during shutdown: ${error.message}`);
-      setTimeout(() => {
-        process.exit(1);
-      }, 3000);
-    }
+    });
   }
 
 
@@ -410,11 +286,11 @@ class ChromeCrawler extends BaseCrawler {
           await page.evaluate((button) => {
             button.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, viewMoreButton);
-          await page.waitForTimeout(300);
+          await new Promise(resolve => setTimeout(resolve, 300));
           await viewMoreButton.click();
           totalClickCount++;
           this.logger.info(`🔄 Clicked "View More" (${totalClickCount}/${maxTotalClicks})`);
-          await page.waitForTimeout(1500);
+          await new Promise(resolve => setTimeout(resolve, 1500));
         } catch (error) {
           this.logger.error(`❌ Error clicking View More: ${error.message}`);
           break;
@@ -447,7 +323,7 @@ class ChromeCrawler extends BaseCrawler {
       // Add links using global Set deduplication
       let uniqueCount = 0;
       rawLinks.forEach(link => {
-        if (this.addUniqueUrl(link)) {
+        if (super.addUniqueUrl(link, this.seenUrls, this.productLinks, this.normalizeCromaUrl.bind(this))) {
           uniqueCount++;
           newLinksAdded++;
         }
@@ -458,7 +334,7 @@ class ChromeCrawler extends BaseCrawler {
       this.checkpoint.productLinks = this.productLinks;
       this.checkpoint.lastPageScraped = 1;
       this.checkpoint.pagesScraped = [1];
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       
     } catch (error) {
       this.logger.error(`❌ Error scraping product links: ${error.message}`);
@@ -511,11 +387,11 @@ class ChromeCrawler extends BaseCrawler {
         }
       }
       
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       
       if (results.length >= 5 || i + concurrent >= endIndex) {
         if (results.length > 0) {
-          this.saveData(results);
+          super.saveData(results, this.outputFile, this.normalizeCromaUrl.bind(this));
           results.length = 0;
         }
       }
@@ -931,7 +807,7 @@ class ChromeCrawler extends BaseCrawler {
         results.push(productData);
         
         if (results.length >= 5) {
-          this.saveData(results);
+          super.saveData(results, this.outputFile, this.normalizeCromaUrl.bind(this));
           results.length = 0;
         }
       } catch (error) {
@@ -945,10 +821,10 @@ class ChromeCrawler extends BaseCrawler {
     }
     
     if (results.length > 0) {
-      this.saveData(results);
+      super.saveData(results, this.outputFile, this.normalizeCromaUrl.bind(this));
     }
     
-    this.saveCheckpoint();
+    super.saveCheckpoint(this.checkpoint, this.checkpointFile);
   }
 }
 
