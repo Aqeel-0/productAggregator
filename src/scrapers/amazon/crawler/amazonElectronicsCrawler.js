@@ -942,11 +942,12 @@ class AmazonDetailCrawler extends BaseCrawler {
   }
 
   async _extractSpecifications($) {
-          // Extracting specifications
     try {
-      const specifications = {};
+      // Use the new structured product details extraction
+      const productDetails = await this._extractStructuredProductDetails($);
 
-      // Method 1: Product Overview Table
+      // Also get product overview as a separate section
+      const overviewData = {};
       const overviewTable = $('#productOverview_feature_div table');
       if (overviewTable.length > 0) {
         overviewTable.find('tr').each((_, row) => {
@@ -954,42 +955,32 @@ class AmazonDetailCrawler extends BaseCrawler {
           if (cells.length >= 2) {
             const key = $(cells[0]).text().trim();
             const value = $(cells[1]).text().trim();
-            if (key && value && key !== value && !key.startsWith('Feature') && key !== 'Description') {
-              specifications[key] = value;
+            if (key && value && key !== value) {
+              const cleanKey = key.replace(/[:\-\s]+$/, '').trim();
+              const cleanValue = value.replace(/^[:\-\s]+/, '').trim();
+              if (cleanKey && cleanValue && cleanKey.length < 100 && cleanValue.length < 300) {
+                overviewData[cleanKey] = cleanValue;
+              }
             }
           }
         });
       }
-              
-      const productDetails = await this._extractSpecs($);
-      const technicalDetails = await this._extractTechnicalDetails($);
-      const additionalInformation = await this._extractAdditionalInformation($);
-      const cleanedSpecs = {};
-      Object.keys(specifications).forEach(key => {
-        const value = specifications[key];
-        const cleanKey = key.replace(/[:\-\s]+$/, '').trim();
-        const cleanValue = value.replace(/^[:\-\s]+/, '').trim();
-        
-        if (cleanKey && cleanValue && 
-            cleanKey !== cleanValue && 
-            cleanKey.length > 1 && 
-            cleanValue.length > 1 &&
-            !cleanValue.includes('...') &&
-            cleanKey.length < 100 &&
-            cleanValue.length < 300) {
-          cleanedSpecs[cleanKey] = cleanValue;
-        }
-      });
-      cleanedSpecs['Product Details'] = {productDetails};
-      cleanedSpecs['Technical Details'] = {technicalDetails};
-      if (additionalInformation && Object.keys(additionalInformation).length > 0) {
-        cleanedSpecs['Additional Information'] = {additionalInformation};
+
+      // Combine overview with structured details
+      const specifications = {};
+
+      // Add Product Overview section if we have data
+      if (Object.keys(overviewData).length > 0) {
+        specifications['Product Overview'] = overviewData;
       }
-              // Extracted specifications
-      return cleanedSpecs;
+
+      // Add all structured sections
+      Object.assign(specifications, productDetails);
+
+      return specifications;
 
     } catch (error) {
-      this.logger.error(`Error extracting specifications with Cheerio: ${error.message}`);
+      this.logger.error(`Error extracting specifications: ${error.message}`);
       return {};
     }
   }
@@ -1058,27 +1049,102 @@ class AmazonDetailCrawler extends BaseCrawler {
     try {
       const specifications = {};
       const rows = $('tr:has(td[class*="tableAttributeName"])');
-      
+
       for (let i = 0; i < rows.length; i++) {
         const row = rows.eq(i);
-        
+
         // Get the field name from the header cell
         const headerCell = row.find('td[role="rowheader"] span').text().trim();
-        
+
         if (headerCell) {
           // Get the value from the first product column (asin-0)
           const firstColumnValue = row.find('td[class*="asin-0"] span.a-size-base.a-color-base').text().trim();
-          
+
           if (firstColumnValue) {
             specifications[headerCell] = firstColumnValue;
           }
         }
       }
-      
+
       return specifications;
-      
+
     } catch (error) {
       console.error('Error extracting all fields from first column:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Extract structured product details from expandable sections
+   * Returns data in format: { "Camera": { "Camera Flash Type": "LED", ... }, "Battery": { ... } }
+   */
+  async _extractStructuredProductDetails($) {
+    try {
+      const productDetails = {};
+
+      // Selectors for left and right column expander sections
+      const sectionContainers = [
+        '#productDetails_expanderTables_depthLeftSections',
+        '#productDetails_expanderTables_depthRightSections'
+      ];
+
+      for (const containerSelector of sectionContainers) {
+        const container = $(containerSelector);
+        if (container.length === 0) continue;
+
+        // Find all expandable section containers
+        const sections = container.find('.a-expander-container.a-section-expander-container');
+
+        sections.each((_, section) => {
+          const $section = $(section);
+
+          // Get section title (e.g., "Camera", "Battery", "Display")
+          const titleEl = $section.find('.a-expander-prompt');
+          const sectionName = titleEl.text().trim();
+
+          if (!sectionName) return;
+
+          // Get the table within this section
+          const table = $section.find('.a-expander-content table.a-keyvalue.prodDetTable');
+
+          if (table.length > 0) {
+            const sectionData = {};
+
+            table.find('tr').each((_, row) => {
+              const $row = $(row);
+              const keyEl = $row.find('th.prodDetSectionEntry');
+              const valueEl = $row.find('td.prodDetAttrValue');
+
+              if (keyEl.length > 0 && valueEl.length > 0) {
+                const key = keyEl.text().trim();
+                let value = valueEl.text().trim();
+
+                // Clean up value
+                value = value.replace(/\u200E/g, '').replace(/\s+/g, ' ').trim();
+
+                if (key && value && key !== value) {
+                  sectionData[key] = value;
+                }
+              }
+            });
+
+            // Only add section if it has data
+            if (Object.keys(sectionData).length > 0) {
+              // If section already exists, merge data
+              if (productDetails[sectionName]) {
+                Object.assign(productDetails[sectionName], sectionData);
+              } else {
+                productDetails[sectionName] = sectionData;
+              }
+            }
+          }
+        });
+      }
+
+      return productDetails;
+
+    } catch (error) {
+      this.logger.error(`Error extracting structured product details: ${error.message}`);
       return {};
     }
   }

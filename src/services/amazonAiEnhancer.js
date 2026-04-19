@@ -9,7 +9,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    this.genAI = new GoogleGenerativeAI('AIzaSyDiqCpBAzFWZFpe6Wg-M0zy2TLPRqFTkLk');
+    this.genAI = new GoogleGenerativeAI('AIzaSyBxLQUUDmsSBYreomeHN8Y39YnZAzhmqCQ');
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     this.batchSize = 50; // Process 50 products per batch
     this.stats = { totalProcessed: 0, successful: 0, filtered: 0, apiCalls: 0 };

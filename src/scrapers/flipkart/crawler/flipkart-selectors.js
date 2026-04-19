@@ -4,11 +4,13 @@
  * Generic patterns that work for any product
  */
 
-// Category page selectors
+// Category page selectors (Flipkart obfuscates CSS classes; prefer href-based link discovery)
 const CATEGORY_SELECTORS = {
+  // Legacy grid/card classes often break after site updates — kept for optional diagnostics
   PRODUCT_GRID: '//div[contains(@class, "_1YokD2")]',
   PRODUCT_CARD: '//div[contains(@class, "_2kHMtA")]',
-  PRODUCT_LINK: '//a[contains(@class, "wjcEIp")]',
+  // Product PDP links are stable: path contains /p/ (class names like wjcEIp → k7wcnx etc. change often)
+  PRODUCT_LINK: '//a[contains(@href, "/p/")]',
   NEXT_PAGE: '//a[span[text()="Next"]]'
 };
 
