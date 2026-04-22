@@ -246,17 +246,15 @@ class ChromeCrawler extends BaseCrawler {
       await this.checkForErrors(page);
       await page.waitForSelector('body', { timeout: 15000 });
       
-      // Keep clicking "View More" until we have enough links
+      // Keep clicking "View More" until we have enough UNIQUE products
       let totalClickCount = 0;
-      const productsPerPage = 20;
-      const maxTotalClicks = this.maxProducts ? 
-        Math.max(0, Math.ceil((this.maxProducts - productsPerPage) / productsPerPage)) : 
-        20; // Default to 20 if no maxProducts set
+      const maxTotalClicks = 50; // Safety limit
+      const targetProducts = this.maxProducts || 100;
       
-      this.logger.info(`🎯 Target: ${this.maxProducts || 'unlimited'} products | Required clicks: ${maxTotalClicks}`);
+      this.logger.info(`🎯 Target: ${targetProducts} unique products`);
       
-      // Click "View More" button exactly maxTotalClicks times
-      while (totalClickCount < maxTotalClicks) {
+      // Click "View More" until we have enough unique products
+      while (this.productLinks.length < targetProducts && totalClickCount < maxTotalClicks) {
         let viewMoreButton = null;
         for (const selector of CATEGORY_SELECTORS.VIEW_MORE_BUTTON) {
           try {
@@ -289,16 +287,38 @@ class ChromeCrawler extends BaseCrawler {
           await new Promise(resolve => setTimeout(resolve, 300));
           await viewMoreButton.click();
           totalClickCount++;
-          this.logger.info(`🔄 Clicked "View More" (${totalClickCount}/${maxTotalClicks})`);
+          this.logger.info(`🔄 Clicked "View More" (${totalClickCount}) | Unique products: ${this.productLinks.length}/${targetProducts}`);
           await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // Extract and add links after each click
+          const rawLinks = await page.evaluate((selectors) => {
+            const links = [];
+            for (const selector of selectors.PRODUCT_LINK) {
+              const linkElements = document.querySelectorAll(selector);
+              linkElements.forEach(element => {
+                const href = element.href || element.getAttribute('href');
+                if (href) {
+                  const absoluteUrl = href.startsWith('http') ? href : `https://www.croma.com${href}`;
+                  links.push(absoluteUrl);
+                }
+              });
+              if (links.length > 0) break;
+            }
+            return links;
+          }, CATEGORY_SELECTORS);
+          
+          rawLinks.forEach(link => {
+            super.addUniqueUrl(link, this.seenUrls, this.productLinks, this.normalizeCromaUrl.bind(this));
+          });
+          
         } catch (error) {
           this.logger.error(`❌ Error clicking View More: ${error.message}`);
           break;
         }
       }
       
-      // Extract all product links from the fully loaded page
-      this.logger.info('🔗 Extracting all product links with global deduplication');
+      // Final extraction to ensure we got everything
+      this.logger.info('🔗 Final extraction of all product links');
       
       const rawLinks = await page.evaluate((selectors) => {
         const links = [];
@@ -320,16 +340,16 @@ class ChromeCrawler extends BaseCrawler {
         return links;
       }, CATEGORY_SELECTORS);
       
-      // Add links using global Set deduplication
-      let uniqueCount = 0;
+      // Add any remaining unique links
+      let finalUniqueCount = 0;
       rawLinks.forEach(link => {
         if (super.addUniqueUrl(link, this.seenUrls, this.productLinks, this.normalizeCromaUrl.bind(this))) {
-          uniqueCount++;
+          finalUniqueCount++;
           newLinksAdded++;
         }
       });
       
-      this.logger.info(`📋 Found ${rawLinks.length} raw links, ${uniqueCount} unique | Total: ${this.productLinks.length}`);  
+      this.logger.info(`📋 Final extraction: ${finalUniqueCount} new unique links | Total: ${this.productLinks.length}`);  
       // Update checkpoint
       this.checkpoint.productLinks = this.productLinks;
       this.checkpoint.lastPageScraped = 1;
