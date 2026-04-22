@@ -14,7 +14,7 @@ const configs = {
   mouse: {
     category: 'Mouse',
     categoryUrl: 'https://www.reliancedigital.in/products?q=mouse&page_no=1&page_size=12&page_type=number&is_available=true',
-    maxProducts: 200,
+    maxProducts: 50,
     maxPages: 15,
     maxConcurrent: 2,
     delayBetweenPages: 2000

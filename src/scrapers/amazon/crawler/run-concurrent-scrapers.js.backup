@@ -1,4 +1,4 @@
-const AmazonClusterCrawler = require('./amazonElectronicsCrawler');
+const AmazonDetailCrawler = require('./amazonElectronicsCrawler');
 const Logger = require('../../../utils/logger');
 
 // Configuration for different categories
@@ -6,7 +6,7 @@ const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.amazon.in/s?i=electronics&rh=n%3A976419031%2Cn%3A1389401031%2Cn%3A1389432031%2Cn%3A1805560031&s=popularity-rank',
-    maxProducts: 10,
+    maxProducts: 1000,
     maxPages: 100,
     maxConcurrent: 10,
     delayBetweenPages: 2000,
@@ -46,7 +46,7 @@ async function runScrapers() {
   // Create scrapers for each category
   for (const [category, config] of Object.entries(configs)) {
     logger.info(`Initializing ${category} scraper...`);
-    const scraper = new AmazonClusterCrawler({
+    const scraper = new AmazonDetailCrawler({
       ...config,
       headless: true,
     });

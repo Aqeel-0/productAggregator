@@ -232,13 +232,9 @@ class AmazonNormalizer {
    * Extract model number from specifications
    */
   extractModelNumber(specs) {
-    // Try multiple paths for model number
-    if (specs?.["Technical Details"]?.technicalDetails?.["Item model number"]) {
-      return specs["Technical Details"].technicalDetails["Item model number"];
-    }
-
-    if (specs?.["Item model number"]) {
-      return specs["Item model number"];
+    // New section-based format - ASIN from Item details
+    if (specs?.["Item details"]?.["ASIN"]) {
+      return specs["Item details"]["ASIN"];
     }
 
     return null;
@@ -302,28 +298,41 @@ class AmazonNormalizer {
   extractDisplaySpecs(specs) {
     const display = {};
 
-    // Display size
-    if (specs?.["Product Details"]?.productDetails?.["display size"]) {
-      const sizeMatch = specs["Product Details"].productDetails["display size"].match(/([\d.]+)/);
+    // Display size - new section-based format
+    if (specs?.["Display"]?.["Screen Size Unit of Measure"]) {
+      const sizeMatch = specs["Display"]["Screen Size Unit of Measure"].match(/([\d.]+)/);
       if (sizeMatch) {
         display.size_in = parseFloat(sizeMatch[1]);
       }
     }
 
-    // Resolution
-    if (specs?.["Technical Details"]?.technicalDetails?.["Resolution"]) {
-      display.resolution = specs["Technical Details"].technicalDetails["Resolution"];
-    } else if (specs?.["Resolution"]) {
-      display.resolution = specs["Resolution"];
+    // Resolution - new section-based format
+    if (specs?.["Display"]?.["Resolution"]) {
+      display.resolution = specs["Display"]["Resolution"];
+    } else if (specs?.["Display"]?.["Maximum Display Resolution"]) {
+      display.resolution = specs["Display"]["Maximum Display Resolution"];
     }
 
-    // Display type
-    if (specs?.["Product Details"]?.productDetails?.["display type"]) {
-      display.type = specs["Product Details"].productDetails["display type"];
+    // Display type - new section-based format
+    if (specs?.["Display"]?.["Display Type"]) {
+      display.type = specs["Display"]["Display Type"];
     }
 
-    // Calculate PPI if we have resolution and size
-    if (display.resolution && display.size_in) {
+    // PPI - new section-based format
+    if (specs?.["Display"]?.["Display Pixel Density"]) {
+      const ppiMatch = specs["Display"]["Display Pixel Density"].match(/(\d+)/);
+      if (ppiMatch) {
+        display.ppi = parseInt(ppiMatch[1]);
+      }
+    }
+
+    // Refresh rate
+    if (specs?.["Display"]?.["Refresh Rate"]) {
+      display.refresh_rate = specs["Display"]["Refresh Rate"];
+    }
+
+    // Calculate PPI if we have resolution and size but no PPI
+    if (display.resolution && display.size_in && !display.ppi) {
       const resMatch = display.resolution.match(/(\d+)\s*x\s*(\d+)/);
       if (resMatch) {
         const width = parseInt(resMatch[1]);
@@ -342,22 +351,23 @@ class AmazonNormalizer {
   extractPerformanceSpecs(specs) {
     const performance = {};
 
-    // Operating system
-    if (specs?.["Operating System"]) {
-      performance.operating_system = specs["Operating System"];
-    } else if (specs?.["Technical Details"]?.technicalDetails?.["OS"]) {
-      performance.operating_system = specs["Technical Details"].technicalDetails["OS"];
+    // Operating system - new section-based format from Product Overview
+    if (specs?.["Product Overview"]?.["Operating System"]) {
+      performance.operating_system = specs["Product Overview"]["Operating System"];
+    } else if (specs?.["Additional details"]?.["Operating System"]) {
+      performance.operating_system = specs["Additional details"]["Operating System"];
     }
 
-    // Processor brand and chipset
-    if (specs?.["CPU Model"]) {
-      performance.processor_brand = specs["CPU Model"].split(' ')[0]; // First word as brand
-      performance.processor_chipset = specs["CPU Model"];
+    // Processor brand and chipset - new section-based format
+    if (specs?.["Product Overview"]?.["CPU Model"]) {
+      const cpuModel = specs["Product Overview"]["CPU Model"];
+      performance.processor_brand = cpuModel.split(' ')[0];
+      performance.processor_chipset = cpuModel;
     }
 
-    // CPU Speed
-    if (specs?.["CPU Speed"]) {
-      performance.processor_cores = specs["CPU Speed"];
+    // CPU Speed - new section-based format
+    if (specs?.["Product Overview"]?.["CPU Speed"]) {
+      performance.processor_cores = specs["Product Overview"]["CPU Speed"];
     }
 
     return Object.keys(performance).length > 0 ? performance : null;
@@ -369,21 +379,20 @@ class AmazonNormalizer {
   extractCameraSpecs(specs) {
     const camera = {};
 
-    // Try to extract camera info from title or specs
-    if (this.currentTitle) {
-      // Look for camera mentions in title
-      const cameraMatch = this.currentTitle.match(/(\d+MP[^|]*)/i);
-      if (cameraMatch) {
-        camera.rear_setup = cameraMatch[1].trim();
-      }
+    if (specs?.["Camera"]?.["Rear Facing Camera Photo Sensor Resolution"]) {
+      camera.rear_setup = specs["Camera"]["Rear Facing Camera Photo Sensor Resolution"];
     }
 
-    // Check technical details for camera features
-    if (specs?.["Technical Details"]?.technicalDetails?.["Other camera features"]) {
-      const features = specs["Technical Details"].technicalDetails["Other camera features"];
-      if (features.includes("Front")) {
-        camera.front_setup = "Front Camera";
-      }
+    if (specs?.["Camera"]?.["Front Photo Sensor Resolution"]) {
+      camera.front_setup = specs["Camera"]["Front Photo Sensor Resolution"];
+    }
+
+    if (specs?.["Camera"]?.["Number of Rear Facing Cameras"]) {
+      camera.rear_camera_count = parseInt(specs["Camera"]["Number of Rear Facing Cameras"]);
+    }
+
+    if (specs?.["Camera"]?.["Number of Front Cameras"]) {
+      camera.front_camera_count = parseInt(specs["Camera"]["Number of Front Cameras"]);
     }
 
     return Object.keys(camera).length > 0 ? camera : null;
@@ -395,17 +404,17 @@ class AmazonNormalizer {
   extractBatterySpecs(specs) {
     const battery = {};
 
-    // Battery capacity
-    if (specs?.["Technical Details"]?.technicalDetails?.["Battery Power Rating"]) {
-      const capacity = specs["Technical Details"].technicalDetails["Battery Power Rating"];
-      battery.capacity_mah = parseInt(capacity);
-    }
-
-    // Quick charging from special features
-    if (specs?.["Technical Details"]?.technicalDetails?.["Special features"]) {
-      const features = specs["Technical Details"].technicalDetails["Special features"];
-      if (features && features.toLowerCase().includes("fast charging")) {
-        battery.quick_charging = true;
+    if (specs?.["Battery"]?.["Battery Capacity"]) {
+      const capacity = specs["Battery"]["Battery Capacity"];
+      const capacityMatch = capacity.match(/(\d+)/);
+      if (capacityMatch) {
+        battery.capacity_mah = parseInt(capacityMatch[1]);
+      }
+    } else if (specs?.["Battery"]?.["Battery Power"]) {
+      const capacity = specs["Battery"]["Battery Power"];
+      const capacityMatch = capacity.match(/(\d+)/);
+      if (capacityMatch) {
+        battery.capacity_mah = parseInt(capacityMatch[1]);
       }
     }
 
@@ -418,28 +427,12 @@ class AmazonNormalizer {
   extractConnectivitySpecs(specs) {
     const connectivity = {};
 
-    // Connectivity technologies
-    if (specs?.["Technical Details"]?.technicalDetails?.["Connectivity technologies"]) {
-      const tech = specs["Technical Details"].technicalDetails["Connectivity technologies"];
-      connectivity.network_type = tech;
+    if (specs?.["Connectivity"]?.["Cellular Technology"]) {
+      connectivity.network_type = specs["Connectivity"]["Cellular Technology"];
     }
 
-    // Wireless communication
-    if (specs?.["Technical Details"]?.technicalDetails?.["Wireless communication technologies"]) {
-      const wireless = specs["Technical Details"].technicalDetails["Wireless communication technologies"];
-      if (wireless.toLowerCase().includes("cellular")) {
-        connectivity.sim_type = "Dual Sim"; // Default assumption
-      }
-    }
-
-    // Audio jack
-    if (specs?.["Technical Details"]?.technicalDetails?.["Audio Jack"]) {
-      connectivity.audio_jack_type = specs["Technical Details"].technicalDetails["Audio Jack"];
-    }
-
-    // GPS
-    if (specs?.["Technical Details"]?.technicalDetails?.["GPS"]) {
-      connectivity.gps = specs["Technical Details"].technicalDetails["GPS"] === "True";
+    if (specs?.["Additional details"]?.["SIM Card Slot Count"]) {
+      connectivity.sim_type = specs["Additional details"]["SIM Card Slot Count"];
     }
 
     return Object.keys(connectivity).length > 0 ? connectivity : null;
@@ -451,29 +444,19 @@ class AmazonNormalizer {
   extractDesignSpecs(specs) {
     const design = {};
 
-    // Product dimensions
-    if (specs?.["Technical Details"]?.technicalDetails?.["Product Dimensions"]) {
-      const dimensions = specs["Technical Details"].technicalDetails["Product Dimensions"];
-
-      // Parse dimensions like "0.9 x 7.8 x 16.9 cm; 195 g"
-      const dimMatch = dimensions.match(/([\d.]+)\s*x\s*([\d.]+)\s*x\s*([\d.]+)\s*cm/);
+    if (specs?.["Measurements"]?.["Item Dimensions"]) {
+      const dimensions = specs["Measurements"]["Item Dimensions"];
+      const dimMatch = dimensions.match(/([\d.]+)\s*x\s*([\d.]+)\s*x\s*([\d.]+)/);
       if (dimMatch) {
-        design.depth_mm = parseFloat(dimMatch[1]) * 10; // Convert cm to mm
+        design.height_mm = parseFloat(dimMatch[1]) * 10;
         design.width_mm = parseFloat(dimMatch[2]) * 10;
-        design.height_mm = parseFloat(dimMatch[3]) * 10;
-      }
-
-      // Parse weight
-      const weightMatch = dimensions.match(/([\d.]+)\s*g/);
-      if (weightMatch) {
-        design.weight_g = parseFloat(weightMatch[1]);
+        design.depth_mm = parseFloat(dimMatch[3]) * 10;
       }
     }
 
-    // Item weight as fallback
-    if (!design.weight_g && specs?.["Technical Details"]?.technicalDetails?.["Item Weight"]) {
-      const weight = specs["Technical Details"].technicalDetails["Item Weight"];
-      const weightMatch = weight.match(/([\d.]+)\s*g/);
+    if (specs?.["Measurements"]?.["Item Weight Unit of Measure"]) {
+      const weight = specs["Measurements"]["Item Weight Unit of Measure"];
+      const weightMatch = weight.match(/([\d.]+)/);
       if (weightMatch) {
         design.weight_g = parseFloat(weightMatch[1]);
       }
@@ -483,22 +466,16 @@ class AmazonNormalizer {
   }
 
   /**
-   * Get category breadcrumb with special handling for iPhone 16 models
+   * Get category breadcrumb
    */
   getCategoryBreadcrumb(product) {
-    // Check if this is an iPhone 16 model
     if (product.title && typeof product.title === 'string') {
       const title = product.title.toLowerCase();
       
-      // Check for various iPhone 16 naming patterns
       if (title.includes('iphone 16') || 
           title.includes('iphone16') || 
-          title.includes('iphone-16') ||
-          title.includes('iphone_16') ||
-          title.match(/iphone\s*16\s*(pro|max|plus|mini)?/i)) {
-        
-        console.log(`📱 Detected iPhone 16 model: "${product.title.substring(0, 60)}..." - Setting custom category structure`);
-        
+          title.match(/iphone\s*16/i)) {
+        console.log(`📱 Detected iPhone 16 model: "${product.title.substring(0, 60)}..."`);
         return [
           "Electronics",
           "Mobiles & Accessories",
@@ -508,7 +485,6 @@ class AmazonNormalizer {
       }
     }
     
-    // For other products, return original categories or default
     return product.categories || [];
   }
 
@@ -517,7 +493,6 @@ class AmazonNormalizer {
    */
   extractCategory(product) {
     const breadcrumb = this.getCategoryBreadcrumb(product);
-    // For mobiles, use breadcrumb[3] (index 3)
     return breadcrumb[3] || null;
   }
 
@@ -555,27 +530,16 @@ class AmazonNormalizer {
   }
 }
 
-// Main execution block for running directly
+// Main execution block for running directly - Mobile only
 async function main() {
   const fs = require('fs');
   const path = require('path');
   
   try {
-    console.log('🚀 Running Amazon Normalizer on Multiple Categories...\n');
+    console.log('🚀 Running Amazon Mobile Normalizer...\n');
 
-    // Define input files to process
-    const inputFiles = [
-      {
-        category: 'mobile',
-        inputPath: path.join(__dirname, '../scrapers/amazon/raw_data/amazon_mobile_scraped_data.json'),
-        outputPath: path.join(__dirname, '../../parsed_data/amazon_mobile_normalized_data.json')
-      },
-      {
-        category: 'tablet',
-        inputPath: path.join(__dirname, '../scrapers/amazon/raw_data/amazon_tablet_scraped_data.json'),
-        outputPath: path.join(__dirname, '../../parsed_data/amazon_tablet_normalized_data.json')
-      }
-    ];
+    const inputPath = path.join(__dirname, '../scrapers/amazon/raw_data/amazon_mobile_scraped_data.json');
+    const outputPath = path.join(__dirname, '../../parsed_data/amazon_mobile_normalized_data.json');
 
     // Ensure output directory exists
     const outputDir = path.join(__dirname, '../../parsed_data');
@@ -583,87 +547,55 @@ async function main() {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    let totalProcessed = 0;
-    let totalSuccessful = 0;
-    const overallStartTime = Date.now();
-
-    // Process each category file
-    for (const fileConfig of inputFiles) {
-      console.log(`\n📱 Processing ${fileConfig.category} category...`);
-      console.log('=' .repeat(50));
-      
-      // Check if input file exists
-      if (!fs.existsSync(fileConfig.inputPath)) {
-        console.log(`⚠️  Input file not found: ${fileConfig.inputPath}`);
-        console.log(`⏭️  Skipping ${fileConfig.category} category...\n`);
-        continue;
-      }
-
-      console.log(`📂 Reading ${fileConfig.category} data from: ${fileConfig.inputPath}`);
-      
-      const rawData = JSON.parse(fs.readFileSync(fileConfig.inputPath, 'utf8'));
-      console.log(`📊 Total ${fileConfig.category} products to process: ${rawData.length}`);
-
-      if (rawData.length === 0) {
-        console.log(`⚠️  No data found in ${fileConfig.category} file, skipping...\n`);
-        continue;
-      }
-
-      // Initialize and run normalizer
-      const normalizer = new AmazonNormalizer();
-      
-      console.log(`⚡ Starting ${fileConfig.category} normalization with AI enhancement...\n`);
-      const startTime = Date.now();
-      
-      const normalizedData = await normalizer.normalizeProducts(rawData);
-      
-      const endTime = Date.now();
-      const duration = (endTime - startTime) / 1000;
-      
-      console.log(`\n⏱️  ${fileConfig.category} processing completed in ${duration.toFixed(2)} seconds (${(duration/60).toFixed(2)} minutes)`);
-      console.log(`📈 Successfully normalized ${normalizedData.length} ${fileConfig.category} products`);
-      console.log(`🎯 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
-
-      // Save results
-      console.log(`\n💾 Saving ${fileConfig.category} normalized dataset...`);
-      fs.writeFileSync(fileConfig.outputPath, JSON.stringify(normalizedData, null, 2), 'utf8');
-      
-      console.log(`✅ ${fileConfig.category} normalized dataset saved to: ${fileConfig.outputPath}`);
-
-      // Generate statistics for this category
-      let successfulExtractions = 0;
-      normalizedData.forEach(product => {
-        if (product.product_identifiers?.brand && 
-            product.product_identifiers?.model_name &&
-            product.variant_attributes?.color &&
-            product.variant_attributes?.ram !== null &&
-            product.variant_attributes?.storage !== null) {
-          successfulExtractions++;
-        }
-      });
-
-      console.log(`\n📊 ${fileConfig.category.toUpperCase()} Statistics:`);
-      console.log(`📦 Total products: ${rawData.length}`);
-      console.log(`✅ Successfully normalized: ${normalizedData.length}`);
-      console.log(`🎯 Complete extractions: ${successfulExtractions} (${((successfulExtractions/normalizedData.length)*100).toFixed(1)}%)`);
-      console.log(`⏱️  Processing time: ${(duration/60).toFixed(2)} minutes`);
-      console.log(`🚀 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
-
-      // Update totals
-      totalProcessed += rawData.length;
-      totalSuccessful += normalizedData.length;
+    console.log('=' .repeat(50));
+    
+    if (!fs.existsSync(inputPath)) {
+      console.log(`⚠️  Input file not found: ${inputPath}`);
+      process.exit(1);
     }
 
-    const overallEndTime = Date.now();
-    const overallDuration = (overallEndTime - overallStartTime) / 1000;
+    console.log(`📂 Reading mobile data from: ${inputPath}`);
+    
+    const rawData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
+    console.log(`📊 Total mobile products to process: ${rawData.length}`);
 
-    console.log('\n🎉 All Amazon normalization completed successfully!');
-    console.log('\n📊 OVERALL STATISTICS:');
-    console.log('=' .repeat(50));
-    console.log(`📦 Total products processed: ${totalProcessed}`);
-    console.log(`✅ Total successfully normalized: ${totalSuccessful}`);
-    console.log(`⏱️  Total processing time: ${(overallDuration/60).toFixed(2)} minutes`);
-    console.log(`🚀 Overall processing rate: ${(totalSuccessful / overallDuration).toFixed(2)} products/second`);
+    if (rawData.length === 0) {
+      console.log('⚠️  No data found. Exiting...');
+      process.exit(0);
+    }
+
+    const normalizer = new AmazonNormalizer();
+    
+    console.log(`⚡ Starting normalization with AI enhancement...\n`);
+    const startTime = Date.now();
+    
+    const normalizedData = await normalizer.normalizeProducts(rawData);
+    
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    
+    console.log(`\n⏱️  Processing completed in ${duration.toFixed(2)} seconds`);
+    console.log(`📈 Successfully normalized ${normalizedData.length} mobile products`);
+
+    // Save results
+    fs.writeFileSync(outputPath, JSON.stringify(normalizedData, null, 2), 'utf8');
+    console.log(`✅ Saved to: ${outputPath}`);
+
+    // Statistics
+    let successfulExtractions = 0;
+    normalizedData.forEach(product => {
+      if (product.product_identifiers?.brand && 
+          product.product_identifiers?.model_name &&
+          product.variant_attributes?.color &&
+          product.variant_attributes?.ram !== null &&
+          product.variant_attributes?.storage !== null) {
+        successfulExtractions++;
+      }
+    });
+
+    console.log(`\n📊 Statistics:`);
+    console.log(`🎯 Complete extractions: ${successfulExtractions}/${normalizedData.length} (${((successfulExtractions/normalizedData.length)*100).toFixed(1)}%)`);
+    console.log(`🚀 Processing rate: ${(normalizedData.length / duration).toFixed(2)} products/second`);
     
   } catch (error) {
     console.error('\n❌ Normalization failed:', error.message);

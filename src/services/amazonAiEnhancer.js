@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -9,7 +10,11 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    this.genAI = new GoogleGenerativeAI('AIzaSyDiqCpBAzFWZFpe6Wg-M0zy2TLPRqFTkLk');
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not set in environment variables');
+    }
+    this.genAI = new GoogleGenerativeAI(apiKey);
     this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     this.batchSize = 50; // Process 50 products per batch
     this.stats = { totalProcessed: 0, successful: 0, filtered: 0, apiCalls: 0 };
@@ -85,6 +90,7 @@ class AmazonAiEnhancer {
    */
   async processBatch(batch, productType = 'mobile') {
     console.log(`  📤 Sending ${batch.length} ${productType} products to Gemini AI in single prompt...`);
+    console.log(`  API Key: ${process.env.GEMINI_API_KEY}`);
     
     try {
       const prompt = this.buildBatchPrompt(batch, productType);

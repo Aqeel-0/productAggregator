@@ -4,18 +4,11 @@ const { Mouse } = require('puppeteer');
 
 // Configuration for different categories
 const configs = {
-  // mobile: {
-  //   category: 'mobile',
-  //   categoryUrl: 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97',
-  //   maxProducts: 10,
-  //   maxConcurrent: 6,
-  //   delayBetweenPages: 3000
-  // }
-  Mouse: {
-    category: 'mouse',
-    categoryUrl: 'https://www.croma.com/computers-tablets/computer-and-laptop-accessories/mice/c/580',
-    maxProducts: 200,
-    maxConcurrent: 2,
+  mobile: {
+    category: 'mobile',
+    categoryUrl: 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97',
+    maxProducts: 50,
+    maxConcurrent: 6,
     delayBetweenPages: 3000
   }
 };

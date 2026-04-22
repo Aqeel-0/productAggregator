@@ -37,7 +37,8 @@ class RelianceCrawler extends BaseCrawler {
     // Initialize logger for this scraper
     this.logger = new Logger('RELIANCE');
 
-    // Category URL from config
+    // Configuration
+    this.category = config.category || 'mobile';
     this.categoryUrl = config.categoryUrl || 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true';
     
     // Create separate directories for checkpoints and raw data
@@ -53,7 +54,7 @@ class RelianceCrawler extends BaseCrawler {
     this.outputFile = config.outputFile || path.join(rawDataDir, 'reliance_mobile_scraped_data.json');
     this.productLinks = [];
     this.seenUrls = new Set(); // Global deduplication set
-    this.checkpoint = this.loadCheckpoint();
+    this.checkpoint = super.loadCheckpoint(this.checkpointFile);
     
     // Restore URLs from checkpoint into the Set for deduplication
     if (this.checkpoint.productLinks && this.checkpoint.productLinks.length > 0) {
@@ -100,15 +101,7 @@ class RelianceCrawler extends BaseCrawler {
     }
   }
 
-  /**
-   * Ensure directory exists
-   */
-  ensureDirectory(dir) {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      this.logger.info(`Created directory: ${dir}`);
-    }
-  }
+  // ensureDirectory() moved to BaseCrawler
 
   async initialize() {
     await super.initialize();
@@ -130,78 +123,14 @@ class RelianceCrawler extends BaseCrawler {
     });
   }
 
-  loadCheckpoint() {
-    try {
-      if (fs.existsSync(this.checkpointFile)) {
-        const data = fs.readFileSync(this.checkpointFile, 'utf8');
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      this.logger.error(`Error loading checkpoint: ${error.message}`);
-    }
-    return {
-      productLinks: [],
-      lastProcessedIndex: -1,
-      failedProducts: [],
-      pagesScraped: [],
-      lastPageScraped: 0,
-      lastRunTimestamp: null,
-    };
-  }
+  // loadCheckpoint() and saveCheckpoint() moved to BaseCrawler
 
-  saveCheckpoint() {
-    try {
-      this.checkpoint.lastRunTimestamp = new Date().toISOString();
-      fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
-    } catch (error) {
-      this.logger.error(`Error saving checkpoint: ${error.message}`);
-    }
-  }
-
-  saveData(data) {
-    try {
-      const newData = Array.isArray(data) ? data : [data];
-
-      // 1) Write/append full product objects to the main output file (array of objects)
-      let existingData = [];
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          try {
-            const parsed = JSON.parse(fileContent);
-            existingData = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.products) ? parsed.products : []);
-          } catch (_) {
-            existingData = [];
-          }
-        }
-      }
-      const combinedData = [...existingData, ...newData];
-      fs.writeFileSync(this.outputFile, JSON.stringify(combinedData, null, 2));
-    } catch (error) {
-      this.logger.error(`Error saving data: ${error.message}`);
-    }
-  }
-
-  getCurrentDataCount() {
-    try {
-      if (fs.existsSync(this.outputFile)) {
-        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
-        if (fileContent) {
-          const parsed = JSON.parse(fileContent);
-          if (Array.isArray(parsed)) return parsed.length;
-          if (parsed && Array.isArray(parsed.products)) return parsed.products.length;
-        }
-      }
-    } catch (error) {
-      this.logger.error(`Error reading current data count: ${error.message}`);
-    }
-    return 0;
-  }
+  // saveData() and getCurrentDataCount() moved to BaseCrawler
 
   async start() {
     // Set the expected total count for progress tracking, not the actual collected links
     const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    const currentDataCount = this.getCurrentDataCount();
+    const currentDataCount = super.getCurrentDataCount(this.outputFile);
     this.logger.startScraper('reliance', expectedTotal, currentDataCount);
 
     try {
@@ -210,7 +139,7 @@ class RelianceCrawler extends BaseCrawler {
 
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       } else {
         this.productLinks = this.checkpoint.productLinks;
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
@@ -262,22 +191,7 @@ class RelianceCrawler extends BaseCrawler {
     }
   }
   
-  addUniqueUrl(rawUrl) {
-    if (!rawUrl) return false;
-
-    // Lazy-init the Set on first use
-    if (!this.urlSeen) this.urlSeen = new Set();
-
-    let url = rawUrl.trim();
-
-    // Fast de-duplication
-    if (this.urlSeen.has(url)) return false;
-
-    this.urlSeen.add(url);
-    if (!Array.isArray(this.productLinks)) this.productLinks = [];
-    this.productLinks.push(url);
-    return true;
-  }
+  // addUniqueUrl() moved to BaseCrawler (using seenUrls instead of urlSeen)
 
   // Returns the href of the first product link on the page (or null)
   async getFirstProductHref(page) {
@@ -341,8 +255,8 @@ class RelianceCrawler extends BaseCrawler {
       await this.navigate(page, this.categoryUrl);
       
       // Wait for page to fully load and verify we're on the right page
-      // Wait for network to be idle (Puppeteer equivalent)
-      await page.waitForLoadState('networkidle').catch(() => {});
+      // Wait for network to be idle (Puppeteer method)
+      await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
       await new Promise(r => setTimeout(r, 2000)); // Additional wait for dynamic content
 
       while (currentPage <= targetPages) {
@@ -383,7 +297,7 @@ class RelianceCrawler extends BaseCrawler {
         for (const rawHref of pageLinks) {
           const normalized = await this.normalizeRelianceProductUrl(rawHref);
           if (normalized) {
-            if (this.addUniqueUrl(normalized)) {
+            if (super.addUniqueUrl(normalized, this.seenUrls, this.productLinks, (url) => url)) {
               pageUnique++;
               newLinksAdded++;
             } else {
@@ -405,7 +319,7 @@ class RelianceCrawler extends BaseCrawler {
           this.checkpoint.pagesScraped.push(currentPage);
         }
         this.checkpoint.productLinks = this.productLinks;
-        this.saveCheckpoint();
+        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
 
         // Respect max products if set
         if (this.maxProducts && this.productLinks.length >= this.maxProducts) {
@@ -457,7 +371,7 @@ class RelianceCrawler extends BaseCrawler {
               u.searchParams.set('page_no', String(targetNo));
               this.logger.info(`🔄 Fallback navigation to: ${u.toString()}`);
               await this.navigate(page, u.toString());
-              await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+              await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
               await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
             }
         
@@ -471,7 +385,7 @@ class RelianceCrawler extends BaseCrawler {
               u.searchParams.set('page_no', String(currentPage + 1));
               this.logger.info(`🔄 URL fallback navigation to: ${u.toString()}`);
               await this.navigate(page, u.toString());
-              await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+              await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
               await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
               currentPage++;
               this.logger.info(`🔄 Moved to page ${currentPage} (URL fallback)`);
@@ -522,9 +436,9 @@ class RelianceCrawler extends BaseCrawler {
         }
       }
 
-      this.saveCheckpoint();
+      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
       if (results.length > 0) {
-        this.saveData(results);
+        super.saveData(results, this.outputFile, null);
         results.length = 0;
       }
     }
@@ -757,6 +671,13 @@ class RelianceCrawler extends BaseCrawler {
       return {};
     }
    }
+  async shutdown() {
+    await super.gracefulShutdown(() => {
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
+    });
+  }
 }
 
   if (require.main === module) {
