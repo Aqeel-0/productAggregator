@@ -9,8 +9,8 @@ const AmazonRateLimitConfig = require('../../../rate-limiter/configs/amazon-conf
 // STEP 2: Removed Cheerio - using direct page.evaluate() instead
 const Logger = require('../../../utils/logger');
 
-// Apply stealth plugin
 puppeteer.use(StealthPlugin());
+
 
 class AmazonClusterCrawler {
   constructor(config = {}) {
@@ -121,7 +121,7 @@ class AmazonClusterCrawler {
     this.logger.info('Initializing puppeteer-cluster...');
     
     this.cluster = await Cluster.launch({
-      concurrency: Cluster.CONCURRENCY_CONTEXT, // Each task gets isolated browser context
+      concurrency: Cluster.CONCURRENCY_PAGE, // All tasks share one browser, each gets its own tab
       maxConcurrency: this.maxConcurrent,
       puppeteerOptions: {
         headless: this.headless ? 'new' : false,
@@ -150,7 +150,7 @@ class AmazonClusterCrawler {
       puppeteer: puppeteer,
     });
 
-    this.logger.info(`Cluster initialized with ${this.maxConcurrent} concurrent contexts`);
+    this.logger.info(`Cluster initialized with ${this.maxConcurrent} concurrent tabs (single browser)`);
   }
 
   async configurePage(page) {
@@ -186,7 +186,7 @@ class AmazonClusterCrawler {
         'Cache-Control': 'max-age=0'
       });
 
-      // Block unnecessary resources (keeping original behavior for now)
+      page.removeAllListeners('request');
       await page.setRequestInterception(true);
       page.on('request', (request) => {
         const resourceType = request.resourceType();
@@ -199,22 +199,6 @@ class AmazonClusterCrawler {
         } else {
           request.continue();
         }
-      });
-
-      // Anti-detection
-      await page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', {
-          get: () => false,
-        });
-        window.chrome = {
-          runtime: {},
-        };
-        const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) => (
-          parameters.name === 'notifications' ?
-            Promise.resolve({ state: Notification.permission }) :
-            originalQuery(parameters)
-        );
       });
 
       page.setDefaultTimeout(30000);
@@ -240,7 +224,9 @@ class AmazonClusterCrawler {
 
       const totalProducts = this.checkpoint.productLinks.length;
       const processedCount = this.checkpoint.lastProcessedIndex + 1;
-      this.logger.startScraper(this.category, totalProducts, processedCount);
+      // Use maxProducts as the target if set — this is what the user asked for
+      const logTarget = this.maxProducts ? Math.min(this.maxProducts, totalProducts) : totalProducts;
+      this.logger.startScraper(this.category, logTarget, processedCount);
       
       await this.scrapeProductDetails();
       
@@ -353,12 +339,14 @@ class AmazonClusterCrawler {
           this.logger.warn(`Error extracting links on page ${data.pageNum}: ${error.message}`);
         }
         
-        // Deduplicate and add links
-        pageLinks.forEach(link => {
-          this.addUniqueUrl(link);
-        });
-        
-        this.logger.info(`Page ${data.pageNum}: Found ${pageLinks.length} products (Total: ${this.productLinks.length})`);
+        // Deduplicate and add links, respecting maxProducts cap
+        let addedCount = 0;
+        for (const link of pageLinks) {
+          if (this.maxProducts && this.productLinks.length >= this.maxProducts) break;
+          if (this.addUniqueUrl(link)) addedCount++;
+        }
+
+        this.logger.info(`Page ${data.pageNum}: Found ${pageLinks.length} products, added ${addedCount} (Total: ${this.productLinks.length}${this.maxProducts ? `/${this.maxProducts}` : ''})`);
       });
       
       // Update checkpoint
@@ -381,8 +369,10 @@ class AmazonClusterCrawler {
 
   async scrapeProductDetails() {
     const startIndex = this.checkpoint.lastProcessedIndex + 1;
-    const endIndex = Math.min(this.productLinks.length, startIndex + (this.maxProducts || this.productLinks.length));
-    
+    const endIndex = this.maxProducts
+      ? Math.min(this.maxProducts, this.productLinks.length)
+      : this.productLinks.length;
+
     this.logger.info(`🔍 Processing products ${startIndex + 1}-${endIndex} (${this.maxConcurrent} concurrent)`);
     
     const results = [];
