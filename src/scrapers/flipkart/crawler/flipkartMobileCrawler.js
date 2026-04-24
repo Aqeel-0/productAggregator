@@ -1,120 +1,56 @@
 const fs = require('fs');
 const path = require('path');
-const BaseCrawler = require('../../base-crawler');
-const cheerio = require('cheerio');
+const { Cluster } = require('puppeteer-cluster');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { CATEGORY_SELECTORS, PRODUCT_SELECTORS } = require('./flipkart-selectors');
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const FlipkartRateLimitConfig = require('../../../rate-limiter/configs/flipkart-config');
 const Logger = require('../../../utils/logger');
 
-class FlipkartCrawler extends BaseCrawler {
+puppeteer.use(StealthPlugin());
+
+class FlipkartCrawler {
   constructor(config = {}) {
-    const defaultConfig = {
-      headless: config.headless !== undefined ? config.headless : true,
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      viewport: {
-        width: 1366,
-        height: 768,
-        deviceScaleFactor: 1
-      },
-      proxyConfig: {
-        useProxy: false
-      },
-      maxProducts: 5,
-      // Enhanced memory management configuration for Flipkart
-      memoryManagement: {
-        enabled: true,
-        maxMemoryMB: 1024, // 1GB for Flipkart
-        maxPages: 4, // Slightly more generous than Amazon
-        pagePoolSize: 6, // Larger pool for Flipkart
-        cleanupInterval: 60000, // 1 minute
-        forceGCInterval: 240000, // 4 minutes
-        memoryCheckInterval: 25000, // 25 seconds
-      }
-    };
-    
-    super({ ...defaultConfig, ...config });
-    
-    // Initialize logger for this scraper
-    this.logger = new Logger(config.category || 'FLIPKART');
-    
-    // Configuration
     this.category = config.category || 'mobile';
     this.categoryUrl = config.categoryUrl || 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&p%5B%5D=facets.type%255B%255D%3DSmartphones&page=1';
-    
-    // Create separate directories for checkpoints and raw data
+
+    this.logger = new Logger(config.category || 'FLIPKART');
+
     const checkpointDir = path.join(__dirname, '..', 'checkpoints');
     const rawDataDir = path.join(__dirname, '..', 'raw_data');
-    
-    // Ensure directories exist
     this.ensureDirectory(checkpointDir);
     this.ensureDirectory(rawDataDir);
-    
-    // Dynamic file paths
+
     this.outputFile = config.outputFile || path.join(rawDataDir, `flipkart_${this.category}_scraped_data.json`);
     this.checkpointFile = config.checkpointFile || path.join(checkpointDir, `flipkart_${this.category}_checkpoint.json`);
     this.productLinks = [];
-    this.checkpoint = super.loadCheckpoint(this.checkpointFile);
-    
-    // Multi-page scraping configuration
-    // maxProducts applies to MAIN links only
-    this.maxProducts = (config.maxProducts ?? defaultConfig.maxProducts) ?? null; // If null, uses maxPages instead
-    // totalMaxProducts applies to MAIN + RELATED combined
+    this.checkpoint = this.loadCheckpoint();
+
+    this.maxProducts = (config.maxProducts ?? null);
     this.totalMaxProducts = config.totalMaxProducts || null;
-    this.maxPages = config.maxPages || 3; // Default: scrape 3 pages
+    this.maxPages = config.maxPages || 3;
     this.maxConcurrent = config.maxConcurrent || 2;
     this.maxRetries = config.maxRetries || 3;
-    
-    // Page-level configuration with validation
-    this.productsPerPage = Math.max(1, Math.min(config.productsPerPage || 24, 100)); // Between 1-100
-    this.delayBetweenPages = Math.max(500, config.delayBetweenPages || 2000); // Minimum 500ms
-    
-    
-    // Initialize rate limiter
+    this.headless = config.headless !== undefined ? config.headless : true;
+    this.productsPerPage = Math.max(1, Math.min(config.productsPerPage || 24, 100));
+    this.delayBetweenPages = Math.max(500, config.delayBetweenPages || 2000);
+
     this.rateLimiter = new RateLimiter({
-      redis: { enabled: false }, // Use memory-based for simplicity
+      redis: { enabled: false },
       defaultAlgorithm: FlipkartRateLimitConfig.algorithm,
-      cleanupInterval: 60000 // 1 minute cleanup
+      cleanupInterval: 60000
     });
-    
-    // Register Flipkart-specific rules
     this.rateLimiter.registerRules('flipkart', FlipkartRateLimitConfig);
-    
-    // Ensure checkpoint has the required structure
-    if (!this.checkpoint.productLinks) {
-      this.checkpoint.productLinks = [];
-    }
-    if (!this.checkpoint.relatedLinks) {
-      this.checkpoint.relatedLinks = [];
-    }
-    if (this.checkpoint.lastProcessedIndex === undefined) {
-      this.checkpoint.lastProcessedIndex = -1;
-    }
-    if (this.checkpoint.lastRelatedIndex === undefined) {
-      this.checkpoint.lastRelatedIndex = -1;
-    }
-    if (!this.checkpoint.failedProducts) {
-      this.checkpoint.failedProducts = [];
-    }
-    if (!this.checkpoint.pagesScraped) {
-      this.checkpoint.pagesScraped = [];
-    }
-    if (this.checkpoint.lastPageScraped === undefined) {
-      this.checkpoint.lastPageScraped = 0;
-    }
-    
-    // Related products configuration
+
     this.relatedProductsConfig = {
       enabled: config.relatedProducts?.enabled ?? true,
       maxPerProduct: config.relatedProducts?.maxPerProduct ?? 5,
     };
 
-    // Global deduplication across main and related
     this.seenUrl = new Set();
-    // Track URLs that are related (to avoid related-of-related scraping)
     this.relatedProductUrls = new Set();
 
-    // Seed sets from checkpoint content
     [...this.checkpoint.productLinks, ...this.checkpoint.relatedLinks].forEach((url) => {
       const normalized = this.normalizeFlipkartUrl(this.addBaseUrl(url));
       if (normalized) this.seenUrl.add(normalized);
@@ -124,73 +60,229 @@ class FlipkartCrawler extends BaseCrawler {
       if (normalized) this.relatedProductUrls.add(normalized);
     });
 
+    this.cluster = null;
   }
 
-  // ensureDirectory() moved to BaseCrawler
+  ensureDirectory(dir) {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      this.logger.info(`Created directory: ${dir}`);
+    }
+  }
 
-  // loadCheckpoint() and saveCheckpoint() moved to BaseCrawler
+  loadCheckpoint() {
+    try {
+      if (fs.existsSync(this.checkpointFile)) {
+        const data = fs.readFileSync(this.checkpointFile, 'utf8');
+        const cp = JSON.parse(data);
+        if (!cp.productLinks) cp.productLinks = [];
+        if (!cp.relatedLinks) cp.relatedLinks = [];
+        if (cp.lastProcessedIndex === undefined) cp.lastProcessedIndex = -1;
+        if (cp.lastRelatedIndex === undefined) cp.lastRelatedIndex = -1;
+        if (!cp.failedProducts) cp.failedProducts = [];
+        if (!cp.pagesScraped) cp.pagesScraped = [];
+        if (cp.lastPageScraped === undefined) cp.lastPageScraped = 0;
+        return cp;
+      }
+    } catch (error) {
+      this.logger.error(`Error loading checkpoint: ${error.message}`);
+    }
+    return {
+      productLinks: [],
+      relatedLinks: [],
+      lastProcessedIndex: -1,
+      lastRelatedIndex: -1,
+      failedProducts: [],
+      lastRunTimestamp: null,
+      pagesScraped: [],
+      lastPageScraped: 0
+    };
+  }
+
+  saveCheckpoint() {
+    try {
+      this.checkpoint.lastRunTimestamp = new Date().toISOString();
+      fs.writeFileSync(this.checkpointFile, JSON.stringify(this.checkpoint, null, 2));
+      this.logger.checkpointSaved();
+    } catch (error) {
+      this.logger.error(`Error saving checkpoint: ${error.message}`);
+    }
+  }
 
   addBaseUrl(url) {
     if (!url) return url;
-    if (url.startsWith('/')) {
-      return 'https://www.flipkart.com' + url;
-    }
+    if (url.startsWith('/')) return 'https://www.flipkart.com' + url;
     return url;
   }
 
   normalizeFlipkartUrl(url) {
     if (!url) return url;
-    
     try {
       const fullUrl = this.addBaseUrl(url);
-      // Match up to and including the pid parameter value
       const match = fullUrl.match(/^(.*?\?pid=[^&]+)/);
       return match ? match[1] : fullUrl;
-    } catch (error) {
+    } catch {
       return url;
     }
   }
 
-  // saveData() and getCurrentDataCount() moved to BaseCrawler
+  saveData(data) {
+    try {
+      let existingData = [];
+      if (fs.existsSync(this.outputFile)) {
+        const fileContent = fs.readFileSync(this.outputFile, 'utf8');
+        if (fileContent) {
+          const parsed = JSON.parse(fileContent);
+          existingData = Array.isArray(parsed) ? parsed : [];
+        }
+      }
+      const newData = Array.isArray(data) ? data : [data];
+      const existingUrls = new Set(
+        existingData.filter(p => p && p.url).map(p => this.normalizeFlipkartUrl(p.url))
+      );
+      const uniqueNew = newData.filter(p => {
+        if (!p || !p.url) return true;
+        const norm = this.normalizeFlipkartUrl(p.url);
+        if (existingUrls.has(norm)) return false;
+        existingUrls.add(norm);
+        return true;
+      });
+      fs.writeFileSync(this.outputFile, JSON.stringify([...existingData, ...uniqueNew], null, 2));
+    } catch (error) {
+      this.logger.error(`Error saving data: ${error.message}`);
+    }
+  }
+
+  async initializeCluster() {
+    this.logger.info('Initializing puppeteer-cluster...');
+    this.cluster = await Cluster.launch({
+      concurrency: Cluster.CONCURRENCY_PAGE,
+      maxConcurrency: this.maxConcurrent,
+      puppeteerOptions: {
+        headless: this.headless ? 'new' : false,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+          '--window-size=1366,768',
+          '--disable-blink-features=AutomationControlled',
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--memory-pressure-off',
+          '--disable-background-timer-throttling',
+          '--disable-renderer-backgrounding',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-features=TranslateUI',
+          '--aggressive-cache-discard',
+          '--disable-extensions',
+          '--disable-plugins',
+        ],
+      },
+      retryLimit: 0,
+      timeout: 45000,
+      monitor: false,
+      puppeteer,
+    });
+    this.logger.info(`Cluster initialized with ${this.maxConcurrent} concurrent tabs (single browser)`);
+  }
+
+  async configurePage(page) {
+    try {
+      await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1, isMobile: false, hasTouch: false });
+      await page.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      );
+      await page.setExtraHTTPHeaders({
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'Upgrade-Insecure-Requests': '1'
+      });
+
+      page.removeAllListeners('request');
+      await page.setRequestInterception(true);
+      page.on('request', (request) => {
+        const resourceType = request.resourceType();
+        const url = request.url();
+        if (['font', 'media'].includes(resourceType)) {
+          request.abort();
+        } else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) {
+          request.abort();
+        } else {
+          request.continue();
+        }
+      });
+
+      page.setDefaultTimeout(30000);
+      page.setDefaultNavigationTimeout(30000);
+    } catch (error) {
+      this.logger.error(`Error configuring page: ${error.message}`);
+    }
+  }
+
+  buildPageUrl(pageNumber) {
+    if (pageNumber === 1) return this.categoryUrl;
+    if (this.categoryUrl.includes('page=')) {
+      return this.categoryUrl.replace(/page=\d+/, `page=${pageNumber}`);
+    }
+    const separator = this.categoryUrl.includes('?') ? '&' : '?';
+    return `${this.categoryUrl}${separator}page=${pageNumber}`;
+  }
+
+  async hasNextPage(page) {
+    try {
+      return await page.evaluate((selector) => {
+        const result = document.evaluate(
+          selector, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
+        );
+        const nextElement = result.singleNodeValue;
+        if (!nextElement) return false;
+        const isDisabled = nextElement.classList.contains('_2Xp0TH') ||
+          nextElement.classList.contains('disabled') ||
+          nextElement.hasAttribute('disabled') ||
+          nextElement.style.pointerEvents === 'none';
+        return !isDisabled && nextElement.href !== window.location.href;
+      }, CATEGORY_SELECTORS.NEXT_PAGE);
+    } catch {
+      return false;
+    }
+  }
 
   async start() {
-    // Set the expected total count for progress tracking, not the actual collected links
-    const expectedTotal = this.maxProducts || (this.maxPages * this.productsPerPage);
-    const currentDataCount = super.getCurrentDataCount(this.outputFile);
-    this.logger.startScraper(this.category, expectedTotal, currentDataCount);
-
     try {
-      // Initialize browser first - prevents multiple browser instances under concurrency
-      await this.initialize();
+      await this.initializeCluster();
 
       if (this.checkpoint.productLinks.length === 0) {
         await this.scrapeProductLinks();
-        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
+        this.saveCheckpoint();
       } else {
         this.productLinks = this.checkpoint.productLinks;
         this.logger.info(`Loaded ${this.productLinks.length} product links from checkpoint`);
       }
 
-      // Update logger with expected total and current processed for progress tracking
-      this.logger.setTotalCount(expectedTotal, currentDataCount);
+      const collected = this.checkpoint.productLinks.length;
+      const logTarget = this.maxProducts ? Math.min(this.maxProducts, collected) : collected;
+      const processedCount = this.checkpoint.lastProcessedIndex + 1;
+      this.logger.startScraper(this.category, logTarget, processedCount);
+      this.logger.setTotalCount(logTarget, processedCount);
 
       await this.scrapeProductDetails();
 
-      // After main products are processed, process related products (if enabled)
       if (this.relatedProductsConfig.enabled) {
         let relatedLimit = null;
         if (this.totalMaxProducts) {
           const mainProcessed = this.checkpoint.lastProcessedIndex + 1;
           relatedLimit = Math.max(0, this.totalMaxProducts - mainProcessed);
         }
-
         if (!relatedLimit || relatedLimit > 0) {
-          // Update progress bar total count for related products
-          const relatedProductsCount = relatedLimit ?
-            Math.min(relatedLimit, this.checkpoint.relatedLinks.length) :
-            this.checkpoint.relatedLinks.length;
-          this.logger.setTotalCount(relatedProductsCount, this.checkpoint.lastRelatedIndex + 1);
-          
+          const relatedCount = relatedLimit
+            ? Math.min(relatedLimit, this.checkpoint.relatedLinks.length)
+            : this.checkpoint.relatedLinks.length;
+          this.logger.setTotalCount(relatedCount, this.checkpoint.lastRelatedIndex + 1);
           await this.processProductArray(
             this.checkpoint.relatedLinks,
             'lastRelatedIndex',
@@ -206,294 +298,178 @@ class FlipkartCrawler extends BaseCrawler {
       }
 
       this.logger.completeScraper();
-      
-      // Enhanced cleanup to ensure proper shutdown
       await this.shutdown();
-      
     } catch (error) {
-      this.logger.error(`❌ Flipkart ${this.category} scraping failed: ${error.message}`);
-      this.logger.error(`Error during crawling: ${error.message}`);
-      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
+      this.logger.error(`Flipkart ${this.category} scraping failed: ${error.message}`);
+      this.saveCheckpoint();
       await this.shutdown();
       throw error;
     }
   }
 
-  /**
-   * Enhanced shutdown method to ensure complete cleanup
-   */
   async shutdown() {
-    await super.gracefulShutdown(() => {
-      // Force process exit after a short delay to ensure everything is cleaned up
-      setTimeout(() => {
-        process.exit(0);
-      }, 2000);
-    });
-  }
-
-  /**
-   * Build URL for specific page number
-   */
-  buildPageUrl(pageNumber) {
-    if (pageNumber === 1) {
-      return this.categoryUrl;
+    if (this.rateLimiter) {
+      await this.rateLimiter.close();
+      this.logger.debug('Rate limiter closed');
     }
-    
-    // Replace existing page parameter or add it
-    if (this.categoryUrl.includes('page=')) {
-      return this.categoryUrl.replace(/page=\d+/, `page=${pageNumber}`);
-    } else {
-      const separator = this.categoryUrl.includes('?') ? '&' : '?';
-      return `${this.categoryUrl}${separator}page=${pageNumber}`;
+    if (this.cluster) {
+      await this.cluster.close();
+      this.logger.info('Cluster closed');
     }
-  }
-
-  async hasNextPage(page) {
-    try {
-      const nextButton = await page.evaluate((selector) => {
-        const result = document.evaluate(
-          selector,
-          document,
-          null,
-          XPathResult.FIRST_ORDERED_NODE_TYPE,
-          null
-        );
-        
-        const nextElement = result.singleNodeValue;
-        if (!nextElement) return false;
-        
-        // Check if the Next button is disabled (has disabled class or is not clickable)
-        const isDisabled = nextElement.classList.contains('_2Xp0TH') || 
-                          nextElement.classList.contains('disabled') ||
-                          nextElement.hasAttribute('disabled') ||
-                          nextElement.style.pointerEvents === 'none';
-        
-        // Also check if the href points to the same page (no pagination)
-        const href = nextElement.href;
-        const currentUrl = window.location.href;
-        const isSamePage = href === currentUrl;
-        
-        return !isDisabled && !isSamePage;
-      }, CATEGORY_SELECTORS.NEXT_PAGE);
-      
-      return nextButton;
-    } catch (error) {
-      return false;
-    }
+    setTimeout(() => process.exit(0), 2000);
   }
 
   async scrapeProductLinks() {
     const allProductLinks = [];
-    // Only apply maxProducts cap during link collection, not totalMaxProducts
     const mainCap = this.maxProducts;
     const startPage = this.checkpoint.lastPageScraped + 1;
-    
-    this.logger.info(`🚀 Starting: Pages ${startPage}-${this.maxPages} | Target: ${mainCap || 'ALL'} products`);
-    
+
+    this.logger.info(`Starting: Pages ${startPage}-${this.maxPages} | Target: ${mainCap || 'ALL'} products`);
+
     for (let currentPage = startPage; currentPage <= this.maxPages; currentPage++) {
-      const page = await this.newPage();
-      
-      try {
-        // Enable JavaScript for category page
-        await page.setJavaScriptEnabled(true);
-        
-        const pageUrl = this.buildPageUrl(currentPage);
-        await this.navigate(page, pageUrl);
-        await page.waitForSelector('body', { timeout: 10000 });
-        
-        // Extract product links from current page
-        const pageLinks = await page.evaluate((xpath) => {
-          const links = [];
-          const result = document.evaluate(
-            xpath,
-            document,
-            null,
-            XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-            null
-          );
-          
-          for (let i = 0; i < result.snapshotLength; i++) {
-            const element = result.snapshotItem(i);
-            if (element.href && element.href.includes('/p/')) {
-              links.push(element.href);
+      await this.cluster.execute(
+        { url: this.buildPageUrl(currentPage), pageNum: currentPage },
+        async ({ page, data }) => {
+          await this.configurePage(page);
+          await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+          await page.waitForSelector('body', { timeout: 10000 }).catch(() => {});
+
+          const pageLinks = await page.evaluate((xpath) => {
+            const links = [];
+            const result = document.evaluate(
+              xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null
+            );
+            for (let i = 0; i < result.snapshotLength; i++) {
+              const el = result.snapshotItem(i);
+              if (el.href && el.href.includes('/p/')) links.push(el.href);
+            }
+            return links;
+          }, CATEGORY_SELECTORS.PRODUCT_LINK);
+
+          let newLinksCount = 0;
+          for (const link of pageLinks) {
+            if (mainCap && allProductLinks.length >= mainCap) break;
+            const normalizedUrl = this.normalizeFlipkartUrl(link);
+            if (!this.seenUrl.has(normalizedUrl)) {
+              this.seenUrl.add(normalizedUrl);
+              allProductLinks.push(normalizedUrl);
+              newLinksCount++;
             }
           }
-          
-          return links;
-        }, CATEGORY_SELECTORS.PRODUCT_LINK);
-        
-        // Process and deduplicate links using normalized URLs
-        let newLinksCount = 0;
-        for (const link of pageLinks) {
-          const normalizedUrl = this.normalizeFlipkartUrl(link);
-          
-          if (!this.seenUrl.has(normalizedUrl)) {
-            this.seenUrl.add(normalizedUrl);
-            allProductLinks.push(normalizedUrl); // Store normalized URL instead of original
-            newLinksCount++;
-            
-            // Early exit if target reached
-            if (mainCap && allProductLinks.length >= mainCap) {
-              break;
-            }
-          }
-        }
-        
-        this.logger.info(`📄 Page ${currentPage}: Found ${pageLinks.length} products, ${newLinksCount} new | Total: ${allProductLinks.length}`);
-        
-        // Stop conditions
-        if (pageLinks.length === 0) {
-          this.logger.info(`✅ Page ${currentPage}: No products found - stopping pagination`);
-          break;
-        }
-        
-        if (mainCap && allProductLinks.length >= mainCap) {
-          this.logger.info(`🎯 Target reached: ${allProductLinks.length} products collected`);
-          break;
-        }
-        
-        // Check for next page availability
-        if (currentPage < this.maxPages) {
+
+          this.logger.info(`Page ${data.pageNum}: Found ${pageLinks.length} products, ${newLinksCount} new | Total: ${allProductLinks.length}`);
+
+          if (pageLinks.length === 0) return { stop: true };
+          if (mainCap && allProductLinks.length >= mainCap) return { stop: true };
+
           const hasNext = await this.hasNextPage(page);
-          if (!hasNext) {
-            this.logger.info(`✅ Page ${currentPage}: No more pages available`);
-            break;
-          }
+          return { stop: !hasNext };
         }
-        
-        // Update checkpoint after successful page
+      ).then(result => {
         this.checkpoint.lastPageScraped = currentPage;
         this.checkpoint.pagesScraped.push(currentPage);
-        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
-        
-      } catch (error) {
+        this.checkpoint.productLinks = allProductLinks;
+        this.saveCheckpoint();
+        if (result && result.stop) currentPage = this.maxPages;
+      }).catch(error => {
         this.logger.error(`Error scraping page ${currentPage}: ${error.message}`);
-        
-        // Break on critical errors
-        if (error.message.includes('blocked') || error.message.includes('CAPTCHA')) {
-          throw error;
-        }
-      } finally {
-        // Always return page to pool - single location
-        await this.returnPageToPool(page);
-      }
-      
-      // Respectful delay between pages
-      if (currentPage < this.maxPages && allProductLinks.length < (mainCap || Infinity)) {
+        if (error.message.includes('blocked') || error.message.includes('CAPTCHA')) throw error;
+      });
+
+      if (mainCap && allProductLinks.length >= mainCap) break;
+      if (currentPage < this.maxPages) {
         await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
       }
     }
-    
-    // Final processing
+
     this.productLinks = allProductLinks;
     this.checkpoint.productLinks = this.productLinks;
-    super.saveCheckpoint(this.checkpoint, this.checkpointFile);
-    
-    this.logger.info(`✅ Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
+    this.saveCheckpoint();
+    this.logger.info(`Link collection complete: ${this.productLinks.length} products from ${this.checkpoint.pagesScraped.length} pages`);
   }
-  
+
   async processProductWithRetry(url, index, isRelated) {
     let lastError;
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        // Check rate limits
         const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'flipkart');
         if (!rateLimitResult.allowed) {
           const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
           this.logger.rateLimit(delayMs);
           await new Promise(resolve => setTimeout(resolve, delayMs));
-          continue; // Don't count this as a retry
+          continue;
         }
-        
-        // Processing product
+
         const productData = await this._scrapeProductDetail(url, isRelated);
-        
-        // Update progress for all products (main and related)
         this.logger.updateProgress();
-        
-        // Adaptive delay based on rate limit status
+
         const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, FlipkartRateLimitConfig.baseDelay);
         await new Promise(resolve => setTimeout(resolve, delayMs));
-        
+
         return productData;
-        
       } catch (error) {
         lastError = error;
-        const errorMessage = error?.message || 'Unknown error occurred';
-        this.logger.productError(index, errorMessage);
-        
+        this.logger.productError(index, error?.message || 'Unknown error occurred');
         if (attempt < this.maxRetries) {
-          const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
         }
       }
     }
-    
+
     throw lastError;
   }
 
   async scrapeProductDetails() {
     const totalProducts = this.productLinks.length;
-    let processingCount = totalProducts;
-    
-    // If maxProducts is specified and less than total links, limit processing
-    if (this.maxProducts && this.maxProducts < totalProducts) {
-      processingCount = this.maxProducts;
-      this.logger.info(`Limiting processing to ${this.maxProducts} products out of ${totalProducts} collected`);
-    }
-    
+    const processingCount = (this.maxProducts && this.maxProducts < totalProducts)
+      ? this.maxProducts
+      : totalProducts;
+
     const startIndex = this.checkpoint.lastProcessedIndex + 1;
     const endIndex = Math.min(processingCount, totalProducts);
     const results = [];
     const concurrent = Math.min(this.maxConcurrent, endIndex - startIndex);
-    
-    // Process products in batches for controlled concurrency
+
     for (let i = startIndex; i < endIndex; i += concurrent) {
       const batchEnd = Math.min(i + concurrent, endIndex);
       const batchPromises = [];
-      
+
       for (let j = i; j < batchEnd; j++) {
-        const url = this.productLinks[j];
-        batchPromises.push(this.processProductWithRetry(url, j, false));
+        batchPromises.push(this.processProductWithRetry(this.productLinks[j], j, false));
       }
-      
+
       const batchResults = await Promise.allSettled(batchPromises);
-      
-      // Process results and update checkpoint
+
       for (let k = 0; k < batchResults.length; k++) {
         const result = batchResults[k];
         const index = i + k;
-        
         if (result.status === 'fulfilled' && result.value) {
           results.push(result.value);
           this.checkpoint.lastProcessedIndex = index;
         } else {
-          const errorMessage = result.reason && result.reason.message ? result.reason.message : (result.reason || 'Unknown error');
-          this.logger.productError(index, errorMessage);
+          const errMsg = result.reason?.message || result.reason || 'Unknown error';
+          this.logger.productError(index, errMsg);
           this.checkpoint.failedProducts.push({
             index,
             url: this.productLinks[index],
-            error: errorMessage,
+            error: errMsg,
             timestamp: new Date().toISOString()
           });
         }
       }
-      
-      // Save progress
-      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
-      
-      // Save data in batches
+
+      this.saveCheckpoint();
+
       if (results.length >= 5 || i + concurrent >= endIndex) {
         if (results.length > 0) {
-          super.saveData(results, this.outputFile, this.normalizeFlipkartUrl.bind(this));
-          results.length = 0; // Clear the array
+          this.saveData([...results]);
+          results.length = 0;
         }
       }
-      
-      // Add batch delay
+
       if (i + concurrent < endIndex) {
-        const delayMs = Math.random() * 2000 + 1000; // 1-3 seconds
+        const delayMs = Math.random() * 2000 + 1000;
         this.logger.debug(`Batch delay: ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
@@ -517,8 +493,7 @@ class FlipkartCrawler extends BaseCrawler {
       const batchPromises = [];
 
       for (let j = i; j < batchEnd; j++) {
-        const url = urlArray[j];
-        batchPromises.push(this.processProductWithRetry(url, j, isRelated));
+        batchPromises.push(this.processProductWithRetry(urlArray[j], j, isRelated));
       }
 
       const batchResults = await Promise.allSettled(batchPromises);
@@ -526,36 +501,32 @@ class FlipkartCrawler extends BaseCrawler {
       for (let k = 0; k < batchResults.length; k++) {
         const result = batchResults[k];
         const index = i + k;
-
         if (result.status === 'fulfilled' && result.value) {
           results.push(result.value);
           this.checkpoint[indexKey] = index;
         } else {
-          const errorMessage = result.reason && result.reason.message ? result.reason.message : (result.reason || 'Unknown error');
-          this.logger.error(`Failed to process ${description} at index ${index}: ${errorMessage}`);
+          const errMsg = result.reason?.message || result.reason || 'Unknown error';
+          this.logger.error(`Failed to process ${description} at index ${index}: ${errMsg}`);
           this.checkpoint.failedProducts.push({
             index,
             url: urlArray[index],
-            error: errorMessage,
+            error: errMsg,
             timestamp: new Date().toISOString()
           });
         }
       }
 
-      // Save progress
-      super.saveCheckpoint(this.checkpoint, this.checkpointFile);
+      this.saveCheckpoint();
 
-      // Save data in batches
       if (results.length >= 5 || i + concurrent >= endIndex) {
         if (results.length > 0) {
-          super.saveData(results, this.outputFile, this.normalizeFlipkartUrl.bind(this));
-          results.length = 0; // Clear the array
+          this.saveData([...results]);
+          results.length = 0;
         }
       }
 
-      // Add batch delay
       if (i + concurrent < endIndex) {
-        const delayMs = Math.random() * 2000 + 1000; // 1-3 seconds
+        const delayMs = Math.random() * 2000 + 1000;
         this.logger.debug(`Batch delay: ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
@@ -565,52 +536,39 @@ class FlipkartCrawler extends BaseCrawler {
   }
 
   async _scrapeProductDetail(url, isRelated = false) {
-    const page = await this.newPage();
-    try {
-      // Enable JavaScript for Flipkart
-      await page.setJavaScriptEnabled(true); 
-      
-      await this.navigate(page, url);
-      await this.delay(500, 1000);
+    return await this.cluster.execute({ url, isRelated }, async ({ page, data }) => {
+      await this.configurePage(page);
+      await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
 
       const productData = await this._extractProductData(page);
 
-      // Extract related links only for main products and if enabled
-      if (!isRelated && this.relatedProductsConfig.enabled) {
+      if (!data.isRelated && this.relatedProductsConfig.enabled) {
         await this._extractRelatedProducts(page);
       }
-      
-      // Return page to pool instead of closing
-      await this.returnPageToPool(page);
-      return { url, ...productData };
-      
-    } catch (error) {
-      await this.safeClosePage(page);
-      this.logger.error(`Error scraping product detail: ${error.message}`);
-      return { url, title: null, specifications: {} };
-    }
+
+      return { url: data.url, ...productData };
+    });
   }
 
   async _extractProductData(page) {
     try {
-      const html = await page.content();
-      const $ = cheerio.load(html);
       const title = await this._extractTitle(page);
       const pricing = await this._extractPricing(page);
       const rating = await this._extractRating(page);
-      const availability = await this._getAvailability($);
-      const specifications = await this._getspecification($);
-      const categories = await this._extractCategories($);
+      const availability = await this._getAvailability(page);
+      const specifications = await this._getspecification(page);
+      const categories = await this._extractCategories(page);
       const tags = await this._extractTags(page);
       const images = await this._extractImages(page);
-      return { 
-        title, 
+      return {
+        title,
         price: pricing,
         rating,
         availability,
-        specifications, 
+        specifications,
         category: categories,
-        tags: tags,
+        tags,
         image: images.main,
         images: images.all
       };
@@ -627,15 +585,9 @@ class FlipkartCrawler extends BaseCrawler {
           const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
           return result.singleNodeValue;
         };
-        
         for (const xpath of selectors.TITLE) {
-          const titleElement = getElementByXPath(xpath);
-          if (titleElement && titleElement.textContent.trim()) {
-            const title = titleElement.textContent.trim();
-            if (title) {
-              return title;
-            }
-          }
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.trim()) return el.textContent.trim();
         }
         return null;
       }, PRODUCT_SELECTORS);
@@ -648,62 +600,35 @@ class FlipkartCrawler extends BaseCrawler {
   async _extractPricing(page) {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-
-      const result = await page.evaluate((selectors) => {
+      return await page.evaluate((selectors) => {
         const getElementByXPath = (xpath) => {
           const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
           return result.singleNodeValue;
         };
-        
-        const pricing = {
-          current: null,
-          original: null,
-          discount: null
-        };
-
-        if (selectors.PRICE) {
-          for (const xpath of selectors.PRICE) {
-            const priceElement = getElementByXPath(xpath);
-            if (priceElement && priceElement.textContent.includes('₹')) {
-              const priceMatch = priceElement.textContent.trim().match(/₹([0-9,]+)/);
-              if (priceMatch) {
-                pricing.current = parseInt(priceMatch[1].replace(/,/g, ''));
-                break;
-              }
-            }
+        const pricing = { current: null, original: null, discount: null };
+        for (const xpath of (selectors.PRICE || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.includes('₹')) {
+            const m = el.textContent.trim().match(/₹([0-9,]+)/);
+            if (m) { pricing.current = parseInt(m[1].replace(/,/g, '')); break; }
           }
         }
-        
-        if (selectors.ORIGINAL_PRICE) {
-          for (const xpath of selectors.ORIGINAL_PRICE) {
-            const originalElement = getElementByXPath(xpath);
-            if (originalElement && originalElement.textContent.includes('₹')) {
-              const originalMatch = originalElement.textContent.trim().match(/₹([0-9,]+)/);
-              if (originalMatch) {
-                pricing.original = parseInt(originalMatch[1].replace(/,/g, ''));
-                break;
-              }
-            }
+        for (const xpath of (selectors.ORIGINAL_PRICE || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.includes('₹')) {
+            const m = el.textContent.trim().match(/₹([0-9,]+)/);
+            if (m) { pricing.original = parseInt(m[1].replace(/,/g, '')); break; }
           }
         }
-        
-        if (selectors.DISCOUNT) {
-          for (const xpath of selectors.DISCOUNT) {
-            const discountElement = getElementByXPath(xpath);
-            if (discountElement && discountElement.textContent.includes('%')) {
-              const discountMatch = discountElement.textContent.trim().match(/([0-9]+)%/);
-              if (discountMatch) {
-                pricing.discount = `${discountMatch[1]}% off`;
-                break;
-              }
-            }
+        for (const xpath of (selectors.DISCOUNT || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.includes('%')) {
+            const m = el.textContent.trim().match(/([0-9]+)%/);
+            if (m) { pricing.discount = `${m[1]}% off`; break; }
           }
         }
-
         return pricing;
       }, PRODUCT_SELECTORS);
-
-      return result;
     } catch (error) {
       this.logger.error(`Error extracting pricing: ${error.message}`);
       return { current: null, original: null, discount: null };
@@ -712,73 +637,49 @@ class FlipkartCrawler extends BaseCrawler {
 
   async _extractRating(page) {
     try {
-      const result = await page.evaluate((selectors) => {
+      return await page.evaluate((selectors) => {
         const getElementByXPath = (xpath) => {
           const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
           return result.singleNodeValue;
         };
-        
-        const rating = {
-          score: null,
-          count: null
-        };
-
-        if (selectors.RATING) {
-          for (const xpath of selectors.RATING) {
-            const ratingElement = getElementByXPath(xpath);
-            if (ratingElement && ratingElement.textContent.trim()) {
-              const ratingText = ratingElement.textContent.trim();
-              const ratingMatch = ratingText.match(/([0-9.]+)/);
-              if (ratingMatch) {
-                rating.score = parseFloat(ratingMatch[1]);
-                break;
-              }
-            }
+        const rating = { score: null, count: null };
+        for (const xpath of (selectors.RATING || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.trim()) {
+            const m = el.textContent.trim().match(/([0-9.]+)/);
+            if (m) { rating.score = parseFloat(m[1]); break; }
           }
         }
-
-        if (selectors.RATING_COUNT) {
-          for (const xpath of selectors.RATING_COUNT) {
-            const countElement = getElementByXPath(xpath);
-            if (countElement && countElement.textContent.trim()) {
-              const countText = countElement.textContent.trim();
-              const countMatch = countText.match(/([0-9,]+)/);
-              if (countMatch) {
-                rating.count = parseInt(countMatch[1].replace(/,/g, ''));
-                break;
-              }
-            }
+        for (const xpath of (selectors.RATING_COUNT || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.textContent.trim()) {
+            const m = el.textContent.trim().match(/([0-9,]+)/);
+            if (m) { rating.count = parseInt(m[1].replace(/,/g, '')); break; }
           }
         }
-
         return rating;
       }, PRODUCT_SELECTORS);
-
-      return result;
     } catch (error) {
       this.logger.error(`Error extracting rating: ${error.message}`);
       return { score: null, count: null };
     }
   }
 
-  async _extractCategories($) {
+  async _extractCategories(page) {
     try {
-      
-      const categories = [];
-      
-      const breadcrumbContainer = $('div._7dPnhA');
-      
-      if (breadcrumbContainer.length > 0) {
-        breadcrumbContainer.find('a.R0cyWM').each((_, element) => {
-          const categoryText = $(element).text().trim();
-          categories.push(categoryText);
-        });
-        
-        const finalCategory = breadcrumbContainer.find('div.KalC6f p').text().trim();
-        categories.push(finalCategory);
-      }
-      
-      return categories;
+      return await page.evaluate(() => {
+        const categories = [];
+        const breadcrumbContainer = document.querySelector('div._7dPnhA');
+        if (breadcrumbContainer) {
+          breadcrumbContainer.querySelectorAll('a.R0cyWM').forEach(a => {
+            const text = a.textContent.trim();
+            if (text) categories.push(text);
+          });
+          const finalCat = breadcrumbContainer.querySelector('div.KalC6f p');
+          if (finalCat && finalCat.textContent.trim()) categories.push(finalCat.textContent.trim());
+        }
+        return categories;
+      });
     } catch (error) {
       this.logger.error(`Error extracting categories: ${error.message}`);
       return [];
@@ -804,46 +705,24 @@ class FlipkartCrawler extends BaseCrawler {
           const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
           return result.singleNodeValue;
         };
-
         const getAllElementsByXPath = (xpath) => {
           const result = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
           const elements = [];
-          for (let i = 0; i < result.snapshotLength; i++) {
-            elements.push(result.snapshotItem(i));
-          }
+          for (let i = 0; i < result.snapshotLength; i++) elements.push(result.snapshotItem(i));
           return elements;
         };
-
         let mainImage = null;
-        let allImages = [];
-
-        if (selectors.MAIN_IMAGE) {
-          for (const xpath of selectors.MAIN_IMAGE) {
-            const imgElement = getElementByXPath(xpath);
-            if (imgElement && imgElement.src) {
-              mainImage = imgElement.src;
-              break;
-            }
-          }
+        const allImages = [];
+        for (const xpath of (selectors.MAIN_IMAGE || [])) {
+          const el = getElementByXPath(xpath);
+          if (el && el.src) { mainImage = el.src; break; }
         }
-
-        // Use XPath to find all image elements with class _0DkuPH
         const imageXPath = "//img[contains(@class, '_0DkuPH')]";
-        const imageElements = getAllElementsByXPath(imageXPath);
-
-        imageElements.forEach((img) => {
-          const srcset = img.getAttribute('src');
-          if (srcset) {
-            // Extract the first URL from srcset
-            const firstUrl = srcset.split(',')[0].trim().split(' ')[0];
-            allImages.push(firstUrl);
-          }
+        getAllElementsByXPath(imageXPath).forEach(img => {
+          const src = img.getAttribute('src');
+          if (src) allImages.push(src.split(',')[0].trim().split(' ')[0]);
         });
-
-        return {
-          main: mainImage,
-          all: allImages
-        };
+        return { main: mainImage, all: allImages };
       }, PRODUCT_SELECTORS);
     } catch (error) {
       this.logger.error(`Error extracting images: ${error.message}`);
@@ -851,175 +730,111 @@ class FlipkartCrawler extends BaseCrawler {
     }
   }
 
-  async _getAvailability($) {
+  async _getAvailability(page) {
     try {
-      const availability = $('span.OGrnIL');
-      if (availability.length === 0) {
-        return "Not In Stock";
-      }
-      else return "In Stock";
-    }
-    catch (error) {
+      return await page.evaluate(() => {
+        const el = document.querySelector('span.OGrnIL');
+        return el ? 'In Stock' : 'Not In Stock';
+      });
+    } catch (error) {
       this.logger.error(`Error extracting availability: ${error.message}`);
-      return "In Stock";
+      return 'In Stock';
     }
   }
-       
-  async _getspecification($) {
+
+  async _getspecification(page) {
     try {
-      const specifications = {};
-      const mainContainer = $('div._1OjC5I');
+      return await page.evaluate(() => {
+        const specifications = {};
+        const mainContainer = document.querySelector('div._1OjC5I');
+        if (!mainContainer) return {};
 
-      if (mainContainer.length === 0) {
-        this.logger.warn('Main specification container (div._1OjC5I) not found.');
-        return {};
-      }
+        mainContainer.querySelectorAll('div.GNDEQ-').forEach(categoryEl => {
+          const catNameEl = categoryEl.querySelector('div[class="_4BJ2V+"]');
+          const categoryName = catNameEl ? catNameEl.textContent.trim() : null;
+          if (!categoryName) return;
 
-      mainContainer.find('div.GNDEQ-').each((_, categoryEl) => {
-        const categorySection = $(categoryEl);
-        const categoryName = categorySection.find('div[class="_4BJ2V+"]').text().trim();
-        
-        if (!categoryName) {
-          return;
-        }
+          specifications[categoryName] = {};
+          categoryEl.querySelectorAll('tr.WJdYP6.row').forEach(row => {
+            const fieldName = row.querySelector('td.col-3-12')?.textContent.trim();
+            const valueCell = row.querySelector('td.col-9-12');
+            const listItem = valueCell?.querySelector('li.HPETK2');
+            const fieldValue = listItem ? listItem.textContent.trim() : valueCell?.textContent.trim();
+            if (fieldName && fieldValue) specifications[categoryName][fieldName] = fieldValue;
+          });
 
-        specifications[categoryName] = {};
-        categorySection.find('tr.WJdYP6.row').each((_, rowEl) => {
-          const row = $(rowEl);
-          const fieldName = row.find('td.col-3-12').text().trim();
-          let fieldValue = '';
-
-          const valueCell = row.find('td.col-9-12');
-          const listItem = valueCell.find('li.HPETK2');
-          if (listItem.length > 0) {
-            fieldValue = listItem.text().trim();
-          } else {
-            fieldValue = valueCell.text().trim();
-          }
-
-          if (fieldName && fieldValue) {
-            specifications[categoryName][fieldName] = fieldValue;
+          if (Object.keys(specifications[categoryName]).length === 0) {
+            delete specifications[categoryName];
           }
         });
 
-        if (Object.keys(specifications[categoryName]).length === 0) {
-          delete specifications[categoryName];
-        }
+        return specifications;
       });
-
-      // Extracted specifications
-      return specifications;
-
     } catch (error) {
-      this.logger.error(`Error extracting specifications with Cheerio: ${error.message}`);
+      this.logger.error(`Error extracting specifications: ${error.message}`);
       return {};
     }
   }
 
   async _extractRelatedProducts(page) {
     try {
-
       let scrollAttempts = 0;
-      const maxScrollAttempts = 20;
-
-      while ((await page.$("div.jOp9db")) == null && scrollAttempts < maxScrollAttempts) {
+      while ((await page.$('div.jOp9db')) == null && scrollAttempts < 20) {
         await page.mouse.wheel({ deltaY: 600 });
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
         scrollAttempts++;
       }
-      // Get HTML content and load with Cheerio
-      const html = await page.content();
-      const $ = cheerio.load(html);
 
-      const allRelatedUrls = [];
-
-      // Extract related products from pq8uUv sections
-      $('.pq8uUv').each((index, element) => {
-        const ele = $(element);
-        const jOp9dbDiv = ele.find('div.jOp9db');
-
-        if (jOp9dbDiv.length > 0) {
-          const text = jOp9dbDiv.text().trim();
-          if (text === 'Similar Products') {
-            ele.find('a.VJA3rP').each((_, anchor) => {
-              const url = $(anchor).attr('href');
-              if (url) {
-                allRelatedUrls.push(url);
-              }
+      const allRelatedUrls = await page.evaluate(() => {
+        const urls = [];
+        document.querySelectorAll('.pq8uUv').forEach(section => {
+          const headerEl = section.querySelector('div.jOp9db');
+          if (headerEl && headerEl.textContent.trim() === 'Similar Products') {
+            section.querySelectorAll('a.VJA3rP').forEach(a => {
+              if (a.href) urls.push(a.href);
             });
           }
-        }
+        });
+        return urls;
       });
 
-      this.logger.debug(`  Raw URLs extracted: ${allRelatedUrls.length}`);
-
-      // Normalize and deduplicate URLs, then add to checkpoint.relatedLinks array
       const maxRelated = this.relatedProductsConfig.maxPerProduct;
       let addedCount = 0;
 
       for (const url of allRelatedUrls) {
         if (addedCount >= maxRelated) break;
-
         const normalizedUrl = this.normalizeFlipkartUrl(this.addBaseUrl(url));
-
         if (normalizedUrl && !this.seenUrl.has(normalizedUrl)) {
           this.seenUrl.add(normalizedUrl);
-          
-          // Add to relatedLinks list only
           this.checkpoint.relatedLinks.push(normalizedUrl);
-          
-          // Track that this is a related product
           this.relatedProductUrls.add(normalizedUrl);
-          
           addedCount++;
         }
       }
 
-      this.logger.debug(`  Added ${addedCount} new related products to related queue`);
-
-      // Save checkpoint after adding new links
-      if (addedCount > 0) {
-        super.saveCheckpoint(this.checkpoint, this.checkpointFile);
-      }
-
+      this.logger.debug(`Added ${addedCount} new related products to related queue`);
+      if (addedCount > 0) this.saveCheckpoint();
     } catch (error) {
       this.logger.error(`Error extracting related products: ${error.message}`);
     }
   }
-
-  async close() {
-    await super.close();
-    if (this.rateLimiter) {
-      await this.rateLimiter.close();
-    }
-  }
 }
 
-// Run the crawler if this script is executed directly
 if (require.main === module) {
   const crawler = new FlipkartCrawler({
     headless: true,
-    proxyConfig: {
-      useProxy: false
-    },
     maxProducts: 3000,
     totalMaxProducts: 5000,
-    relatedProductsConfig: {
-      maxPerProduct: 6,
-    },
+    relatedProducts: { maxPerProduct: 6 },
     maxPages: 42,
     delayBetweenPages: 3000,
     maxConcurrent: 6,
     maxRetries: 3,
   });
-  
+
   crawler.start()
-    .then(() => {
-      process.exit(0);
-    })
-    .catch(error => {
-      process.exit(1);
-    });
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
 
-module.exports = FlipkartCrawler; 
+module.exports = FlipkartCrawler;
