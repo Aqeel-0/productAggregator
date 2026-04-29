@@ -6,7 +6,6 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { CATEGORY_SELECTORS, PRODUCT_SELECTORS, ERROR_INDICATORS } = require('./amazon-selectors');
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const AmazonRateLimitConfig = require('../../../rate-limiter/configs/amazon-config');
-// STEP 2: Removed Cheerio - using direct page.evaluate() instead
 const Logger = require('../../../utils/logger');
 
 puppeteer.use(StealthPlugin());
@@ -155,7 +154,6 @@ class AmazonClusterCrawler {
 
   async configurePage(page) {
     try {
-      // Set desktop viewport
       await page.setViewport({
         width: 1920,
         height: 1080,
@@ -165,14 +163,10 @@ class AmazonClusterCrawler {
         isLandscape: true
       });
 
-      // Set desktop user agent
       await page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       );
 
-      // STEP 2: Removed setJavaScriptEnabled(true) - JavaScript is enabled by default in Puppeteer
-
-      // Set extra HTTP headers
       await page.setExtraHTTPHeaders({
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -224,7 +218,6 @@ class AmazonClusterCrawler {
 
       const totalProducts = this.checkpoint.productLinks.length;
       const processedCount = this.checkpoint.lastProcessedIndex + 1;
-      // Use maxProducts as the target if set — this is what the user asked for
       const logTarget = this.maxProducts ? Math.min(this.maxProducts, totalProducts) : totalProducts;
       this.logger.startScraper(this.category, logTarget, processedCount);
       
@@ -239,7 +232,6 @@ class AmazonClusterCrawler {
       await this.shutdown();
       
     } catch (error) {
-      console.error(`❌ Amazon ${this.category} scraping failed:`, error.message);
       this.logger.error(`Error during crawling: ${error.message}`);
       this.saveCheckpoint();
       await this.shutdown();
@@ -299,7 +291,6 @@ class AmazonClusterCrawler {
         
         await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
         
-        // Wait for page to be fully loaded
         await page.evaluate(() => {
           return new Promise((resolve) => {
             if (document.readyState === 'complete') {
@@ -309,19 +300,17 @@ class AmazonClusterCrawler {
             }
           });
         });
-        
-        // Check if product grid exists, reload if not
+
         const hasProductGrid = await page.evaluate(() => {
           return document.querySelector('.s-main-slot.s-result-list') !== null;
         });
-        
+
         if (!hasProductGrid) {
           await new Promise(resolve => setTimeout(resolve, 1000));
           await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        
-        // Extract links
+
         let pageLinks = [];
         try {
           await page.waitForSelector('.s-main-slot.s-result-list', { timeout: 15000 });
@@ -338,8 +327,7 @@ class AmazonClusterCrawler {
         } catch (error) {
           this.logger.warn(`Error extracting links on page ${data.pageNum}: ${error.message}`);
         }
-        
-        // Deduplicate and add links, respecting maxProducts cap
+
         let addedCount = 0;
         for (const link of pageLinks) {
           if (this.maxProducts && this.productLinks.length >= this.maxProducts) break;
@@ -348,23 +336,60 @@ class AmazonClusterCrawler {
 
         this.logger.info(`Page ${data.pageNum}: Found ${pageLinks.length} products, added ${addedCount} (Total: ${this.productLinks.length}${this.maxProducts ? `/${this.maxProducts}` : ''})`);
       });
-      
-      // Update checkpoint
+
       this.checkpoint.lastPageScraped = currentPage;
       this.checkpoint.pagesScraped.push(currentPage);
       this.checkpoint.productLinks = this.productLinks;
       this.saveCheckpoint();
-      
-      // Check if target reached
+
       if (this.maxProducts && this.productLinks.length >= this.maxProducts) {
         break;
       }
-      
-      // Delay between pages
+
       if (currentPage < targetPages) {
         await new Promise(resolve => setTimeout(resolve, this.delayBetweenPages));
       }
     }
+  }
+
+  async _scrapeProductDetail(url) {
+    return await this.cluster.execute({ url }, async ({ page, data }) => {
+      await this.configurePage(page);
+      await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+      await this.checkForErrors(page);
+      const productData = await this.extractProductData(page);
+      return { url: data.url, ...productData };
+    });
+  }
+
+  async processProductWithRetry(url, index) {
+    let rl;
+    while (true) {
+      rl = await this.rateLimiter.checkLimit('scraper', 'amazon');
+      if (rl.allowed) break;
+      const delayMs = this.rateLimiter.calculateDelay(rl);
+      this.logger.rateLimit(delayMs);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+
+    let lastError;
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        const data = await this._scrapeProductDetail(url);
+        this.logger.updateProgress();
+        const delayMs = this.rateLimiter.calculateDelay(rl, AmazonRateLimitConfig.baseDelay);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        return data;
+      } catch (error) {
+        lastError = error;
+        this.logger.productError(index, error.message);
+        if (attempt < this.maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+      }
+    }
+    throw lastError;
   }
 
   async scrapeProductDetails() {
@@ -374,102 +399,57 @@ class AmazonClusterCrawler {
       : this.productLinks.length;
 
     this.logger.info(`🔍 Processing products ${startIndex + 1}-${endIndex} (${this.maxConcurrent} concurrent)`);
-    
-    const results = [];
-    let successCount = 0;
-    let failCount = 0;
 
-    // Process products in batches
-    const batchSize = this.maxConcurrent;
-    
-    for (let i = startIndex; i < endIndex; i += batchSize) {
-      const batchEnd = Math.min(i + batchSize, endIndex);
+    const results = [];
+
+    for (let i = startIndex; i < endIndex; i += this.maxConcurrent) {
+      const batchEnd = Math.min(i + this.maxConcurrent, endIndex);
       const batchPromises = [];
 
       for (let j = i; j < batchEnd; j++) {
-        const url = this.productLinks[j];
-        const index = j;
-
-        const promise = this.cluster.execute({ url, index }, async ({ page, data }) => {
-          await this.configurePage(page);
-
-          // Check rate limits
-          const rateLimitResult = await this.rateLimiter.checkLimit('scraper', 'amazon');
-          if (!rateLimitResult.allowed) {
-            const delayMs = this.rateLimiter.calculateDelay(rateLimitResult);
-            this.logger.rateLimit(delayMs);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          }
-
-          // Navigate and extract
-          await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-
-          // Check for errors
-          await this.checkForErrors(page);
-
-          // Extract product data (using Cheerio for now - Step 1)
-          const productData = await this.extractProductData(page);
-
-          // Adaptive delay
-          const delayMs = this.rateLimiter.calculateDelay(rateLimitResult, AmazonRateLimitConfig.baseDelay);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
-
-          return { url: data.url, index: data.index, ...productData };
-        })
-        .then(result => {
-          if (result && result.url) {
-            // Remove index before saving - it's only for checkpoint tracking
-            const { index: resultIndex, ...productData } = result;
-            results.push(productData);
-            successCount++;
-            this.checkpoint.lastProcessedIndex = resultIndex;
-            this.logger.updateProgress();
-          }
-        })
-        .catch(error => {
-          failCount++;
-          this.logger.error(`Failed product ${index}: ${error.message}`);
-          this.checkpoint.failedProducts.push({
-            index,
-            url,
-            error: error.message,
-            timestamp: new Date().toISOString()
-          });
-        });
-
-        batchPromises.push(promise);
+        batchPromises.push(this.processProductWithRetry(this.productLinks[j], j));
       }
 
-      // Wait for batch to complete
-      await Promise.all(batchPromises);
+      const settled = await Promise.allSettled(batchPromises);
 
-      // Save batch results
+      for (let k = 0; k < settled.length; k++) {
+        const index = i + k;
+        const res = settled[k];
+        if (res.status === 'fulfilled' && res.value) {
+          results.push(res.value);
+          this.checkpoint.lastProcessedIndex = index;
+        } else {
+          const errMsg = res.reason?.message || String(res.reason) || 'Unknown error';
+          this.logger.error(`Failed product ${index}: ${errMsg}`);
+          this.checkpoint.failedProducts.push({
+            index,
+            url: this.productLinks[index],
+            error: errMsg,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      this.saveCheckpoint();
+
       if (results.length > 0) {
         this.saveData([...results]);
         results.length = 0;
       }
 
-      // Save progress
-      this.saveCheckpoint();
-
-      // Add batch delay
       if (batchEnd < endIndex) {
         const delayMs = Math.random() * 2000 + 1000;
         this.logger.debug(`Batch delay: ${delayMs}ms`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
-    
-    this.logger.info(`✅ Completed batch: ${successCount} products processed | Failed: ${failCount}`);
+
+    this.logger.info(`Batch complete. Failed: ${this.checkpoint.failedProducts.length}`);
   }
 
   async extractProductData(page) {
     try {
-      // STEP 2: Using direct page.evaluate() instead of Cheerio
-      // This eliminates the need to transfer ~1MB HTML from browser to Node
       const productData = await page.evaluate((SELECTORS) => {
-        // Helper functions
         const getText = (selector) => {
           try {
             const el = document.querySelector(selector);
@@ -484,7 +464,6 @@ class AmazonClusterCrawler {
           } catch { return null; }
         };
         
-        // Extract title
         const titleSelectors = ['#productTitle', 'h1#title', 'span#productTitle'];
         let title = null;
         for (const sel of titleSelectors) {
@@ -495,7 +474,6 @@ class AmazonClusterCrawler {
           }
         }
         
-        // Extract deal - check multiple selectors
         let deal = null;
         const dealSelectors = [
           '#dealBadge',
@@ -511,7 +489,6 @@ class AmazonClusterCrawler {
           }
         }
         
-        // Extract product name/subtitle
         let productName = null;
         const productNameSelectors = [
           '#productSubtitle',
@@ -527,7 +504,6 @@ class AmazonClusterCrawler {
           }
         }
         
-        // Extract pricing
         const pricing = {
           current: null,
           original: null,
@@ -564,7 +540,6 @@ class AmazonClusterCrawler {
         
         pricing.discount = getText('.savingsPercentage') || getText('#dealprice_savings .a-color-price');
         
-        // Extract rating
         const rating = {
           value: null,
           count: null
@@ -582,18 +557,15 @@ class AmazonClusterCrawler {
           rating.count = parseInt(countMatch[0].replace(/,/g, ''));
         }
         
-        // Extract main image
-        const mainImage = getAttr('#landingImage', 'src') || 
+        const mainImage = getAttr('#landingImage', 'src') ||
                          getAttr('#imgBlkFront', 'src') ||
                          getAttr('.a-dynamic-image', 'src');
         
-        // Extract availability
-        const availability = getText('#availability span') || 
+        const availability = getText('#availability span') ||
                            getText('#availability') ||
                            getText('.a-color-success') ||
                            getText('.a-color-state');
         
-        // Extract categories
         const categories = [];
         const breadcrumbSelectors = [
           '#wayfinding-breadcrumbs_container a',
@@ -614,7 +586,6 @@ class AmazonClusterCrawler {
           }
         }
         
-        // Extract specifications - structured product details
         const specifications = {};
         
         // 1. Product Overview table
@@ -777,9 +748,6 @@ class AmazonClusterCrawler {
     }
   }
 
-  // STEP 2: Removed all Cheerio-based extraction methods (_extractTitle, _extractDeal, etc.)
-  // Now using direct page.evaluate() in extractProductData()
-
   _getDefaultCategories(title) {
     const categories = [];
     if (title) {
@@ -839,38 +807,31 @@ class AmazonClusterCrawler {
   }
 
   async retryFailedProducts() {
-    const failedProducts = [...this.checkpoint.failedProducts];
+    const toRetry = [...this.checkpoint.failedProducts];
     this.checkpoint.failedProducts = [];
-    
     const results = [];
-    for (const failedProduct of failedProducts) {
-      try {
-        const productData = await this.cluster.execute({ url: failedProduct.url, type: 'retry' }, async ({ page, data }) => {
-          await this.configurePage(page);
-          await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          return await this.extractProductData(page);
-        });
-        
-        results.push({ url: failedProduct.url, ...productData });
-        
-        if (results.length >= 5) {
-          this.saveData(results);
-          results.length = 0;
+
+    for (let i = 0; i < toRetry.length; i += this.maxConcurrent) {
+      const batch = toRetry.slice(i, i + this.maxConcurrent);
+      const settled = await Promise.allSettled(
+        batch.map(fp => this.processProductWithRetry(fp.url, fp.index))
+      );
+      settled.forEach((res, k) => {
+        if (res.status === 'fulfilled' && res.value) {
+          results.push(res.value);
+        } else {
+          this.checkpoint.failedProducts.push({
+            ...batch[k],
+            retryAttempts: (batch[k].retryAttempts || 0) + 1
+          });
         }
-      } catch (error) {
-        this.logger.error(`Retry failed for ${failedProduct.url}: ${error.message}`);
-        this.checkpoint.failedProducts.push({
-          ...failedProduct,
-          retryAttempts: (failedProduct.retryAttempts || 0) + 1
-        });
+      });
+      if (results.length > 0) {
+        this.saveData([...results]);
+        results.length = 0;
       }
+      this.saveCheckpoint();
     }
-    
-    if (results.length > 0) {
-      this.saveData(results);
-    }
-    
-    this.saveCheckpoint();
   }
 }
 

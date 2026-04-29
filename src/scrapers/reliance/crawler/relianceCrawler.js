@@ -232,6 +232,12 @@ class RelianceCrawler {
       this.logger.startScraper('reliance', logTarget, processedCount);
 
       await this.scrapeProductDetails();
+
+      if (this.checkpoint.failedProducts.length > 0) {
+        this.logger.info(`Retrying ${this.checkpoint.failedProducts.length} failed products`);
+        await this.retryFailedProducts();
+      }
+
       this.logger.completeScraper();
     } catch (error) {
       this.logger.error(`Reliance crawler failed: ${error.message}`);
@@ -452,22 +458,21 @@ class RelianceCrawler {
   }
 
   async processProductWithRetry(url, index) {
-    let lastError;
+    let rl;
+    while (true) {
+      rl = await this.rateLimiter.checkLimit('scraper', 'reliance');
+      if (rl.allowed) break;
+      const wait = this.rateLimiter.calculateDelay(rl, RelianceRateLimitConfig.baseDelay);
+      this.logger.rateLimit(wait);
+      await new Promise(r => setTimeout(r, wait));
+    }
 
+    let lastError;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        const rate = await this.rateLimiter.checkLimit('scraper', 'reliance');
-        if (!rate.allowed) {
-          const wait = this.rateLimiter.calculateDelay(rate, RelianceRateLimitConfig.baseDelay);
-          this.logger.rateLimit(wait);
-          await new Promise(r => setTimeout(r, wait));
-          continue;
-        }
-
         const product = await this._scrapeProductDetail(url);
         this.logger.updateProgress();
-
-        const delayMs = this.rateLimiter.calculateDelay(rate, RelianceRateLimitConfig.baseDelay);
+        const delayMs = this.rateLimiter.calculateDelay(rl, RelianceRateLimitConfig.baseDelay);
         await new Promise(r => setTimeout(r, delayMs + Math.random() * 2000 + 1000));
         return product;
       } catch (err) {
@@ -480,6 +485,34 @@ class RelianceCrawler {
     }
 
     throw lastError;
+  }
+
+  async retryFailedProducts() {
+    const toRetry = [...this.checkpoint.failedProducts];
+    this.checkpoint.failedProducts = [];
+    const results = [];
+
+    for (let i = 0; i < toRetry.length; i += this.maxConcurrent) {
+      const batch = toRetry.slice(i, i + this.maxConcurrent);
+      const settled = await Promise.allSettled(
+        batch.map(fp => this.processProductWithRetry(fp.url, fp.index))
+      );
+      settled.forEach((res, k) => {
+        if (res.status === 'fulfilled' && res.value) {
+          results.push(res.value);
+        } else {
+          this.checkpoint.failedProducts.push({
+            ...batch[k],
+            retryAttempts: (batch[k].retryAttempts || 0) + 1
+          });
+        }
+      });
+      if (results.length > 0) {
+        this.saveData([...results]);
+        results.length = 0;
+      }
+      this.saveCheckpoint();
+    }
   }
 
   async _scrapeProductDetail(url) {
