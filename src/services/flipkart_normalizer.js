@@ -367,9 +367,8 @@ class FlipkartNormalizer {
   extractPerformanceSpecs(specs) {
     const performance = {};
     
-    if (specs['Os & Processor Features']) {
-      const procFeatures = specs['Os & Processor Features'];
-      
+    const procFeatures = specs['OS & Processor Features'] || specs['Os & Processor Features'];
+    if (procFeatures) {
       // Operating System
       if (procFeatures['Operating System']) {
         performance.operating_system = procFeatures['Operating System'];
