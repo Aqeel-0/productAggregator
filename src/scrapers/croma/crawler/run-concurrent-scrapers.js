@@ -7,7 +7,7 @@ const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97',
-    maxProducts: 10,
+    maxProducts: 20,
     maxConcurrent: 6,
     delayBetweenPages: 3000
   }

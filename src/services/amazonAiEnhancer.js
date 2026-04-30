@@ -10,7 +10,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = 'AIzaSyBxZ_zRPSf5lvT3HcwDypwYqfjnGdxZ4To'||process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set in environment variables');
     }
@@ -43,142 +43,136 @@ class AmazonAiEnhancer {
     }
   }
   /**
-   * Process products in batches
+   * Process products in batches with rate-limit-aware delays and exponential backoff retries
+   * gemini-2.5-flash-lite free tier: 15 RPM → safe inter-batch delay = 5 s (≈12 RPM)
    */
   async processBatches(products, productType = 'mobile') {
     const totalBatches = Math.ceil(products.length / this.batchSize);
     const enhancedProducts = [];
-    
+    const MAX_RETRIES = 3;
+
     console.log(`📦 Processing ${products.length} ${productType} products in ${totalBatches} batches...`);
     console.log(`🎯 Each batch will contain ${this.batchSize} products in a single API call\n`);
-    
+
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startIndex = batchIndex * this.batchSize;
       const endIndex = Math.min(startIndex + this.batchSize, products.length);
       const batch = products.slice(startIndex, endIndex);
-      
+
       console.log(`\n🔄 Processing Batch ${batchIndex + 1}/${totalBatches} (Products ${startIndex + 1}-${endIndex})`);
-      console.log('=' .repeat(60));
-      
-      try {
-        const batchResults = await this.processBatch(batch, productType);
-        enhancedProducts.push(...batchResults);
-        
-        // Progress update
-        const progress = ((batchIndex + 1) / totalBatches * 100).toFixed(1);
-        console.log(`✅ Batch ${batchIndex + 1} completed. Progress: ${progress}%`);
-        console.log(`📊 Batch Results: ${batchResults.length} products enhanced`);
-        
-        // Wait between batches to avoid rate limiting
-        if (batchIndex < totalBatches - 1) {
-          console.log(`⏳ Waiting 3 seconds before next batch...`);
-          await this.sleep(3000);
+      console.log('='.repeat(60));
+
+      let batchResults = null;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          batchResults = await this.processBatch(batch, productType);
+          break;
+        } catch (error) {
+          const isRateLimit = /429|quota|rate.?limit/i.test(error.message || '');
+          if (attempt < MAX_RETRIES) {
+            const baseDelay = isRateLimit ? 15000 : 5000;
+            const backoffMs = Math.min(60000, baseDelay * Math.pow(2, attempt));
+            console.log(`  ⚠️  Batch ${batchIndex + 1} attempt ${attempt + 1}/${MAX_RETRIES + 1} failed: ${error.message}`);
+            console.log(`  ⏳ Retrying in ${backoffMs / 1000}s (${isRateLimit ? 'rate-limit backoff' : 'error backoff'})...`);
+            await this.sleep(backoffMs);
+          } else {
+            console.error(`  ❌ Batch ${batchIndex + 1} failed after ${MAX_RETRIES + 1} attempts — using fallback`);
+            batchResults = batch.map(product => ({
+              ...product,
+              extracted_attributes: null,
+              enhanced_at: new Date().toISOString()
+            }));
+            this.stats.filtered += batch.length;
+            this.stats.totalProcessed += batch.length;
+          }
         }
-        
-      } catch (error) {
-        console.error(`❌ Error processing batch ${batchIndex + 1}:`, error.message);
-        // Continue with next batch
-        continue;
+      }
+
+      enhancedProducts.push(...batchResults);
+
+      const progress = ((batchIndex + 1) / totalBatches * 100).toFixed(1);
+      console.log(`✅ Batch ${batchIndex + 1} completed. Progress: ${progress}%`);
+      console.log(`📊 Batch Results: ${batchResults.length} products enhanced`);
+      console.log(`AI Progress: ${endIndex}/${products.length}`);
+
+      if (batchIndex < totalBatches - 1) {
+        console.log(`⏳ Waiting 5 seconds before next batch (rate limit: 15 RPM)...`);
+        await this.sleep(5000);
       }
     }
-    
+
     return enhancedProducts;
   }
 
   /**
-   * Process a single batch - send all products in one prompt
+   * Process a single batch - send all products in one prompt.
+   * Throws on API or JSON parse errors so processBatches can retry with backoff.
    */
   async processBatch(batch, productType = 'mobile') {
     console.log(`  📤 Sending ${batch.length} ${productType} products to Gemini AI in single prompt...`);
-    console.log(`  API Key: ${process.env.GEMINI_API_KEY}`);
-    
-    try {
-      const prompt = this.buildBatchPrompt(batch, productType);
-      const response = await this.model.generateContent(prompt);
-      const responseText = response.response.text();
-      
-      this.stats.apiCalls++;
-      
-      // Clean the response - remove markdown formatting if present
-      let cleanResponse = responseText.trim();
-      if (cleanResponse.startsWith('```json')) {
-        cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanResponse.startsWith('```')) {
-        cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+
+    const prompt = this.buildBatchPrompt(batch, productType);
+    const response = await this.model.generateContent(prompt);
+    const responseText = response.response.text();
+
+    this.stats.apiCalls++;
+
+    // Clean the response - remove markdown formatting if present
+    let cleanResponse = responseText.trim();
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    let extractedDataArray = JSON.parse(cleanResponse);
+
+    // Validate that we got an array
+    if (!Array.isArray(extractedDataArray)) {
+      console.log(`    ⚠️  AI returned object instead of array, converting to array...`);
+      const singleObject = extractedDataArray;
+      extractedDataArray = [];
+      for (let i = 0; i < batch.length; i++) {
+        extractedDataArray.push(singleObject);
       }
-      
-      let extractedDataArray = JSON.parse(cleanResponse);
-      
-      // Validate that we got an array
-      if (!Array.isArray(extractedDataArray)) {
-        console.log(`    ⚠️  AI returned object instead of array, converting to array...`);
-        // If AI returns single object, convert to array
-        const singleObject = extractedDataArray;
-        extractedDataArray = [];
-        for (let i = 0; i < batch.length; i++) {
-          extractedDataArray.push(singleObject);
-        }
+    }
+
+    // Validate array length
+    if (extractedDataArray.length !== batch.length) {
+      console.log(`    ⚠️  AI returned ${extractedDataArray.length} objects, expected ${batch.length}`);
+      while (extractedDataArray.length < batch.length) {
+        extractedDataArray.push({});
       }
-      
-      // Validate array length
-      if (extractedDataArray.length !== batch.length) {
-        console.log(`    ⚠️  AI returned ${extractedDataArray.length} objects, expected ${batch.length}`);
-        // Pad or truncate array to match batch size
-        while (extractedDataArray.length < batch.length) {
-          extractedDataArray.push({});
-        }
-        extractedDataArray = extractedDataArray.slice(0, batch.length);
-      }
-      
-      // URL-based matching and merging
-      const enhancedBatch = [];
-      
-      for (const product of batch) {
-        // Find AI attributes that match this product's URL
-        const matchingAIData = extractedDataArray.find(aiData => aiData.url === product.url);
-        
-        if (matchingAIData) {
-          // Validate extracted data
-          const validatedData = this.validateExtractedData(matchingAIData);
-          
-          // Merge with original product
-          const enhancedProduct = this.mergeWithOriginalData(product, validatedData);
-          enhancedBatch.push(enhancedProduct);
-          
-          // Update stats
-          if (validatedData.brand_name && validatedData.model_name) {
-            this.stats.successful++;
-          } else {
-            this.stats.filtered++;
-          }
+      extractedDataArray = extractedDataArray.slice(0, batch.length);
+    }
+
+    // URL-based matching and merging
+    const enhancedBatch = [];
+
+    for (const product of batch) {
+      const matchingAIData = extractedDataArray.find(aiData => aiData.url === product.url);
+
+      if (matchingAIData) {
+        const validatedData = this.validateExtractedData(matchingAIData);
+        const enhancedProduct = this.mergeWithOriginalData(product, validatedData);
+        enhancedBatch.push(enhancedProduct);
+        if (validatedData.brand_name && validatedData.model_name) {
+          this.stats.successful++;
         } else {
-          // No matching AI data found for this URL
-          console.log(`⚠️  No AI data found for URL: ${product.url?.substring(0, 50)}...`);
-          const enhancedProduct = this.mergeWithOriginalData(product, {});
-          enhancedBatch.push(enhancedProduct);
           this.stats.filtered++;
         }
-        this.stats.totalProcessed++;
+      } else {
+        console.log(`⚠️  No AI data found for URL: ${product.url?.substring(0, 50)}...`);
+        const enhancedProduct = this.mergeWithOriginalData(product, {});
+        enhancedBatch.push(enhancedProduct);
+        this.stats.filtered++;
       }
-      
-      console.log(`  ✅ Successfully enhanced ${enhancedBatch.length} products in single API call`);
-      return enhancedBatch;
-      
-    } catch (error) {
-      console.log(`  ❌ Batch processing failed: ${error.message}`);
-      // Return original products if batch processing fails
-      const failedBatch = batch.map(product => ({
-        ...product,
-        extracted_attributes: null,
-        enhanced_at: new Date().toISOString()
-      }));
-      
-      // Update stats for filtered batch
-      this.stats.filtered += batch.length;
-      this.stats.totalProcessed += batch.length;
-      
-      return failedBatch;
+      this.stats.totalProcessed++;
     }
+
+    console.log(`  ✅ Successfully enhanced ${enhancedBatch.length} products in single API call`);
+    return enhancedBatch;
   }
 
   /**

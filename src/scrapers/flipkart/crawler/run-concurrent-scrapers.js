@@ -6,43 +6,16 @@ const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&p%5B%5D=facets.type%255B%255D%3DSmartphones&page=1',
-    maxProducts: 10,
-    maxPages: 5,
-    maxConcurrent: 2,
+    maxProducts: 45,
+    maxPages: 50,
+    maxConcurrent: 10,
     delayBetweenPages: 2000,
     // Related products configuration - DISABLED for mobile
     relatedProducts: {
-      enabled: false // Disable related products for mobile
+      enabled: true,
+      maxPerProduct: 2
     }
   },
-  // tablet: {
-  //   category: 'tablet',
-  //   categoryUrl: 'https://www.flipkart.com/tablets/pr?sid=tyy%2Chry&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&page=1',
-  //   maxProducts: 600,
-  //   totalMaxProducts: 3000,
-  //   maxPages: 40,
-  //   maxConcurrent: 5,
-  //   delayBetweenPages: 3000,
-  //   // Related products configuration
-  //   totalMaxProducts: 1000, // Total products including related
-  //   relatedProducts: {
-  //     enabled: true,
-  //     maxPerProduct: 5 // Max related products per main product
-  //   }
-  // },
-  // Mouse: {
-  //   category: 'mouse',
-  //   categoryUrl: 'https://www.flipkart.com/computers/computer-peripherals/keyboards-mouse-accessories/mouse/pr?sid=6bo%2Ctia%2C8pp%2Cp0w&otracker=categorytree&sort=price_desc&page=1',
-  //   maxProducts: 800,
-  //   totalMaxProducts: 1500,
-  //   maxPages: 40,
-  //   maxConcurrent: 5,
-  //   delayBetweenPages: 3000,
-  //   relatedProducts: {
-  //     enabled: true,
-  //     maxPerProduct: 5 // Max related products per main product
-  //   }
-  // }
 };
 
 async function runScrapers() {
@@ -56,7 +29,7 @@ async function runScrapers() {
     logger.info(`Initializing ${category} scraper...`);
     const scraper = new FlipkartCrawler({
       ...config,
-      headless: false
+      headless: true
     });
     scrapers.push({ category, scraper });
   }

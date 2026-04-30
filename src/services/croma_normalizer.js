@@ -495,7 +495,7 @@ if (require.main === module) {
   (async () => {
     try {
       logger.info('🚀 Starting Croma Normalizer...');
-      const inputPath = path.join(__dirname, '../scrapers/croma/croma_scraped_data.json');
+      const inputPath = path.join(__dirname, '../scrapers/croma/raw_data/croma_mobile_scraped_data.json');
       const outputPath = path.join(__dirname, '../../parsed_data/croma_normalized_data.json');
       logger.info(`📁 Input: ${inputPath}`);
       logger.info(`📁 Output: ${outputPath}`);

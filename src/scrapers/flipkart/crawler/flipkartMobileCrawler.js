@@ -183,9 +183,15 @@ class FlipkartCrawler {
         this.logger.info(`Resuming: ${this.productLinks.length} product links from checkpoint`);
       }
 
-      const total = this.maxProducts ? Math.min(this.maxProducts, this.productLinks.length) : this.productLinks.length;
-      const processed = this.checkpoint.lastProcessedIndex + 1;
-      this.logger.startScraper(this.category, total, processed);
+      const mainTarget = this.maxProducts ? Math.min(this.maxProducts, this.productLinks.length) : this.productLinks.length;
+      const relatedTarget = this.relatedProductsConfig.enabled
+        ? (this.totalMaxProducts
+            ? Math.max(0, this.totalMaxProducts - mainTarget)
+            : mainTarget * this.relatedProductsConfig.maxPerProduct)
+        : 0;
+      const overallTarget = mainTarget + relatedTarget;
+      const processed = (this.checkpoint.lastProcessedIndex + 1) + (this.checkpoint.lastRelatedIndex + 1);
+      this.logger.startScraper(this.category, overallTarget, processed);
 
       await this.processProducts(this.productLinks, 'lastProcessedIndex', false, this.maxProducts);
 
@@ -194,17 +200,8 @@ class FlipkartCrawler {
         await this.retryFailedProducts();
       }
 
-      if (this.relatedProductsConfig.enabled && this.checkpoint.relatedLinks.length > 0) {
-        let relatedLimit = null;
-        if (this.totalMaxProducts) {
-          const mainDone = this.checkpoint.lastProcessedIndex + 1;
-          relatedLimit = Math.max(0, this.totalMaxProducts - mainDone);
-        }
-        if (!relatedLimit || relatedLimit > 0) {
-          const count = relatedLimit ? Math.min(relatedLimit, this.checkpoint.relatedLinks.length) : this.checkpoint.relatedLinks.length;
-          this.logger.setTotalCount(count, this.checkpoint.lastRelatedIndex + 1);
-          await this.processProducts(this.checkpoint.relatedLinks, 'lastRelatedIndex', true, relatedLimit);
-        }
+      if (this.relatedProductsConfig.enabled && relatedTarget > 0 && this.checkpoint.relatedLinks.length > 0) {
+        await this.processProducts(this.checkpoint.relatedLinks, 'lastRelatedIndex', true, relatedTarget);
       }
 
       this.logger.completeScraper();
@@ -291,7 +288,7 @@ class FlipkartCrawler {
 
   async processProducts(urls, indexKey, isRelated, maxToProcess = null) {
     const start = this.checkpoint[indexKey] + 1;
-    const end = maxToProcess ? Math.min(urls.length, start + maxToProcess) : urls.length;
+    const end = maxToProcess ? Math.min(urls.length, maxToProcess) : urls.length;
     if (start >= end) return;
 
     this.logger.info(`Processing ${end - start} products [${start}-${end - 1}] (concurrent=${this.maxConcurrent})`);
