@@ -727,7 +727,7 @@ if (require.main === module) {
   (async () => {
     try {
       logger.info('🚀 Starting Reliance Normalizer...');
-      const inputPath = path.join(__dirname, '../scrapers/reliance/reliance_raw.json');
+      const inputPath = path.join(__dirname, '../scrapers/reliance/raw_data/reliance_mobile_scraped_data.json');
       const outputPath = path.join(__dirname, '../../parsed_data/reliance_normalized_data.json');
       if (!fs.existsSync(inputPath)) {
         logger.error(`❌ Input file not found: ${inputPath}`);

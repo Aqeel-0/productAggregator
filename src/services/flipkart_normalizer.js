@@ -619,7 +619,7 @@ if (require.main === module) {
       const normalizer = new FlipkartNormalizer();
       
       // Define input and output paths
-      const inputPath = path.join(__dirname, '../scrapers/flipkart/flipkart_raw.json');
+      const inputPath = path.join(__dirname, '../scrapers/flipkart/raw_data/flipkart_mobile_scraped_data.json');
       const outputPath = path.join(__dirname, '../../parsed_data/flipkart_normalized_data.json');
       
       console.log(`📁 Input file: ${inputPath}`);

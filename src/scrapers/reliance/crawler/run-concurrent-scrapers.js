@@ -6,7 +6,7 @@ const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.reliancedigital.in/collection/mobiles/?page_no=1&is_available=true',
-    maxProducts: 5,
+    maxProducts: 30,
     maxPages: 60,
     maxConcurrent: 5,
     delayBetweenPages: 2000
@@ -24,7 +24,7 @@ async function runScrapers() {
     logger.info(`Initializing ${category} scraper...`);
     const scraper = new RelianceCrawler({
       ...config,
-      headless: false
+      headless: true
     });
     scrapers.push({ category, scraper });
   }
