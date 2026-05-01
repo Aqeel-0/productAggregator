@@ -4,7 +4,7 @@ const path = require('path');
 // Try to import logger, fall back to console if not available
 let logger;
 try {
-  logger = require('../utils/logger');
+  logger = require('../../utils/logger');
 } catch (e) {
   logger = console;
 }
@@ -975,8 +975,8 @@ if (require.main === module) {
       const normalizer = new FlipkartTabletNormalizer();
       
       // Define input and output paths
-      const inputPath = path.join(__dirname, '../scrapers/flipkart/raw_data/flipkart_tablet_scraped_data.json');
-      const outputPath = path.join(__dirname, '../../parsed_data/flipkart_tablet_normalized_data.json');
+      const inputPath = path.join(__dirname, '../../scrapers/flipkart/raw_data/flipkart_tablet_scraped_data.json');
+      const outputPath = path.join(__dirname, '../../../parsed_data/flipkart_tablet_normalized_data.json');
       
       console.log(`📁 Input file: ${inputPath}`);
       console.log(`📁 Output file: ${outputPath}\n`);

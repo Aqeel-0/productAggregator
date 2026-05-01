@@ -7,6 +7,7 @@ const { CATEGORY_SELECTORS, PRODUCT_SELECTORS, ERROR_INDICATORS } = require('./c
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const CromaRateLimitConfig = require('../../../rate-limiter/configs/croma-config');
 const Logger = require('../../../utils/logger');
+const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
 
 puppeteer.use(StealthPlugin());
 
@@ -46,6 +47,7 @@ class CromaCrawler {
     this.productLinks.forEach(u => this.seenUrls.add(this.normalizeUrl(u)));
 
     this.cluster = null;
+    this.memoryTracker = createMemoryTracker('croma');
   }
 
   ensureDirectory(dir) {
@@ -159,6 +161,7 @@ class CromaCrawler {
   }
 
   async shutdown() {
+    this.memoryTracker.stop();
     if (this.rateLimiter) await this.rateLimiter.close();
     if (this.cluster) {
       await this.cluster.close();
@@ -167,6 +170,7 @@ class CromaCrawler {
   }
 
   async start() {
+    this.memoryTracker.start();
     try {
       await this.initializeCluster();
 
@@ -494,9 +498,10 @@ if (require.main === module) {
     maxRetries: 2
   });
 
+  const cleanupSignals = setupSignalHandlers(() => crawler.shutdown(), crawler.logger);
   crawler.start()
-    .then(() => process.exit(0))
-    .catch(err => { console.error('Crawler failed:', err); process.exit(1); });
+    .then(() => { cleanupSignals(); process.exit(0); })
+    .catch(err => { crawler.logger.error(`Crawler failed: ${err.message}`); cleanupSignals(); process.exit(1); });
 }
 
 module.exports = CromaCrawler;

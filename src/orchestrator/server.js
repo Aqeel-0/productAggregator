@@ -39,19 +39,21 @@ dashboard.start()
     process.exit(1);
   });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
+function gracefulShutdown() {
   console.log('\n\nShutting down gracefully...');
-  dashboard.stop().then(() => {
-    console.log('Goodbye!');
-    process.exit(0);
-  });
-});
 
-process.on('SIGTERM', () => {
-  console.log('\n\nShutting down gracefully...');
+  // Safety net: force exit after 15s no matter what
+  const forceExit = setTimeout(() => {
+    console.log('Forcing exit after timeout...');
+    process.exit(0);
+  }, 15000).unref();
+
   dashboard.stop().then(() => {
+    clearTimeout(forceExit);
     console.log('Goodbye!');
     process.exit(0);
   });
-});
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);

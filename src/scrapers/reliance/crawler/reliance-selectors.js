@@ -38,8 +38,7 @@ const PRODUCT_SELECTORS = {
     '.product-marked-price',
   ],
   DISCOUNT: [
-    '.price .discount',
-    '.pdp__discount'
+    '.product-price-discount'
   ],
   RATING: [
     '[itemprop="ratingValue"]',

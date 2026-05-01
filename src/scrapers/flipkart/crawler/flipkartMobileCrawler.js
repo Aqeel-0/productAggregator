@@ -6,6 +6,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const FlipkartRateLimitConfig = require('../../../rate-limiter/configs/flipkart-config');
 const Logger = require('../../../utils/logger');
+const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
 
 puppeteer.use(StealthPlugin());
 
@@ -53,6 +54,7 @@ class FlipkartCrawler {
     [...this.checkpoint.productLinks, ...this.checkpoint.relatedLinks].forEach(u => this.seenUrls.add(this.normalizeUrl(u)));
 
     this.cluster = null;
+    this.memoryTracker = createMemoryTracker('flipkart');
   }
 
   ensureDirectory(dir) {
@@ -165,6 +167,7 @@ class FlipkartCrawler {
   }
 
   async shutdown() {
+    this.memoryTracker.stop();
     if (this.rateLimiter) await this.rateLimiter.close();
     if (this.cluster) {
       await this.cluster.close();
@@ -173,6 +176,7 @@ class FlipkartCrawler {
   }
 
   async start() {
+    this.memoryTracker.start();
     try {
       await this.initializeCluster();
 
@@ -205,12 +209,12 @@ class FlipkartCrawler {
       }
 
       this.logger.completeScraper();
-      await this.shutdown();
     } catch (e) {
       this.logger.error(`Scraping failed: ${e.message}`);
       this.saveCheckpoint();
-      await this.shutdown();
       throw e;
+    } finally {
+      await this.shutdown();
     }
   }
 
@@ -602,9 +606,10 @@ if (require.main === module) {
     relatedProducts: { enabled: false }
   });
 
+  const cleanupSignals = setupSignalHandlers(() => crawler.shutdown(), crawler.logger);
   crawler.start()
-    .then(() => process.exit(0))
-    .catch(err => { console.error('Crawler failed:', err); process.exit(1); });
+    .then(() => { cleanupSignals(); process.exit(0); })
+    .catch(err => { crawler.logger.error(`Crawler failed: ${err.message}`); cleanupSignals(); process.exit(1); });
 }
 
 module.exports = FlipkartCrawler;

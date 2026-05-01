@@ -307,13 +307,18 @@ class DashboardServer {
       return;
     }
 
-    // Apply configuration by modifying the config file temporarily
+    // Extract any existing env configs or pass UI config
+    const envOptions = {
+      ...process.env,
+    };
     if (config) {
-      this.applyScraperConfig(platform, config);
+      envOptions.CRAWLER_CONFIG = JSON.stringify(config);
     }
 
     const child = spawn('node', [scraperPath], {
-      cwd: path.join(__dirname, `../scrapers/${platform}/crawler`)
+      cwd: path.join(__dirname, `../scrapers/${platform}/crawler`),
+      env: envOptions,
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
     const scraperStartTime = Date.now();
 
@@ -322,6 +327,17 @@ class DashboardServer {
     let productCount = 0;
     let totalProducts = 0;
     let isScrapingLinks = true;
+
+    child._lastMemory = null;
+    child._finalMemory = null;
+    child._forceKillTimer = null;
+    child.on('message', (msg) => {
+      if (msg && msg.type === 'memory') {
+        child._lastMemory = msg;
+      } else if (msg && msg.type === 'final-memory') {
+        child._finalMemory = msg;
+      }
+    });
 
     child.stdout.on('data', (data) => {
       const output = data.toString();
@@ -380,8 +396,17 @@ class DashboardServer {
     });
 
     child.on('close', (code) => {
+      if (child._forceKillTimer) clearTimeout(child._forceKillTimer);
       this.runningProcesses.delete(`scraper-${platform}`);
       const duration = Date.now() - scraperStartTime;
+
+      const memory = child._finalMemory || child._lastMemory || {};
+      const memoryStats = memory.heapUsed ? {
+        heapUsed: memory.heapUsed,
+        heapTotal: memory.heapTotal,
+        rss: memory.rss,
+        external: memory.external
+      } : null;
 
       if (code === 0) {
         if (productCount === 0) {
@@ -393,7 +418,7 @@ class DashboardServer {
           path.join(__dirname, `../scrapers/${platform}/${platform}_scraped_data.json`)
         ];
         const fileSizeMb = this.getFileSizeMb(rawPaths);
-        this.io.emit('scraper:complete', { platform, products: productCount, duration, fileSizeMb });
+        this.io.emit('scraper:complete', { platform, products: productCount, duration, fileSizeMb, memory: memoryStats });
       } else {
         this.io.emit('scraper:error', { platform, error: `Process exited with code ${code}` });
       }
@@ -436,56 +461,6 @@ class DashboardServer {
     return 0;
   }
 
-  /**
-   * Apply scraper configuration
-   */
-  applyScraperConfig(platform, config) {
-    const configPath = path.join(__dirname, `../scrapers/${platform}/crawler/run-concurrent-scrapers.js`);
-
-    try {
-      let content = fs.readFileSync(configPath, 'utf8');
-
-      // Update maxProducts
-      if (config.maxProducts !== undefined) {
-        content = content.replace(/maxProducts:\s*\d+/g, `maxProducts: ${config.maxProducts}`);
-      }
-
-      // Update maxPages
-      if (config.maxPages !== undefined) {
-        content = content.replace(/maxPages:\s*\d+/g, `maxPages: ${config.maxPages}`);
-      }
-
-      // Update maxConcurrent
-      if (config.maxConcurrent !== undefined) {
-        content = content.replace(/maxConcurrent:\s*\d+/g, `maxConcurrent: ${config.maxConcurrent}`);
-      }
-
-      // Update delayBetweenPages
-      if (config.delayBetweenPages !== undefined) {
-        content = content.replace(/delayBetweenPages:\s*\d+/g, `delayBetweenPages: ${config.delayBetweenPages}`);
-      }
-
-      // Update headless
-      if (config.headless !== undefined) {
-        content = content.replace(/headless:\s*(true|false)/g, `headless: ${config.headless}`);
-      }
-
-      // Flipkart specific: related products
-      if (platform === 'flipkart' && config.relatedProducts !== undefined) {
-        if (config.relatedProducts.enabled !== undefined) {
-          content = content.replace(/enabled:\s*(true|false)/g, `enabled: ${config.relatedProducts.enabled}`);
-        }
-        if (config.relatedProducts.maxPerProduct !== undefined) {
-          content = content.replace(/relatedProducts:\s*\d+/g, `relatedProducts: ${config.relatedProducts.maxPerProduct}`);
-        }
-      }
-
-      fs.writeFileSync(configPath, content, 'utf8');
-      console.log(`✅ Applied configuration for ${platform}`);
-    } catch (error) {
-      console.error(`Failed to apply config for ${platform}:`, error.message);
-    }
-  }
 
   /**
    * Stop scraper
@@ -496,7 +471,12 @@ class DashboardServer {
 
     if (child) {
       child.kill('SIGTERM');
-      this.runningProcesses.delete(processKey);
+      child._forceKillTimer = setTimeout(() => {
+        if (this.runningProcesses.has(processKey)) {
+          child.kill('SIGKILL');
+          this.runningProcesses.delete(processKey);
+        }
+      }, 10000).unref();
       this.io.emit('scraper:stopped', { platform });
       return true;
     }
@@ -553,7 +533,7 @@ class DashboardServer {
       reliance: 'reliance_normalizer'
     };
 
-    const normalizerPath = path.join(__dirname, `../services/${normalizerMap[platform]}.js`);
+    const normalizerPath = path.join(__dirname, `../services/${platform}/${normalizerMap[platform]}.js`);
 
     if (!fs.existsSync(normalizerPath)) {
       this.io.emit('normalizer:error', { platform, error: 'Normalizer not found' });
@@ -664,7 +644,27 @@ class DashboardServer {
           path.join(__dirname, `../../parsed_data/${platform}_mobile_normalized_data.json`)
         ];
         const fileSizeMb = this.getFileSizeMb(normalizedPaths);
-        this.io.emit('normalizer:complete', { platform, products: productCount, duration, fileSizeMb, normStats });
+
+        // Run validation
+        let validationResult = null;
+        const validatorPath = path.join(__dirname, `../services/${platform}/${platform}_validator.js`);
+        if (fs.existsSync(validatorPath)) {
+          try {
+            const ValidatorClass = require(validatorPath);
+            const validator = new ValidatorClass();
+            let filePath = '';
+            for (const p of normalizedPaths) {
+              if (fs.existsSync(p)) { filePath = p; break; }
+            }
+            if (filePath) {
+              validationResult = validator.validate(filePath);
+            }
+          } catch (err) {
+            console.error(`Validator error for ${platform}:`, err.message);
+          }
+        }
+
+        this.io.emit('normalizer:complete', { platform, products: productCount, duration, fileSizeMb, normStats, validationResult });
       } else {
         this.io.emit('normalizer:error', { platform, error: `Process exited with code ${code}` });
       }
@@ -675,7 +675,7 @@ class DashboardServer {
    * Run database insertion in background
    */
   runDatabaseInsertionBackground() {
-    const dbPath = path.join(__dirname, '../services/dbIngestion.js');
+    const dbPath = path.join(__dirname, '../services/db/dbIngestion.js');
 
     if (!fs.existsSync(dbPath)) {
       this.io.emit('database:error', { error: 'Database insertion script not found' });
@@ -749,14 +749,19 @@ class DashboardServer {
   /**
    * Stop dashboard server
    */
-  stop() {
-    return new Promise((resolve) => {
-      // Kill all running processes
-      for (const [name, child] of this.runningProcesses) {
-        console.log(`Stopping ${name}...`);
-        child.kill();
-      }
+  async stop() {
+    for (const [name, child] of this.runningProcesses) {
+      console.log(`Stopping ${name}...`);
+      child.kill('SIGTERM');
+      child._forceKillTimer = setTimeout(() => {
+        console.log(`Force killing ${name}...`);
+        child.kill('SIGKILL');
+      }, 10000).unref();
+    }
 
+    // Disconnect all WebSocket clients first, then close HTTP server
+    await this.io.close();
+    await new Promise((resolve) => {
       this.server.close(() => {
         console.log('Dashboard server stopped');
         resolve();
