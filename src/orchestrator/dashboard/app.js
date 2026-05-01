@@ -182,7 +182,7 @@ socket.on('scraper:cleaned', ({ platform }) => {
   checkDataAvailability();
 });
 
-socket.on('scraper:complete', ({ platform, products, duration, fileSizeMb }) => {
+socket.on('scraper:complete', ({ platform, products, duration, fileSizeMb, memory }) => {
   setPlatformStatus(platform, 'completed');
   state.platforms[platform].products = products;
   state.platforms[platform].progress = 100;
@@ -191,7 +191,7 @@ socket.on('scraper:complete', ({ platform, products, duration, fileSizeMb }) => 
   setProgressText(platform, `Collection complete \u2014 ${products} products`);
   addLog('success', `${PLATFORMS[platform].label} collected ${products} products`);
   showToast(`${PLATFORMS[platform].label}: ${products} products collected`, 'success');
-  setStats(platform, { type: 'collect', products, duration, fileSizeMb });
+  setStats(platform, { type: 'collect', products, duration, fileSizeMb, memory });
   checkDataAvailability();
 });
 
@@ -362,15 +362,22 @@ function setProgressText(platform, text) {
   if (el) el.textContent = text;
 }
 
-function setStats(platform, { type, products, duration, fileSizeMb, normStats, validationResult }) {
+function setStats(platform, { type, products, duration, fileSizeMb, normStats, validationResult, memory }) {
   const panel = $(`${platform}-stats`);
   const items = $(`${platform}-stats-items`);
   if (!panel || !items) return;
   const durStr = duration ? formatDuration(duration) : '--';
   const sizeStr = fileSizeMb ? `${fileSizeMb} MB` : '--';
-  let html = `<div class="stat-item"><i class="fas fa-boxes-stacked"></i> <b>${products}</b> products</div>`
+  let html = `<div class="stat-item"><i class="fas fa-boxes-stacked"></i> <b>${products}</b> <span>products</span></div>`
     + `<div class="stat-item"><i class="fas fa-clock"></i> <b>${durStr}</b></div>`
     + `<div class="stat-item"><i class="fas fa-file-zipper"></i> <b>${sizeStr}</b></div>`;
+  if (memory && memory.heapUsed) {
+    const heapMb = (memory.heapUsed / 1024 / 1024).toFixed(1);
+    const rssMb = (memory.rss / 1024 / 1024).toFixed(1);
+    html += `<div class="stat-separator"></div>`;
+    html += `<div class="stat-item"><i class="fas fa-microchip"></i> <b>${heapMb} MB</b> <span>heap</span></div>`;
+    html += `<div class="stat-item"><i class="fas fa-memory"></i> <b>${rssMb} MB</b> <span>RSS</span></div>`;
+  }
   if (type === 'process' && normStats) {
     const ns = normStats;
     if (ns.brandSuccessRate != null) {
@@ -395,10 +402,10 @@ function setStats(platform, { type, products, duration, fileSizeMb, normStats, v
     }
   }
   if (validationResult && !validationResult.success) {
-    html += `<div class="stat-item stat-error" style="margin-top: 5px; flex-direction: column; align-items: start; background: rgba(255,165,0,0.1); border-left: 2px solid var(--orange);">`
-      + `<div style="color:var(--orange);font-weight:bold;margin-bottom:4px;"><i class="fas fa-exclamation-triangle"></i> Validation Warnings:</div>`;
+    html += `<div class="stat-item stat-error stat-wide">`
+      + `<i class="fas fa-exclamation-triangle" style="color:var(--orange)"></i> <b style="color:var(--orange)">Validation warnings:</b>`;
     validationResult.warnings.forEach(w => {
-      html += `<div style="font-size: 0.85em; color:var(--text-secondary); margin-left:5px; margin-bottom:2px;">- ${w}</div>`;
+      html += `<span>- ${w}</span>`;
     });
     html += `</div>`;
   }

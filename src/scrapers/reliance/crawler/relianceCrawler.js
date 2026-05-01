@@ -7,6 +7,7 @@ const { CATEGORY_SELECTORS, PRODUCT_SELECTORS } = require('./reliance-selectors'
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const RelianceRateLimitConfig = require('../../../rate-limiter/configs/reliance-config');
 const Logger = require('../../../utils/logger');
+const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
 
 puppeteer.use(StealthPlugin());
 
@@ -49,6 +50,7 @@ class RelianceCrawler {
     });
 
     this.cluster = null;
+    this.memoryTracker = createMemoryTracker('reliance');
   }
 
   ensureDirectory(dir) {
@@ -215,6 +217,7 @@ class RelianceCrawler {
   }
 
   async start() {
+    this.memoryTracker.start();
     try {
       await this.initializeCluster();
 
@@ -249,6 +252,7 @@ class RelianceCrawler {
   }
 
   async shutdown() {
+    this.memoryTracker.stop();
     if (this.rateLimiter) {
       await this.rateLimiter.close();
       this.logger.debug('Rate limiter closed');
@@ -257,7 +261,6 @@ class RelianceCrawler {
       await this.cluster.close();
       this.logger.info('Cluster closed');
     }
-    setTimeout(() => process.exit(0), 2000);
   }
 
   // Returns the href of the first product link on the page (used to detect page advance)
@@ -684,12 +687,10 @@ if (require.main === module) {
     maxProducts: 5,
   });
 
+  const cleanupSignals = setupSignalHandlers(() => crawler.shutdown(), crawler.logger);
   crawler.start()
-    .then(() => process.exit(0))
-    .catch(e => {
-      console.error('Reliance crawler error:', e.message);
-      process.exit(1);
-    });
+    .then(() => { cleanupSignals(); process.exit(0); })
+    .catch(e => { crawler.logger.error(`Reliance crawler error: ${e.message}`); cleanupSignals(); process.exit(1); });
 }
 
 module.exports = RelianceCrawler;

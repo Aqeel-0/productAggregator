@@ -317,7 +317,8 @@ class DashboardServer {
 
     const child = spawn('node', [scraperPath], {
       cwd: path.join(__dirname, `../scrapers/${platform}/crawler`),
-      env: envOptions
+      env: envOptions,
+      stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
     const scraperStartTime = Date.now();
 
@@ -326,6 +327,17 @@ class DashboardServer {
     let productCount = 0;
     let totalProducts = 0;
     let isScrapingLinks = true;
+
+    child._lastMemory = null;
+    child._finalMemory = null;
+    child._forceKillTimer = null;
+    child.on('message', (msg) => {
+      if (msg && msg.type === 'memory') {
+        child._lastMemory = msg;
+      } else if (msg && msg.type === 'final-memory') {
+        child._finalMemory = msg;
+      }
+    });
 
     child.stdout.on('data', (data) => {
       const output = data.toString();
@@ -384,8 +396,17 @@ class DashboardServer {
     });
 
     child.on('close', (code) => {
+      if (child._forceKillTimer) clearTimeout(child._forceKillTimer);
       this.runningProcesses.delete(`scraper-${platform}`);
       const duration = Date.now() - scraperStartTime;
+
+      const memory = child._finalMemory || child._lastMemory || {};
+      const memoryStats = memory.heapUsed ? {
+        heapUsed: memory.heapUsed,
+        heapTotal: memory.heapTotal,
+        rss: memory.rss,
+        external: memory.external
+      } : null;
 
       if (code === 0) {
         if (productCount === 0) {
@@ -397,7 +418,7 @@ class DashboardServer {
           path.join(__dirname, `../scrapers/${platform}/${platform}_scraped_data.json`)
         ];
         const fileSizeMb = this.getFileSizeMb(rawPaths);
-        this.io.emit('scraper:complete', { platform, products: productCount, duration, fileSizeMb });
+        this.io.emit('scraper:complete', { platform, products: productCount, duration, fileSizeMb, memory: memoryStats });
       } else {
         this.io.emit('scraper:error', { platform, error: `Process exited with code ${code}` });
       }
@@ -450,7 +471,12 @@ class DashboardServer {
 
     if (child) {
       child.kill('SIGTERM');
-      this.runningProcesses.delete(processKey);
+      child._forceKillTimer = setTimeout(() => {
+        if (this.runningProcesses.has(processKey)) {
+          child.kill('SIGKILL');
+          this.runningProcesses.delete(processKey);
+        }
+      }, 10000).unref();
       this.io.emit('scraper:stopped', { platform });
       return true;
     }
@@ -723,14 +749,19 @@ class DashboardServer {
   /**
    * Stop dashboard server
    */
-  stop() {
-    return new Promise((resolve) => {
-      // Kill all running processes
-      for (const [name, child] of this.runningProcesses) {
-        console.log(`Stopping ${name}...`);
-        child.kill();
-      }
+  async stop() {
+    for (const [name, child] of this.runningProcesses) {
+      console.log(`Stopping ${name}...`);
+      child.kill('SIGTERM');
+      child._forceKillTimer = setTimeout(() => {
+        console.log(`Force killing ${name}...`);
+        child.kill('SIGKILL');
+      }, 10000).unref();
+    }
 
+    // Disconnect all WebSocket clients first, then close HTTP server
+    await this.io.close();
+    await new Promise((resolve) => {
       this.server.close(() => {
         console.log('Dashboard server stopped');
         resolve();

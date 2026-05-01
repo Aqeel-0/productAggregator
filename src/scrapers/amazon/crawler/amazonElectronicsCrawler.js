@@ -7,6 +7,7 @@ const { CATEGORY_SELECTORS, PRODUCT_SELECTORS, ERROR_INDICATORS } = require('./a
 const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const AmazonRateLimitConfig = require('../../../rate-limiter/configs/amazon-config');
 const Logger = require('../../../utils/logger');
+const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
 
 puppeteer.use(StealthPlugin());
 
@@ -58,6 +59,7 @@ class AmazonClusterCrawler {
     
     // Cluster will be initialized in start()
     this.cluster = null;
+    this.memoryTracker = createMemoryTracker('amazon');
   }
 
   ensureDirectory(dir) {
@@ -205,6 +207,7 @@ class AmazonClusterCrawler {
   }
 
   async start() {
+    this.memoryTracker.start();
     try {
       await this.initializeCluster();
 
@@ -220,28 +223,29 @@ class AmazonClusterCrawler {
       const processedCount = this.checkpoint.lastProcessedIndex + 1;
       const logTarget = this.maxProducts ? Math.min(this.maxProducts, totalProducts) : totalProducts;
       this.logger.startScraper(this.category, logTarget, processedCount);
-      
+
       await this.scrapeProductDetails();
-      
+
       if (this.checkpoint.failedProducts.length > 0) {
         this.logger.info(`Retrying ${this.checkpoint.failedProducts.length} failed products`);
         await this.retryFailedProducts();
       }
-      
+
       this.logger.completeScraper();
-      await this.shutdown();
-      
+
     } catch (error) {
       this.logger.error(`Error during crawling: ${error.message}`);
       this.saveCheckpoint();
-      await this.shutdown();
       throw error;
+    } finally {
+      await this.shutdown();
     }
   }
 
   async shutdown() {
     this.logger.info('Starting graceful shutdown...');
-    
+    this.memoryTracker.stop();
+
     if (this.rateLimiter) {
       await this.rateLimiter.close();
       this.logger.debug('Rate limiter closed');
