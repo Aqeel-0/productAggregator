@@ -2,33 +2,37 @@ const CromaCrawler = require('./cromaCrawler');
 const Logger = require('../../../utils/logger');
 const { Mouse } = require('puppeteer');
 
+// Parse configuration passed from DashboardServer
+const uiConfig = process.env.CRAWLER_CONFIG ? JSON.parse(process.env.CRAWLER_CONFIG) : {};
+
 // Configuration for different categories
 const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97',
-    maxProducts: 20,
-    maxConcurrent: 6,
-    delayBetweenPages: 3000
+    maxProducts: uiConfig.maxProducts !== undefined ? uiConfig.maxProducts : 20,
+    maxPages: uiConfig.maxPages !== undefined ? uiConfig.maxPages : undefined,
+    maxConcurrent: uiConfig.maxConcurrent !== undefined ? uiConfig.maxConcurrent : 6,
+    delayBetweenPages: uiConfig.delayBetweenPages !== undefined ? uiConfig.delayBetweenPages : 3000
   }
 };
 
 async function runScrapers() {
   const logger = new Logger('CROMA');
   logger.info('Starting concurrent Croma scrapers...');
-  
+
   const scrapers = [];
-  
+
   // Create scrapers for each category
   for (const [category, config] of Object.entries(configs)) {
     logger.info(`Initializing ${category} scraper...`);
     const scraper = new CromaCrawler({
       ...config,
-      headless: true
+      headless: uiConfig.headless !== undefined ? uiConfig.headless : true
     });
     scrapers.push({ category, scraper });
   }
-  
+
   // Run all scrapers concurrently
   const promises = scrapers.map(async ({ category, scraper }) => {
     try {
@@ -40,7 +44,7 @@ async function runScrapers() {
       throw error;
     }
   });
-  
+
   // Wait for all scrapers to complete
   try {
     await Promise.all(promises);

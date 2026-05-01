@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '../../../.env') });
 const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -10,7 +10,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    const apiKey = 'AIzaSyBxZ_zRPSf5lvT3HcwDypwYqfjnGdxZ4To'||process.env.GEMINI_API_KEY;
+    const apiKey = 'AIzaSyDvx87GYJLeSsOmWhP2L6PtMjYsZ-K1Z2s'||process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set in environment variables');
     }

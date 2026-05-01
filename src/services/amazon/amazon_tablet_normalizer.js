@@ -5,7 +5,7 @@ const AmazonAiEnhancer = require('./amazonAiEnhancer');
 // Try to import logger, fall back to console if not available
 let logger;
 try {
-  logger = require('../utils/logger');
+  logger = require('../../utils/logger');
 } catch (e) {
   logger = console;
 }
@@ -676,7 +676,7 @@ if (require.main === module) {
     
     try {
       // Read raw data
-      const rawDataPath = path.join(__dirname, '../scrapers/amazon/raw_data/amazon_tablet_scraped_data.json');
+      const rawDataPath = path.join(__dirname, '../../scrapers/amazon/raw_data/amazon_tablet_scraped_data.json');
       const rawData = JSON.parse(fs.readFileSync(rawDataPath, 'utf8'));
       
       console.log(`📊 Processing ${rawData.length} Amazon tablet products...`);
@@ -685,7 +685,7 @@ if (require.main === module) {
       const normalizedProducts = await normalizer.normalizeProducts(rawData);
       
       // Ensure output directory exists
-      const outputDir = path.join(__dirname, '../../parsed_data');
+      const outputDir = path.join(__dirname, '../../../parsed_data');
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }

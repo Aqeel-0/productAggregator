@@ -560,7 +560,20 @@ class AmazonClusterCrawler {
         const mainImage = getAttr('#landingImage', 'src') ||
                          getAttr('#imgBlkFront', 'src') ||
                          getAttr('.a-dynamic-image', 'src');
-        
+
+        // Extract all images
+        const allImages = [];
+        const otherImageElements = document.querySelectorAll('li.imageThumbnail .a-button-text img');
+        otherImageElements.forEach(img => {
+          const src = img.getAttribute('src') || img.getAttribute('data-src');
+          if (src && !allImages.includes(src)) {
+            allImages.push(src);
+          }
+        });
+        if (mainImage && !allImages.includes(mainImage)) {
+          allImages.unshift(mainImage);
+        }
+
         const availability = getText('#availability span') ||
                            getText('#availability') ||
                            getText('.a-color-success') ||
@@ -707,6 +720,7 @@ class AmazonClusterCrawler {
           price: pricing,
           rating,
           image: mainImage,
+          allImages,
           availability,
           categories: categories.length > 0 ? categories : null,
           specifications
@@ -724,6 +738,7 @@ class AmazonClusterCrawler {
         price: productData.price,
         rating: productData.rating,
         image: productData.image,
+        allImages: productData.allImages || [],
         availability: productData.availability,
         specifications: productData.specifications,
         categories: finalCategories,
@@ -739,6 +754,7 @@ class AmazonClusterCrawler {
         price: { current: null, original: null, discount: null },
         rating: { value: null, count: null },
         image: null,
+        allImages: [],
         availability: null,
         specifications: {},
         categories: [],

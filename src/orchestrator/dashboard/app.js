@@ -30,7 +30,7 @@ const configTemplates = {
 // ─── Helpers ────────────────────────────────────────────────────────────
 const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
 const $ = id => document.getElementById(id);
-const statusLabels = { ready: 'Ready', scraping: 'Collecting...', normalizing: 'Processing...', completed: 'Done', error: 'Error' };
+const statusLabels = { ready: 'Ready', scraping: 'Collecting...', normalizing: 'Processing...', completed: 'Done', error: 'Error', warning: 'Warning' };
 
 // ─── Toast notifications ────────────────────────────────────────────────
 function showToast(message, type = 'info') {
@@ -96,7 +96,31 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateDurations, 1000);
   checkDataAvailability();
   setInterval(checkDataAvailability, 5000);
+  loadTheme();
 });
+
+// ─── Theme Toggle ─────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeIcon(newTheme);
+}
+
+function loadTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+}
+
+function updateThemeIcon(theme) {
+  const icon = document.querySelector('.theme-toggle i');
+  if (icon) {
+    icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+  }
+}
 
 // ─── Socket connection ──────────────────────────────────────────────────
 socket.on('connect', () => {
@@ -193,15 +217,24 @@ socket.on('normalizer:progress', ({ platform, current, total, label }) => {
   updateProgress(platform, pct, current);
 });
 
-socket.on('normalizer:complete', ({ platform, products, duration, fileSizeMb, normStats }) => {
-  setPlatformStatus(platform, 'completed');
+socket.on('normalizer:complete', ({ platform, products, duration, fileSizeMb, normStats, validationResult }) => {
+  const hasWarning = validationResult && !validationResult.success;
+  setPlatformStatus(platform, hasWarning ? 'warning' : 'completed');
   state.platforms[platform].normalizedAvailable = true;
   state.platforms[platform].progress = 100;
   updateProgress(platform, 100, products);
   setProgressText(platform, `Processing complete \u2014 ${products} products`);
-  addLog('success', `${PLATFORMS[platform].label} processed ${products} products`);
-  showToast(`${PLATFORMS[platform].label}: ${products} products processed`, 'success');
-  setStats(platform, { type: 'process', products, duration, fileSizeMb, normStats });
+  
+  if (hasWarning) {
+    addLog('warning', `${PLATFORMS[platform].label} processed ${products} products, but validation failed! Check selectors.`);
+    showToast(`${PLATFORMS[platform].label}: Validation warnings detected!`, 'warning');
+    validationResult.warnings.forEach(w => addLog('warning', `[${PLATFORMS[platform].label}] ${w}`));
+  } else {
+    addLog('success', `${PLATFORMS[platform].label} processed ${products} products`);
+    showToast(`${PLATFORMS[platform].label}: ${products} products processed`, 'success');
+  }
+  
+  setStats(platform, { type: 'process', products, duration, fileSizeMb, normStats, validationResult });
   checkDataAvailability();
 });
 
@@ -329,7 +362,7 @@ function setProgressText(platform, text) {
   if (el) el.textContent = text;
 }
 
-function setStats(platform, { type, products, duration, fileSizeMb, normStats }) {
+function setStats(platform, { type, products, duration, fileSizeMb, normStats, validationResult }) {
   const panel = $(`${platform}-stats`);
   const items = $(`${platform}-stats-items`);
   if (!panel || !items) return;
@@ -360,6 +393,14 @@ function setStats(platform, { type, products, duration, fileSizeMb, normStats })
     if (ns.processingRate != null) {
       html += `<div class="stat-item"><i class="fas fa-gauge-high"></i> <b>${ns.processingRate}/s</b></div>`;
     }
+  }
+  if (validationResult && !validationResult.success) {
+    html += `<div class="stat-item stat-error" style="margin-top: 5px; flex-direction: column; align-items: start; background: rgba(255,165,0,0.1); border-left: 2px solid var(--orange);">`
+      + `<div style="color:var(--orange);font-weight:bold;margin-bottom:4px;"><i class="fas fa-exclamation-triangle"></i> Validation Warnings:</div>`;
+    validationResult.warnings.forEach(w => {
+      html += `<div style="font-size: 0.85em; color:var(--text-secondary); margin-left:5px; margin-bottom:2px;">- ${w}</div>`;
+    });
+    html += `</div>`;
   }
   panel.dataset.label = type;
   panel.style.display = 'block';

@@ -4,7 +4,7 @@ const path = require('path');
 // Try to import logger, fall back to console if not available
 let logger;
 try {
-  logger = require('../utils/logger');
+  logger = require('../../utils/logger');
 } catch (e) {
   logger = console;
 }
@@ -12,6 +12,7 @@ try {
 class FlipkartNormalizer {
   constructor() {
     this.logger = logger;
+    this.droppedProducts = [];
   }
 
   /**
@@ -19,17 +20,37 @@ class FlipkartNormalizer {
    */
   normalizeProducts(products) {
     const normalized = [];
-    
+    this.droppedProducts = [];
+
     for (const product of products) {
       try {
         const normalizedProduct = this.normalizeProduct(product);
+
+        // Check if this is a basic phone (feature phone) - drop it
+        const breadcrumb = normalizedProduct.source_metadata?.category_breadcrumb;
+        if (breadcrumb && breadcrumb[3] === 'Basic Mobiles') {
+          this.droppedProducts.push({
+            title: normalizedProduct.product_identifiers?.original_title || product.title,
+            url: normalizedProduct.source_details?.url || product.url,
+            reason: 'Basic Mobile (feature phone)'
+          });
+          continue; // Skip adding to normalized array
+        }
+
         normalized.push(normalizedProduct);
       } catch (error) {
         console.error(`Error normalizing product: ${error.message}`, product.title);
       }
     }
-    
+
     return normalized;
+  }
+
+  /**
+   * Get list of products that were dropped (basic phones)
+   */
+  getDroppedProducts() {
+    return this.droppedProducts;
   }
 
   /**
@@ -619,8 +640,8 @@ if (require.main === module) {
       const normalizer = new FlipkartNormalizer();
       
       // Define input and output paths
-      const inputPath = path.join(__dirname, '../scrapers/flipkart/raw_data/flipkart_mobile_scraped_data.json');
-      const outputPath = path.join(__dirname, '../../parsed_data/flipkart_normalized_data.json');
+      const inputPath = path.join(__dirname, '../../scrapers/flipkart/raw_data/flipkart_mobile_scraped_data.json');
+      const outputPath = path.join(__dirname, '../../../parsed_data/flipkart_normalized_data.json');
       
       console.log(`📁 Input file: ${inputPath}`);
       console.log(`📁 Output file: ${outputPath}\n`);
@@ -637,10 +658,24 @@ if (require.main === module) {
       
       // Save normalized data
       await normalizer.saveNormalizedData(normalizedData, outputPath);
-      
+
       console.log('\n✅ Flipkart normalization completed successfully!');
       console.log(`📊 Normalized ${normalizedData.length} products`);
-      
+
+      // Print dropped products (basic phones)
+      const dropped = normalizer.getDroppedProducts();
+      if (dropped.length > 0) {
+        console.log(`\n🗑️  Dropped ${dropped.length} basic phones (feature phones):`);
+        console.log('='.repeat(80));
+        dropped.forEach((product, index) => {
+          console.log(`${index + 1}. ${product.title}`);
+          console.log(`   URL: ${product.url}`);
+          console.log(`   Reason: ${product.reason}`);
+          console.log('');
+        });
+        console.log('='.repeat(80));
+      }
+
     } catch (error) {
       console.error('\n❌ Normalization failed:', error.message);
       process.exit(1);

@@ -4,7 +4,7 @@ const AmazonAiEnhancer = require('./amazonAiEnhancer');
 // Try to import logger, fall back to console if not available
 let logger;
 try {
-  logger = require('../utils/logger');
+  logger = require('../../utils/logger');
 } catch (e) {
   logger = console;
 }
@@ -109,7 +109,6 @@ class AmazonNormalizer {
       variant_attributes: {
         color: this.getAiColor(product),
         ram: this.getAiRAM(product),
-        
         storage: this.getAiStorage(product)
       },
 
@@ -117,6 +116,7 @@ class AmazonNormalizer {
         price: this.normalizePrice(product.price),
         rating: this.normalizeRating(product.rating),
         image_url: this.cleanAmazonImageUrl(product.image),
+        all_images: this.processAllImages(product.image, product.allImages),
         availability: product.availability,
       },
 
@@ -138,9 +138,9 @@ class AmazonNormalizer {
   cleanAmazonImageUrl(imageUrl) {
     if (!imageUrl || typeof imageUrl !== 'string') return null;
     
-    // Remove Amazon size suffixes like _SX679_, _SY679_, etc.
-    // Pattern: underscore, SX or SY, followed by numbers, then underscore
-    let cleanedUrl = imageUrl.replace(/_(SX|SY)\d+_/g, '');
+    // Remove Amazon size suffixes like _SX38_SY50_CR,0,0,38,50_
+    // Pattern: underscore, followed by any characters until the last underscore before the extension
+    let cleanedUrl = imageUrl.replace(/_.[^.]*(?=\.)/g, '');
     
     // Fix multiple consecutive dots that might occur after cleaning
     cleanedUrl = cleanedUrl.replace(/\.{2,}/g, '.');
@@ -148,6 +148,21 @@ class AmazonNormalizer {
     return cleanedUrl;
   }
 
+  processAllImages(mainImage, allImages) {
+    if (!allImages || !Array.isArray(allImages)) return [];
+    
+    const processed = [];
+    const cleanedMainImage = mainImage ? this.cleanAmazonImageUrl(mainImage) : null;
+    
+    for (const img of allImages) {
+      const cleaned = this.cleanAmazonImageUrl(img);
+      if (cleaned && cleaned !== cleanedMainImage && !processed.includes(cleaned)) {
+        processed.push(cleaned);
+      }
+    }
+    
+    return processed;
+  }
 
   /**
    * Get AI-enhanced brand with fallback to traditional extraction
@@ -186,24 +201,90 @@ class AmazonNormalizer {
   }
 
   /**
-   * Get AI-enhanced RAM with fallback to traditional extraction
+   * Get RAM from raw specifications first, fallback to AI extraction
    */
   getAiRAM(product) {
+    const specs = product.specifications || {};
+
+    // Check raw specs first (common locations for RAM)
+    const ramFields = [
+      specs?.['Product Overview']?.['RAM Memory Installed Size'],
+      specs?.['Additional details']?.['RAM Memory Installed'],
+      specs?.['Product Overview']?.['RAM']
+    ];
+
+    for (const field of ramFields) {
+      if (field) {
+        const ram = this.parseRamValue(field);
+        if (ram !== null) return ram;
+      }
+    }
+
+    // Fallback to AI if no raw spec found
     const aiAttributes = this.getAiAttributes(product);
     if (aiAttributes && aiAttributes.ram !== null && aiAttributes.ram !== undefined) {
       return aiAttributes.ram;
     }
+
     return null;
   }
 
   /**
-   * Get AI-enhanced storage with fallback to traditional extraction
+   * Parse RAM value from string (e.g., "6 GB" -> 6)
+   */
+  parseRamValue(ramStr) {
+    if (!ramStr) return null;
+    const match = ramStr.toString().match(/(\d+)/);
+    return match ? parseInt(match[1]) : null;
+  }
+
+  /**
+   * Get storage from raw specifications first, fallback to AI extraction
    */
   getAiStorage(product) {
+    const specs = product.specifications || {};
+
+    // Check raw specs first (common locations for storage)
+    const storageFields = [
+      specs?.['Additional details']?.['Memory Storage Capacity'],
+      specs?.['Product Overview']?.['Memory Storage Capacity']
+    ];
+
+    for (const field of storageFields) {
+      if (field) {
+        const storage = this.parseStorageValue(field);
+        if (storage !== null) return storage;
+      }
+    }
+
+    // Fallback to AI if no raw spec found
     const aiAttributes = this.getAiAttributes(product);
     if (aiAttributes && aiAttributes.storage !== null && aiAttributes.storage !== undefined) {
       return aiAttributes.storage;
     }
+
+    return null;
+  }
+
+  /**
+   * Parse storage value from string (e.g., "128 GB" -> 128, "1 TB" -> 1024)
+   */
+  parseStorageValue(storageStr) {
+    if (!storageStr) return null;
+    const str = storageStr.toString().toLowerCase();
+
+    // Handle TB
+    const tbMatch = str.match(/(\d+(?:\.\d+)?)\s*tb/i);
+    if (tbMatch) {
+      return Math.round(parseFloat(tbMatch[1]) * 1024);
+    }
+
+    // Handle GB
+    const gbMatch = str.match(/(\d+)/);
+    if (gbMatch) {
+      return parseInt(gbMatch[1]);
+    }
+
     return null;
   }
 
@@ -218,9 +299,11 @@ class AmazonNormalizer {
       return 'Apple';
     }
 
-    // Then check specifications
-    if (product.specifications?.["Brand"]) {
-      return this.standardizeBrand(product.specifications["Brand"]);
+    // Then check specifications - Brand is in Item details or Product Overview
+    const brandName = product.specifications?.['Item details']?.['Brand Name'] ||
+                      product.specifications?.['Product Overview']?.['Brand'];
+    if (brandName) {
+      return this.standardizeBrand(brandName);
     }
 
     // Finally check title for other brands
@@ -538,11 +621,11 @@ async function main() {
   try {
     console.log('🚀 Running Amazon Mobile Normalizer...\n');
 
-    const inputPath = path.join(__dirname, '../scrapers/amazon/raw_data/amazon_mobile_scraped_data.json');
-    const outputPath = path.join(__dirname, '../../parsed_data/amazon_mobile_normalized_data.json');
+    const inputPath = path.join(__dirname, '../../scrapers/amazon/raw_data/amazon_mobile_scraped_data.json');
+    const outputPath = path.join(__dirname, '../../../parsed_data/amazon_mobile_normalized_data.json');
 
     // Ensure output directory exists
-    const outputDir = path.join(__dirname, '../../parsed_data');
+    const outputDir = path.join(__dirname, '../../../parsed_data');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }

@@ -5,7 +5,7 @@ const { distance } = require('fastest-levenshtein');
 // Try to import logger, fall back to console if not available
 let logger;
 try {
-  const { createLogger } = require('../utils/logger');
+  const { createLogger } = require('../../utils/logger');
   logger = createLogger('reliance_normalizer');
 } catch (e) {
   logger = console;
@@ -727,8 +727,8 @@ if (require.main === module) {
   (async () => {
     try {
       logger.info('🚀 Starting Reliance Normalizer...');
-      const inputPath = path.join(__dirname, '../scrapers/reliance/raw_data/reliance_mobile_scraped_data.json');
-      const outputPath = path.join(__dirname, '../../parsed_data/reliance_normalized_data.json');
+      const inputPath = path.join(__dirname, '../../scrapers/reliance/raw_data/reliance_mobile_scraped_data.json');
+      const outputPath = path.join(__dirname, '../../../parsed_data/reliance_normalized_data.json');
       if (!fs.existsSync(inputPath)) {
         logger.error(`❌ Input file not found: ${inputPath}`);
         process.exit(1);

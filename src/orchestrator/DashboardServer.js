@@ -307,13 +307,17 @@ class DashboardServer {
       return;
     }
 
-    // Apply configuration by modifying the config file temporarily
+    // Extract any existing env configs or pass UI config
+    const envOptions = {
+      ...process.env,
+    };
     if (config) {
-      this.applyScraperConfig(platform, config);
+      envOptions.CRAWLER_CONFIG = JSON.stringify(config);
     }
 
     const child = spawn('node', [scraperPath], {
-      cwd: path.join(__dirname, `../scrapers/${platform}/crawler`)
+      cwd: path.join(__dirname, `../scrapers/${platform}/crawler`),
+      env: envOptions
     });
     const scraperStartTime = Date.now();
 
@@ -436,56 +440,6 @@ class DashboardServer {
     return 0;
   }
 
-  /**
-   * Apply scraper configuration
-   */
-  applyScraperConfig(platform, config) {
-    const configPath = path.join(__dirname, `../scrapers/${platform}/crawler/run-concurrent-scrapers.js`);
-
-    try {
-      let content = fs.readFileSync(configPath, 'utf8');
-
-      // Update maxProducts
-      if (config.maxProducts !== undefined) {
-        content = content.replace(/maxProducts:\s*\d+/g, `maxProducts: ${config.maxProducts}`);
-      }
-
-      // Update maxPages
-      if (config.maxPages !== undefined) {
-        content = content.replace(/maxPages:\s*\d+/g, `maxPages: ${config.maxPages}`);
-      }
-
-      // Update maxConcurrent
-      if (config.maxConcurrent !== undefined) {
-        content = content.replace(/maxConcurrent:\s*\d+/g, `maxConcurrent: ${config.maxConcurrent}`);
-      }
-
-      // Update delayBetweenPages
-      if (config.delayBetweenPages !== undefined) {
-        content = content.replace(/delayBetweenPages:\s*\d+/g, `delayBetweenPages: ${config.delayBetweenPages}`);
-      }
-
-      // Update headless
-      if (config.headless !== undefined) {
-        content = content.replace(/headless:\s*(true|false)/g, `headless: ${config.headless}`);
-      }
-
-      // Flipkart specific: related products
-      if (platform === 'flipkart' && config.relatedProducts !== undefined) {
-        if (config.relatedProducts.enabled !== undefined) {
-          content = content.replace(/enabled:\s*(true|false)/g, `enabled: ${config.relatedProducts.enabled}`);
-        }
-        if (config.relatedProducts.maxPerProduct !== undefined) {
-          content = content.replace(/relatedProducts:\s*\d+/g, `relatedProducts: ${config.relatedProducts.maxPerProduct}`);
-        }
-      }
-
-      fs.writeFileSync(configPath, content, 'utf8');
-      console.log(`✅ Applied configuration for ${platform}`);
-    } catch (error) {
-      console.error(`Failed to apply config for ${platform}:`, error.message);
-    }
-  }
 
   /**
    * Stop scraper
@@ -553,7 +507,7 @@ class DashboardServer {
       reliance: 'reliance_normalizer'
     };
 
-    const normalizerPath = path.join(__dirname, `../services/${normalizerMap[platform]}.js`);
+    const normalizerPath = path.join(__dirname, `../services/${platform}/${normalizerMap[platform]}.js`);
 
     if (!fs.existsSync(normalizerPath)) {
       this.io.emit('normalizer:error', { platform, error: 'Normalizer not found' });
@@ -664,7 +618,27 @@ class DashboardServer {
           path.join(__dirname, `../../parsed_data/${platform}_mobile_normalized_data.json`)
         ];
         const fileSizeMb = this.getFileSizeMb(normalizedPaths);
-        this.io.emit('normalizer:complete', { platform, products: productCount, duration, fileSizeMb, normStats });
+
+        // Run validation
+        let validationResult = null;
+        const validatorPath = path.join(__dirname, `../services/${platform}/${platform}_validator.js`);
+        if (fs.existsSync(validatorPath)) {
+          try {
+            const ValidatorClass = require(validatorPath);
+            const validator = new ValidatorClass();
+            let filePath = '';
+            for (const p of normalizedPaths) {
+              if (fs.existsSync(p)) { filePath = p; break; }
+            }
+            if (filePath) {
+              validationResult = validator.validate(filePath);
+            }
+          } catch (err) {
+            console.error(`Validator error for ${platform}:`, err.message);
+          }
+        }
+
+        this.io.emit('normalizer:complete', { platform, products: productCount, duration, fileSizeMb, normStats, validationResult });
       } else {
         this.io.emit('normalizer:error', { platform, error: `Process exited with code ${code}` });
       }
@@ -675,7 +649,7 @@ class DashboardServer {
    * Run database insertion in background
    */
   runDatabaseInsertionBackground() {
-    const dbPath = path.join(__dirname, '../services/dbIngestion.js');
+    const dbPath = path.join(__dirname, '../services/db/dbIngestion.js');
 
     if (!fs.existsSync(dbPath)) {
       this.io.emit('database:error', { error: 'Database insertion script not found' });

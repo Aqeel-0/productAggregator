@@ -302,7 +302,7 @@ class RelianceCrawler {
       await cdpClient.send('Network.clearBrowserCookies');
       await cdpClient.detach();
       await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
+      await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
       await new Promise(r => setTimeout(r, 2000));
 
       while (currentPage <= targetPages) {
@@ -312,7 +312,7 @@ class RelianceCrawler {
           await new Promise(r => setTimeout(r, wait));
         }
 
-        await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => { });
         await new Promise(r => setTimeout(r, 1000));
 
         const currentUrl = page.url();
@@ -360,7 +360,7 @@ class RelianceCrawler {
         // Navigate to next page via Next button with URL fallback
         let nextHandle = null;
         for (const sel of CATEGORY_SELECTORS.NEXT_PAGE) {
-          await page.waitForSelector(sel, { timeout: 1200 }).catch(() => {});
+          await page.waitForSelector(sel, { timeout: 1200 }).catch(() => { });
           nextHandle = await page.$(sel);
           if (nextHandle) break;
         }
@@ -388,8 +388,8 @@ class RelianceCrawler {
             u.searchParams.set('page_no', String(currentPage + 1));
             this.logger.info(`Fallback navigation to: ${u.toString()}`);
             await page.goto(u.toString(), { waitUntil: 'domcontentloaded', timeout: 45000 });
-            await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
-            await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+            await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
+            await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => { });
           }
 
           currentPage++;
@@ -399,8 +399,8 @@ class RelianceCrawler {
             const u = new URL(this.categoryUrl);
             u.searchParams.set('page_no', String(currentPage + 1));
             await page.goto(u.toString(), { waitUntil: 'domcontentloaded', timeout: 45000 });
-            await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => {});
-            await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => {});
+            await page.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
+            await page.waitForSelector('a[href*="/product/"]', { timeout: 15000 }).catch(() => { });
             currentPage++;
           } catch (fallbackErr) {
             this.logger.warn(`URL fallback failed: ${fallbackErr.message}`);
@@ -519,7 +519,26 @@ class RelianceCrawler {
     return await this.cluster.execute({ url }, async ({ page, data }) => {
       await this.configurePage(page);
       await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
+
+      // Wait for price selector to actually contain a price (checking for '₹')
+      try {
+        await page.waitForFunction((selectors) => {
+          for (const selector of selectors) {
+            const els = document.querySelectorAll(selector);
+            for (const el of els) {
+              const ariaLabel = el.getAttribute('aria-label');
+              if (ariaLabel && ariaLabel.includes('₹')) return true;
+              const text = el.textContent || '';
+              if (text.includes('₹')) return true;
+            }
+          }
+          return false;
+        }, { timeout: 15000 }, PRODUCT_SELECTORS.PRICE);
+      } catch (e) {
+        // Timeout means we didn't find the price in time, but we'll still proceed to extract what we can
+      }
+
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 1000));
 
       const productData = await this._extractAllProductData(page);
       return { url: data.url, ...productData };
@@ -556,8 +575,21 @@ class RelianceCrawler {
         // Pricing
         const pricing = { price: null, originalPrice: null, discount: null };
         for (const selector of SELECTORS.PRICE) {
-          const text = getText(selector);
-          if (text) { pricing.price = text; break; }
+          const els = document.querySelectorAll(selector);
+          for (const el of els) {
+            const ariaLabel = el.getAttribute('aria-label');
+            if (ariaLabel && ariaLabel.includes('₹')) {
+              pricing.price = ariaLabel.trim();
+              break;
+            }
+            let text = el.textContent || '';
+            text = text.replace(/Deal Price/i, '').replace(/Offer Price/i, '').trim();
+            if (text && text.includes('₹')) {
+              pricing.price = text;
+              break;
+            }
+          }
+          if (pricing.price) break;
         }
         for (const selector of SELECTORS.ORIGINAL_PRICE) {
           const text = getText(selector);
@@ -645,7 +677,7 @@ class RelianceCrawler {
 
 if (require.main === module) {
   const crawler = new RelianceCrawler({
-    headless: true,
+    headless: false,
     maxPages: 60,
     maxConcurrent: 1,
     maxRetries: 1,

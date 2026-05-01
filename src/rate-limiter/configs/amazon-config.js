@@ -28,7 +28,7 @@ const AmazonRateLimitConfig = {
   ],
   
   // Adaptive delays configuration
-  baseDelay: 2000,              // 2 second base delay
+  baseDelay: 1000,              // 1 second base delay
   
   // Respectful scraping settings
   respectfulMode: {
