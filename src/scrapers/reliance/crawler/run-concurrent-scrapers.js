@@ -47,9 +47,9 @@ async function runScrapers() {
   );
   cleanupSignals();
 
-  const failures = results.filter(r => r.status === 'rejected');
+  const failures = results.filter(r => r.value !== null);
   if (failures.length > 0) {
-    failures.forEach(r => logger.error(`Scraper failed: ${r.reason?.message || r.reason}`));
+    failures.forEach(r => logger.error(`Scraper failed: ${r.value?.message || r.value}`));
     logger.error(`${failures.length} scraper(s) failed`);
     process.exit(1);
   }

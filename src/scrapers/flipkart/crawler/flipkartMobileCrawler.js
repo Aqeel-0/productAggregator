@@ -7,6 +7,7 @@ const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const FlipkartRateLimitConfig = require('../../../rate-limiter/configs/flipkart-config');
 const Logger = require('../../../utils/logger');
 const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
+const ScrapingHealthMonitor = require('../../scraping-health-monitor');
 
 puppeteer.use(StealthPlugin());
 
@@ -55,6 +56,7 @@ class FlipkartCrawler {
 
     this.cluster = null;
     this.memoryTracker = createMemoryTracker('flipkart');
+    this.healthMonitor = new ScrapingHealthMonitor({ platform: 'flipkart', logger: this.logger });
   }
 
   ensureDirectory(dir) {
@@ -158,7 +160,7 @@ class FlipkartCrawler {
     page.on('request', (req) => {
       const rt = req.resourceType();
       const url = req.url();
-      if (['font', 'media'].includes(rt)) req.abort();
+      if (['font', 'media', 'image'].includes(rt)) req.abort();
       else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) req.abort();
       else req.continue();
     });
@@ -314,6 +316,12 @@ class FlipkartCrawler {
         if (r.ok) {
           batchBuffer.push(r.product);
           this.checkpoint[indexKey] = Math.max(this.checkpoint[indexKey], r.index);
+          if (this.healthMonitor.evaluate(r.product)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           this.logger.productError(r.index, r.error);
           this.checkpoint.failedProducts.push({
@@ -323,6 +331,7 @@ class FlipkartCrawler {
             isRelated,
             timestamp: new Date().toISOString()
           });
+          this.healthMonitor.evaluate(null);
         }
       }
 
@@ -378,8 +387,18 @@ class FlipkartCrawler {
       const batch = tasks.slice(i, i + this.maxConcurrent);
       const results = await Promise.all(batch);
       for (const r of results) {
-        if (r.ok) buffer.push(r.product);
-        else this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
+        if (r.ok) {
+          buffer.push(r.product);
+          if (this.healthMonitor.evaluate(r.product)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
+        } else {
+          this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
+          this.healthMonitor.evaluate(null);
+        }
       }
       if (buffer.length > 0) this.saveData(buffer.splice(0));
       this.saveCheckpoint();

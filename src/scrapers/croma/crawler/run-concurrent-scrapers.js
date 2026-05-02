@@ -10,7 +10,7 @@ const configs = {
   mobile: {
     category: 'mobile',
     categoryUrl: 'https://www.croma.com/phones-wearables/c/1?q=%3Arelevance%3Alower_categories%3A95%3Alower_categories%3A97',
-    maxProducts: uiConfig.maxProducts !== undefined ? uiConfig.maxProducts : 20,
+    maxProducts: uiConfig.maxProducts !== undefined ? uiConfig.maxProducts : 200,
     maxPages: uiConfig.maxPages !== undefined ? uiConfig.maxPages : undefined,
     maxConcurrent: uiConfig.maxConcurrent !== undefined ? uiConfig.maxConcurrent : 6,
     delayBetweenPages: uiConfig.delayBetweenPages !== undefined ? uiConfig.delayBetweenPages : 3000
@@ -27,7 +27,7 @@ async function runScrapers() {
     logger.info(`Initializing ${category} scraper...`);
     const scraper = new CromaCrawler({
       ...config,
-      headless: uiConfig.headless !== undefined ? uiConfig.headless : true
+      headless: uiConfig.headless !== undefined ? uiConfig.headless : false
     });
     scraperInstances.push(scraper);
   }
@@ -47,9 +47,9 @@ async function runScrapers() {
   );
   cleanupSignals();
 
-  const failures = results.filter(r => r.status === 'rejected');
+  const failures = results.filter(r => r.value !== null);
   if (failures.length > 0) {
-    failures.forEach(r => logger.error(`Scraper failed: ${r.reason?.message || r.reason}`));
+    failures.forEach(r => logger.error(`Scraper failed: ${r.value?.message || r.value}`));
     logger.error(`${failures.length} scraper(s) failed`);
     process.exit(1);
   }

@@ -327,15 +327,21 @@ class DashboardServer {
     let productCount = 0;
     let totalProducts = 0;
     let isScrapingLinks = true;
+    let stderrBuffer = '';
 
     child._lastMemory = null;
     child._finalMemory = null;
+    child._botDetected = null;
     child._forceKillTimer = null;
     child.on('message', (msg) => {
       if (msg && msg.type === 'memory') {
         child._lastMemory = msg;
       } else if (msg && msg.type === 'final-memory') {
         child._finalMemory = msg;
+      } else if (msg && msg.type === 'bot-detected') {
+        child._botDetected = msg;
+        this.io.emit('scraper:bot-detected', msg);
+        console.error(`[${platform}] BOT_DETECTED — ${msg.consecutiveNulls} consecutive null products (${msg.totalNulls}/${msg.totalAttempts} total nulls)`);
       }
     });
 
@@ -350,7 +356,8 @@ class DashboardServer {
       }
 
       // Parse link scraping messages
-      const linkMatch = output.match(/Scraped\s+(\d+)\s+product\s+links/i) ||
+      const linkMatch = output.match(/Total:\s*(\d+)/i) ||
+        output.match(/Scraped\s+(\d+)\s+product\s+links/i) ||
         output.match(/Found\s+(\d+)\s+product/i) ||
         output.match(/(\d+)\s+links\s+found/i);
       if (linkMatch) {
@@ -392,7 +399,9 @@ class DashboardServer {
     });
 
     child.stderr.on('data', (data) => {
-      console.error(`[${platform}] ${data.toString().trim()}`);
+      const text = data.toString();
+      stderrBuffer += text;
+      console.error(`[${platform}] ${text.trim()}`);
     });
 
     child.on('close', (code) => {
@@ -420,7 +429,12 @@ class DashboardServer {
         const fileSizeMb = this.getFileSizeMb(rawPaths);
         this.io.emit('scraper:complete', { platform, products: productCount, duration, fileSizeMb, memory: memoryStats });
       } else {
-        this.io.emit('scraper:error', { platform, error: `Process exited with code ${code}` });
+        const errorMsg = stderrBuffer.split('\n').filter(l => l.trim()).pop()?.trim()
+          || `Process exited with code ${code}`;
+        if (child._botDetected) {
+          this.io.emit('scraper:bot-detected', { ...child._botDetected, exitCode: code, duration });
+        }
+        this.io.emit('scraper:error', { platform, error: errorMsg, memory: memoryStats });
       }
     });
   }
@@ -549,6 +563,7 @@ class DashboardServer {
 
     let productCount = 0;
     let outputTail = '';
+    let stderrBuffer = '';
     const normStats = {
       nullBrandCount: null, nullBrandPct: null,
       nullModelCount: null, nullModelPct: null,
@@ -619,7 +634,9 @@ class DashboardServer {
     });
 
     child.stderr.on('data', (data) => {
-      console.error(`[${platform} normalizer] ${data.toString().trim()}`);
+      const text = data.toString();
+      stderrBuffer += text;
+      console.error(`[${platform} normalizer] ${text.trim()}`);
     });
 
     child.on('close', (code) => {
@@ -666,7 +683,9 @@ class DashboardServer {
 
         this.io.emit('normalizer:complete', { platform, products: productCount, duration, fileSizeMb, normStats, validationResult });
       } else {
-        this.io.emit('normalizer:error', { platform, error: `Process exited with code ${code}` });
+        const errorMsg = stderrBuffer.split('\n').filter(l => l.trim()).pop()?.trim()
+          || `Process exited with code ${code}`;
+        this.io.emit('normalizer:error', { platform, error: errorMsg });
       }
     });
   }
@@ -687,6 +706,7 @@ class DashboardServer {
     });
 
     this.runningProcesses.set('database', child);
+    let dbStderrBuffer = '';
 
     child.stdout.on('data', (data) => {
       const output = data.toString();
@@ -702,7 +722,9 @@ class DashboardServer {
     });
 
     child.stderr.on('data', (data) => {
-      console.error(`[database] ERROR: ${data}`);
+      const text = data.toString();
+      dbStderrBuffer += text;
+      console.error(`[database] ERROR: ${text}`);
     });
 
     child.on('close', (code) => {
@@ -711,7 +733,9 @@ class DashboardServer {
       if (code === 0) {
         this.io.emit('database:complete', { stats: {} });
       } else {
-        this.io.emit('database:error', { error: `Process exited with code ${code}` });
+        const errorMsg = dbStderrBuffer.split('\n').filter(l => l.trim()).pop()?.trim()
+          || `Process exited with code ${code}`;
+        this.io.emit('database:error', { error: errorMsg });
       }
     });
   }

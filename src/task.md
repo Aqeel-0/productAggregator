@@ -6,6 +6,6 @@
 
 3. Try removing components like images from the pages to see the speed increase and raw data output.
 
-4. Product collection could not showing in the UI during link collection phase.
+4. Product collection is not showing in the UI during link collection phase.
 
 5. For deployment how the scheduler going to run?

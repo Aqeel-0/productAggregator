@@ -39,6 +39,30 @@ function makeFailedEntry(index, url, retryAttempts = 0) {
   return { index, url, error: 'timeout', timestamp: new Date().toISOString(), retryAttempts };
 }
 
+// Croma and Flipkart use scrapeProductDetail (public), Amazon and Reliance use _scrapeProductDetail (private)
+function getScrapeMethod(crawler) {
+  return typeof crawler._scrapeProductDetail === 'function' ? '_scrapeProductDetail' : 'scrapeProductDetail';
+}
+
+// Amazon/Reliance use processProductWithRetry, Croma/Flipkart use scrapeProductWithRetry
+function getRetryMethod(crawler) {
+  return typeof crawler.processProductWithRetry === 'function' ? 'processProductWithRetry' : 'scrapeProductWithRetry';
+}
+
+// Flipkart uses processProducts(urls, checkpointKey, isRelated, cap) — all others use scrapeProductDetails()
+async function runProductDetailsBatch(crawler) {
+  if (typeof crawler.scrapeProductDetails === 'function') {
+    return crawler.scrapeProductDetails();
+  }
+  // Flipkart: processProducts(urls, checkpointKey, isRelated, maxProducts)
+  return crawler.processProducts(crawler.productLinks, 'lastProcessedIndex', false, crawler.maxProducts);
+}
+
+// Determine if crawler is Flipkart (has different method signatures)
+function isFlipkart(crawler) {
+  return typeof crawler.processProducts === 'function';
+}
+
 // ── processProductWithRetry ───────────────────────────────────────────────────
 
 describe('processProductWithRetry — succeeds on retry', () => {
@@ -54,13 +78,13 @@ describe('processProductWithRetry — succeeds on retry', () => {
     silenceSideEffects(crawler);
 
     let calls = 0;
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async () => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async () => {
       calls++;
       if (calls < 3) throw new Error('timeout');
       return { url: 'https://example.com/p/1', title: 'Product A' };
     });
 
-    const result = await crawler.processProductWithRetry('https://example.com/p/1', 0);
+    const result = await crawler[getRetryMethod(crawler)]('https://example.com/p/1', 0);
 
     expect(result.title).toBe('Product A');
     expect(calls).toBe(3);
@@ -72,13 +96,13 @@ describe('processProductWithRetry — succeeds on retry', () => {
     silenceSideEffects(crawler);
 
     let calls = 0;
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async () => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async () => {
       calls++;
       if (calls < 3) throw new Error('timeout');
       return { url: 'https://flipkart.com/p/1', title: 'Flipkart Product' };
     });
 
-    const result = await crawler.processProductWithRetry('https://flipkart.com/p/1', 0, false);
+    const result = await crawler[getRetryMethod(crawler)]('https://flipkart.com/p/1', 0, false);
 
     expect(result.title).toBe('Flipkart Product');
     expect(calls).toBe(3);
@@ -98,15 +122,15 @@ describe('processProductWithRetry — exhausts all retries', () => {
     stubRateLimiterAllow(crawler);
     silenceSideEffects(crawler);
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockRejectedValue(new Error('CAPTCHA'));
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockRejectedValue(new Error('CAPTCHA'));
 
     const isFlipkart = name === 'Flipkart';
     const call = isFlipkart
-      ? crawler.processProductWithRetry('https://example.com/p/1', 0, false)
-      : crawler.processProductWithRetry('https://example.com/p/1', 0);
+      ? crawler[getRetryMethod(crawler)]('https://example.com/p/1', 0, false)
+      : crawler[getRetryMethod(crawler)]('https://example.com/p/1', 0);
 
     await expect(call).rejects.toThrow('CAPTCHA');
-    expect(crawler._scrapeProductDetail).toHaveBeenCalledTimes(crawler.maxRetries);
+    expect(crawler[getScrapeMethod(crawler)]).toHaveBeenCalledTimes(crawler.maxRetries);
   });
 });
 
@@ -131,19 +155,19 @@ describe('processProductWithRetry — rate limit blocks before retry loop', () =
     });
     jest.spyOn(crawler.rateLimiter, 'calculateDelay').mockReturnValue(0);
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockResolvedValue({
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockResolvedValue({
       url: 'https://example.com/p/1',
       title: 'Product'
     });
 
     const isFlipkart = name === 'Flipkart';
     const result = isFlipkart
-      ? await crawler.processProductWithRetry('https://example.com/p/1', 0, false)
-      : await crawler.processProductWithRetry('https://example.com/p/1', 0);
+      ? await crawler[getRetryMethod(crawler)]('https://example.com/p/1', 0, false)
+      : await crawler[getRetryMethod(crawler)]('https://example.com/p/1', 0);
 
     expect(result.title).toBe('Product');
     // _scrapeProductDetail called exactly once — rate-limit wait did not consume a retry
-    expect(crawler._scrapeProductDetail).toHaveBeenCalledTimes(1);
+    expect(crawler[getScrapeMethod(crawler)]).toHaveBeenCalledTimes(1);
     // checkLimit called twice: once blocked, once allowed
     expect(rlCalls).toBe(2);
   });
@@ -170,7 +194,7 @@ describe('retryFailedProducts — recovers successes, re-queues permanent failur
       makeFailedEntry(2, 'https://example.com/p/CCC'),
     ];
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async (url) => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async (url) => {
       const u = typeof url === 'string' ? url : url.url || url;
       if (u.includes('BBB')) throw new Error('still blocked');
       return { url: u, title: 'Recovered' };
@@ -208,7 +232,7 @@ describe('retryFailedProducts — all products recover', () => {
       makeFailedEntry(1, 'https://example.com/p/2'),
     ];
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockResolvedValue({
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockResolvedValue({
       url: 'https://example.com/p/1',
       title: 'Product'
     });
@@ -237,7 +261,7 @@ describe('retryFailedProducts — all products permanently fail', () => {
       makeFailedEntry(1, 'https://example.com/p/2', 1),
     ];
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockRejectedValue(new Error('blocked'));
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockRejectedValue(new Error('blocked'));
 
     const saved = [];
     crawler.saveData.mockImplementation(data => saved.push(...data));
@@ -266,11 +290,11 @@ describe('retryFailedProducts — empty queue is a no-op', () => {
 
     crawler.checkpoint.failedProducts = [];
 
-    jest.spyOn(crawler, '_scrapeProductDetail');
+    jest.spyOn(crawler, getScrapeMethod(crawler));
 
     await crawler.retryFailedProducts();
 
-    expect(crawler._scrapeProductDetail).not.toHaveBeenCalled();
+    expect(crawler[getScrapeMethod(crawler)]).not.toHaveBeenCalled();
     expect(crawler.saveData).not.toHaveBeenCalled();
     expect(crawler.saveCheckpoint).not.toHaveBeenCalled();
   });
@@ -296,13 +320,13 @@ describe('scrapeProductDetails — failed products land in checkpoint', () => {
       'https://example.com/p/3',
     ];
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async (url) => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async (url) => {
       const u = typeof url === 'string' ? url : url.url || url;
       if (u.includes('/p/2')) throw new Error('blocked');
       return { url: u, title: 'OK' };
     });
 
-    await crawler.scrapeProductDetails();
+    await runProductDetailsBatch(crawler);
 
     expect(crawler.checkpoint.failedProducts).toHaveLength(1);
     expect(crawler.checkpoint.failedProducts[0].url).toContain('/p/2');
@@ -322,13 +346,13 @@ describe('scrapeProductDetails — Flipkart failed products land in checkpoint',
       'https://flipkart.com/p/3',
     ];
 
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async (url, isRelated) => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async (url, isRelated) => {
       const u = typeof url === 'string' ? url : url;
       if (u.includes('/p/2')) throw new Error('blocked');
       return { url: u, title: 'OK' };
     });
 
-    await crawler.scrapeProductDetails();
+    await runProductDetailsBatch(crawler);
 
     expect(crawler.checkpoint.failedProducts).toHaveLength(1);
     expect(crawler.checkpoint.failedProducts[0].url).toContain('/p/2');
@@ -348,7 +372,7 @@ describe('retryFailedProducts — processes in concurrent batches', () => {
     crawler.checkpoint.failedProducts = urls.map((url, i) => makeFailedEntry(i, url));
 
     const order = [];
-    jest.spyOn(crawler, '_scrapeProductDetail').mockImplementation(async (url) => {
+    jest.spyOn(crawler, getScrapeMethod(crawler)).mockImplementation(async (url) => {
       const u = typeof url === 'string' ? url : url.url || url;
       order.push(u);
       return { url: u, title: 'Product' };

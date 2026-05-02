@@ -11,18 +11,18 @@ const AmazonRateLimitConfig = {
   limits: [
     {
       tier: 'global',           // Overall rate limit
-      requests: 10,             // Very conservative: 10 req/sec
+      requests: 15,             // 15 req/sec
       window: 1000,             // 1 second window
-      burstCapacity: 15         // Small burst allowance
+      burstCapacity: 20         // Allow small bursts
     },
     {
       tier: 'ip',               // Per IP limiting
-      requests: 40,             // 40 requests per minute
+      requests: 60,             // 60 requests per minute
       window: 60000             // 1 minute window
     },
     {
       tier: 'domain',           // Per domain overall
-      requests: 500,            // 500 requests per hour
+      requests: 800,            // 800 requests per hour
       window: 3600000           // 1 hour window
     }
   ],

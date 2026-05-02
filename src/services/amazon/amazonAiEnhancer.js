@@ -10,7 +10,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    const apiKey = 'AIzaSyDvx87GYJLeSsOmWhP2L6PtMjYsZ-K1Z2s'||process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set in environment variables');
     }
