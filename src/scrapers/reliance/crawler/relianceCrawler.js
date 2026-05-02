@@ -8,6 +8,7 @@ const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const RelianceRateLimitConfig = require('../../../rate-limiter/configs/reliance-config');
 const Logger = require('../../../utils/logger');
 const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
+const ScrapingHealthMonitor = require('../../scraping-health-monitor');
 
 puppeteer.use(StealthPlugin());
 
@@ -51,6 +52,7 @@ class RelianceCrawler {
 
     this.cluster = null;
     this.memoryTracker = createMemoryTracker('reliance');
+    this.healthMonitor = new ScrapingHealthMonitor({ platform: 'reliance', logger: this.logger });
   }
 
   ensureDirectory(dir) {
@@ -200,7 +202,7 @@ class RelianceCrawler {
       page.on('request', (request) => {
         const resourceType = request.resourceType();
         const url = request.url();
-        if (['font', 'media'].includes(resourceType)) {
+        if (['font', 'media', 'image'].includes(resourceType)) {
           request.abort();
         } else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) {
           request.abort();
@@ -440,6 +442,12 @@ class RelianceCrawler {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
           this.checkpoint.lastProcessedIndex = index;
+          if (this.healthMonitor.evaluate(res.value)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           const errMsg = res.reason?.message || String(res.reason) || 'Unknown error';
           this.checkpoint.failedProducts.push({
@@ -448,6 +456,7 @@ class RelianceCrawler {
             error: errMsg,
             ts: Date.now()
           });
+          this.healthMonitor.evaluate(null);
         }
       }
 
@@ -503,11 +512,18 @@ class RelianceCrawler {
       settled.forEach((res, k) => {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
+          if (this.healthMonitor.evaluate(res.value)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           this.checkpoint.failedProducts.push({
             ...batch[k],
             retryAttempts: (batch[k].retryAttempts || 0) + 1
           });
+          this.healthMonitor.evaluate(null);
         }
       });
       if (results.length > 0) {

@@ -8,7 +8,7 @@ const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const AmazonRateLimitConfig = require('../../../rate-limiter/configs/amazon-config');
 const Logger = require('../../../utils/logger');
 const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
-
+const ScrapingHealthMonitor = require('../../scraping-health-monitor');
 puppeteer.use(StealthPlugin());
 
 
@@ -60,6 +60,7 @@ class AmazonClusterCrawler {
     // Cluster will be initialized in start()
     this.cluster = null;
     this.memoryTracker = createMemoryTracker('amazon');
+    this.healthMonitor = new ScrapingHealthMonitor({ platform: 'amazon', logger: this.logger });
   }
 
   ensureDirectory(dir) {
@@ -188,7 +189,7 @@ class AmazonClusterCrawler {
         const resourceType = request.resourceType();
         const url = request.url();
         
-        if (['font', 'media'].includes(resourceType)) {
+        if (['font', 'media', 'image'].includes(resourceType)) {
           request.abort();
         } else if (url.includes('google-analytics') || url.includes('facebook') || url.includes('doubleclick')) {
           request.abort();
@@ -422,6 +423,12 @@ class AmazonClusterCrawler {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
           this.checkpoint.lastProcessedIndex = index;
+          if (this.healthMonitor.evaluate(res.value)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           const errMsg = res.reason?.message || String(res.reason) || 'Unknown error';
           this.logger.error(`Failed product ${index}: ${errMsg}`);
@@ -431,6 +438,7 @@ class AmazonClusterCrawler {
             error: errMsg,
             timestamp: new Date().toISOString()
           });
+          this.healthMonitor.evaluate(null);
         }
       }
 
@@ -839,11 +847,18 @@ class AmazonClusterCrawler {
       settled.forEach((res, k) => {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
+          if (this.healthMonitor.evaluate(res.value)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           this.checkpoint.failedProducts.push({
             ...batch[k],
             retryAttempts: (batch[k].retryAttempts || 0) + 1
           });
+          this.healthMonitor.evaluate(null);
         }
       });
       if (results.length > 0) {

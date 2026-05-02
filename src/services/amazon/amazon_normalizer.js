@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../../../.env') });
 const { title } = require('process');
 const AmazonAiEnhancer = require('./amazonAiEnhancer');
 

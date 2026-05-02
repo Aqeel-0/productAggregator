@@ -195,12 +195,21 @@ socket.on('scraper:complete', ({ platform, products, duration, fileSizeMb, memor
   checkDataAvailability();
 });
 
-socket.on('scraper:error', ({ platform, error }) => {
+socket.on('scraper:bot-detected', ({ platform, consecutiveNulls, totalNulls, totalAttempts }) => {
+  setPlatformStatus(platform, 'error');
+  setProgressText(platform, 'Bot detected — scraper halted');
+  const msg = `${PLATFORMS[platform].label}: Likely bot/block page detected (${consecutiveNulls} consecutive null products out of ${totalAttempts} attempted). Scraper halted to protect the session.`;
+  addLog('error', msg);
+  showToast(msg, 'error');
+  setErrorStats(platform, `Bot detected after ${totalNulls}/${totalAttempts} null products`);
+});
+
+socket.on('scraper:error', ({ platform, error, memory }) => {
   setPlatformStatus(platform, 'error');
   setProgressText(platform, 'Collection failed');
   addLog('error', `${PLATFORMS[platform].label} collection failed: ${error}`);
   showToast(`${PLATFORMS[platform].label} collection failed`, 'error');
-  setErrorStats(platform, error);
+  setErrorStats(platform, error, memory);
 });
 
 // ─── Socket events: normalizer ──────────────────────────────────────────
@@ -414,11 +423,19 @@ function setStats(platform, { type, products, duration, fileSizeMb, normStats, v
   items.innerHTML = html;
 }
 
-function setErrorStats(platform, error) {
+function setErrorStats(platform, error, memory) {
   const panel = $(`${platform}-stats`);
   const items = $(`${platform}-stats-items`);
   if (!panel || !items) return;
-  items.innerHTML = `<div class="stat-item stat-error"><i class="fas fa-circle-exclamation"></i> <span>${error.substring(0, 120)}</span></div>`;
+  let html = `<div class="stat-item stat-error stat-wide"><i class="fas fa-circle-exclamation"></i> <span>${error.substring(0, 160)}</span></div>`;
+  if (memory && memory.heapUsed) {
+    const heapMb = (memory.heapUsed / 1024 / 1024).toFixed(1);
+    const rssMb = (memory.rss / 1024 / 1024).toFixed(1);
+    html += `<div class="stat-separator"></div>`;
+    html += `<div class="stat-item"><i class="fas fa-microchip"></i> <b>${heapMb} MB</b> <span>heap</span></div>`;
+    html += `<div class="stat-item"><i class="fas fa-memory"></i> <b>${rssMb} MB</b> <span>RSS</span></div>`;
+  }
+  items.innerHTML = html;
   panel.dataset.label = 'error';
   panel.style.display = 'block';
 }

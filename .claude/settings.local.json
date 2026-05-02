@@ -3,7 +3,19 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(node *)",
-      "Bash(Remove-Item *)"
+      "Bash(Remove-Item *)",
+      "PowerShell(npm run lint:check 2>&1)",
+      "PowerShell(npx jest tests/error-detection.test.js --verbose --no-coverage 2>&1)",
+      "PowerShell(npx jest tests/scrapers/retryLogic.test.js --verbose --no-coverage 2>&1)",
+      "PowerShell(npx jest tests/scrapers/retryLogic.test.js --verbose --no-coverage --forceExit 2>&1)",
+      "PowerShell(npx jest tests/ --verbose --no-coverage --forceExit 2>&1)",
+      "Bash(Select-String -Path \"c:\\\\Users\\\\Aqeel\\\\Documents\\\\GitHub\\\\productAggregator\\\\src\\\\scrapers\\\\croma\\\\raw_data\\\\croma_mobile_scraped_data.json\" -Pattern '\"current\": null')",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "PowerShell($data = Get-Content \"c:\\\\Users\\\\Aqeel\\\\Documents\\\\GitHub\\\\productAggregator\\\\src\\\\scrapers\\\\croma\\\\raw_data\\\\croma_mobile_scraped_data.json\" -Raw | ConvertFrom-Json; Write-Output \"Total products: $\\($data.Count\\)\"; $nullPrice = \\($data | Where-Object { $_.price.current -eq $null }\\).Count; Write-Output \"Null price: $nullPrice\"; Write-Output \"With price: $\\($data.Count - $nullPrice\\)\")",
+      "PowerShell($file = Join-Path $PWD \"src\\\\scrapers\\\\croma\\\\raw_data\\\\croma_mobile_scraped_data.json\"; if \\(Test-Path $file\\) { $data = Get-Content $file -Raw | ConvertFrom-Json; Write-Output \"Total: $\\($data.Count\\)\"; $nullPrice = \\($data | Where-Object { -not $_.price.current }\\).Count; Write-Output \"Null price: $nullPrice\"; Write-Output \"With price: $\\($data.Count - $nullPrice\\)\"; $data[0..2] | ForEach-Object { Write-Output \"---\"; Write-Output \"Title: $\\($_.title\\)\"; Write-Output \"Price: $\\($_.price.current\\)\" } } else { Write-Output \"File not found at $file\"; Get-ChildItem \\(Join-Path $PWD \"src\\\\scrapers\\\\croma\\\\raw_data\\\\\"\\) })",
+      "PowerShell(Get-ChildItem \\(Join-Path $PWD \"src\\\\scrapers\\\\croma\"\\) -Recurse -File | Select-Object FullName, Length, LastWriteTime)",
+      "Bash(npx jest *)"
     ]
   }
 }

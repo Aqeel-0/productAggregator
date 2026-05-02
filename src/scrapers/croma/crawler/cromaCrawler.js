@@ -8,6 +8,7 @@ const RateLimiter = require('../../../rate-limiter/RateLimiter');
 const CromaRateLimitConfig = require('../../../rate-limiter/configs/croma-config');
 const Logger = require('../../../utils/logger');
 const { createMemoryTracker, setupSignalHandlers } = require('../../crawler-utils');
+const ScrapingHealthMonitor = require('../../scraping-health-monitor');
 
 puppeteer.use(StealthPlugin());
 
@@ -28,11 +29,11 @@ class CromaCrawler {
     this.checkpointFile = config.checkpointFile || path.join(checkpointDir, `croma_${this.category}_checkpoint.json`);
     this.outputFile = config.outputFile || path.join(rawDataDir, `croma_${this.category}_scraped_data.json`);
 
-    this.maxProducts = config.maxProducts ?? null;
-    this.maxConcurrent = config.maxConcurrent || 3;
-    this.maxRetries = config.maxRetries || 3;
-    this.headless = config.headless !== undefined ? config.headless : true;
-    this.delayBetweenPages = Math.max(500, config.delayBetweenPages || 2000);
+    this.maxProducts = 200;
+    this.maxConcurrent = 3;
+    this.maxRetries = 3;
+    this.headless = true;
+    this.delayBetweenPages = 1500;
 
     this.rateLimiter = new RateLimiter({
       redis: { enabled: false },
@@ -48,6 +49,7 @@ class CromaCrawler {
 
     this.cluster = null;
     this.memoryTracker = createMemoryTracker('croma');
+    this.healthMonitor = new ScrapingHealthMonitor({ platform: 'croma', logger: this.logger });
   }
 
   ensureDirectory(dir) {
@@ -300,22 +302,31 @@ class CromaCrawler {
     this.logger.info(`Processing products ${start + 1}-${end} of ${this.productLinks.length} (concurrent=${this.maxConcurrent})`);
 
     const buffer = [];
-    const tasks = [];
 
-    for (let i = start; i < end; i++) {
-      tasks.push(this.scrapeProductWithRetry(this.productLinks[i], i)
-        .then(p => ({ ok: true, index: i, product: p }))
-        .catch(err => ({ ok: false, index: i, error: err?.message || String(err) })));
-    }
+    for (let i = start; i < end; i += this.maxConcurrent) {
+      const batchEnd = Math.min(i + this.maxConcurrent, end);
+      const batch = [];
 
-    for (let i = 0; i < tasks.length; i += this.maxConcurrent) {
-      const batch = tasks.slice(i, i + this.maxConcurrent);
+      for (let j = i; j < batchEnd; j++) {
+        batch.push(
+          this.scrapeProductWithRetry(this.productLinks[j], j)
+            .then(p => ({ ok: true, index: j, product: p }))
+            .catch(err => ({ ok: false, index: j, error: err?.message || String(err) }))
+        );
+      }
+
       const results = await Promise.all(batch);
 
       for (const r of results) {
         if (r.ok) {
           buffer.push(r.product);
           this.checkpoint.lastProcessedIndex = Math.max(this.checkpoint.lastProcessedIndex, r.index);
+          if (this.healthMonitor.evaluate(r.product)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         } else {
           this.logger.productError(r.index, r.error);
           this.checkpoint.failedProducts.push({
@@ -324,13 +335,18 @@ class CromaCrawler {
             error: r.error,
             timestamp: new Date().toISOString()
           });
+          this.healthMonitor.evaluate(null);
         }
       }
 
-      if (buffer.length >= 5 || i + this.maxConcurrent >= tasks.length) {
+      if (buffer.length >= 5 || batchEnd >= end) {
         if (buffer.length > 0) this.saveData(buffer.splice(0));
       }
       this.saveCheckpoint();
+
+      if (batchEnd < end) {
+        await new Promise(r => setTimeout(r, this.delayBetweenPages));
+      }
     }
   }
 
@@ -377,8 +393,18 @@ class CromaCrawler {
       const batch = tasks.slice(i, i + this.maxConcurrent);
       const results = await Promise.all(batch);
       for (const r of results) {
-        if (r.ok) buffer.push(r.product);
-        else this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
+        if (r.ok) {
+          buffer.push(r.product);
+          if (this.healthMonitor.evaluate(r.product)) {
+            this.saveCheckpoint();
+            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
+        } else {
+          this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
+          this.healthMonitor.evaluate(null);
+        }
       }
       if (buffer.length > 0) this.saveData(buffer.splice(0));
       this.saveCheckpoint();
@@ -389,10 +415,17 @@ class CromaCrawler {
     return await this.cluster.execute({ url }, async ({ page, data }) => {
       await this.configurePage(page);
       await page.goto(data.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await new Promise(r => setTimeout(r, 600 + Math.random() * 600));
+      await new Promise(r => setTimeout(r, 500 + Math.random() * 300));
 
       await this.checkForErrors(page);
-      await page.waitForSelector('span#pdp-product-price', { timeout: 15000 }).catch(() => {});
+
+      try {
+        await page.waitForSelector('span#pdp-product-price', { timeout: 6000 });
+      } catch {
+        await page.evaluate(() => window.scrollBy(0, 300));
+        await new Promise(r => setTimeout(r, 800));
+        await page.waitForSelector('span#pdp-product-price', { timeout: 3000 });
+      }
 
       const productData = await this.extractAllProductData(page);
       return { url: data.url, ...productData };
