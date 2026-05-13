@@ -29,11 +29,11 @@ class CromaCrawler {
     this.checkpointFile = config.checkpointFile || path.join(checkpointDir, `croma_${this.category}_checkpoint.json`);
     this.outputFile = config.outputFile || path.join(rawDataDir, `croma_${this.category}_scraped_data.json`);
 
-    this.maxProducts = 200;
-    this.maxConcurrent = 3;
-    this.maxRetries = 3;
-    this.headless = true;
-    this.delayBetweenPages = 1500;
+    this.maxProducts = config.maxProducts || 200;
+    this.maxConcurrent = config.maxConcurrent || 3;
+    this.maxRetries = config.maxRetries || 3;
+    this.headless = config.headless !== undefined ? config.headless : true;
+    this.delayBetweenPages = config.delayBetweenPages || 1500;
 
     this.rateLimiter = new RateLimiter({
       redis: { enabled: false },
@@ -321,9 +321,9 @@ class CromaCrawler {
         if (r.ok) {
           buffer.push(r.product);
           this.checkpoint.lastProcessedIndex = Math.max(this.checkpoint.lastProcessedIndex, r.index);
-          if (this.healthMonitor.evaluate(r.product)) {
+          if (this.healthMonitor.evaluate(r.product) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
@@ -335,7 +335,12 @@ class CromaCrawler {
             error: r.error,
             timestamp: new Date().toISOString()
           });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       }
 
@@ -395,15 +400,20 @@ class CromaCrawler {
       for (const r of results) {
         if (r.ok) {
           buffer.push(r.product);
-          if (this.healthMonitor.evaluate(r.product)) {
+          if (this.healthMonitor.evaluate(r.product) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
         } else {
           this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       }
       if (buffer.length > 0) this.saveData(buffer.splice(0));

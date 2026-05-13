@@ -338,10 +338,13 @@ class DashboardServer {
         child._lastMemory = msg;
       } else if (msg && msg.type === 'final-memory') {
         child._finalMemory = msg;
+      } else if (msg && msg.type === 'bot-warning') {
+        this.io.emit('scraper:bot-warning', msg);
+        console.warn(`[${platform}] BOT_WARNING — ${msg.consecutiveNulls} consecutive nulls, retrying (will stop at ${msg.hardThreshold})`);
       } else if (msg && msg.type === 'bot-detected') {
         child._botDetected = msg;
         this.io.emit('scraper:bot-detected', msg);
-        console.error(`[${platform}] BOT_DETECTED — ${msg.consecutiveNulls} consecutive null products (${msg.totalNulls}/${msg.totalAttempts} total nulls)`);
+        console.error(`[${platform}] STOPPED_ABRUPTLY — ${msg.consecutiveNulls} consecutive null products (${msg.totalNulls}/${msg.totalAttempts} total nulls)`);
       }
     });
 
@@ -694,50 +697,31 @@ class DashboardServer {
    * Run database insertion in background
    */
   runDatabaseInsertionBackground() {
-    const dbPath = path.join(__dirname, '../services/db/dbIngestion.js');
+    const DatabaseInserter = require('../services/db/supabaseIngestion');
 
-    if (!fs.existsSync(dbPath)) {
-      this.io.emit('database:error', { error: 'Database insertion script not found' });
-      return;
-    }
+    const inserter = new DatabaseInserter();
 
-    const child = spawn('node', [dbPath], {
-      cwd: path.join(__dirname, '../services')
-    });
+    this.runningProcesses.set('database', inserter);
 
-    this.runningProcesses.set('database', child);
-    let dbStderrBuffer = '';
-
-    child.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log(`[database] ${output}`);
-
-      // Parse progress
-      const progressMatch = output.match(/(\d+)\/(\d+)/);
-      if (progressMatch) {
-        const current = parseInt(progressMatch[1]);
-        const total = parseInt(progressMatch[2]);
-        this.io.emit('database:progress', { current, total });
-      }
-    });
-
-    child.stderr.on('data', (data) => {
-      const text = data.toString();
-      dbStderrBuffer += text;
-      console.error(`[database] ERROR: ${text}`);
-    });
-
-    child.on('close', (code) => {
-      this.runningProcesses.delete('database');
-
-      if (code === 0) {
-        this.io.emit('database:complete', { stats: {} });
-      } else {
-        const errorMsg = dbStderrBuffer.split('\n').filter(l => l.trim()).pop()?.trim()
-          || `Process exited with code ${code}`;
-        this.io.emit('database:error', { error: errorMsg });
-      }
-    });
+    inserter.insertAllNormalizedData()
+      .then(() => {
+        this.runningProcesses.delete('database');
+        this.io.emit('database:complete', {
+          stats: {
+            brands: inserter.stats.brands,
+            products: inserter.stats.products,
+            variants: inserter.stats.variants,
+            listings: inserter.stats.listings,
+            crossPlatform: inserter.stats.crossPlatform,
+            errors: inserter.stats.errors.length
+          }
+        });
+      })
+      .catch((error) => {
+        this.runningProcesses.delete('database');
+        this.io.emit('database:error', { error: error.message });
+        console.error(`[database] ERROR: ${error.message}`);
+      });
   }
 
   /**

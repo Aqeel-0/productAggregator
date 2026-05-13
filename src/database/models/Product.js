@@ -88,7 +88,7 @@ class Product extends Model {
         slug: slug,
         brand_id: brandId,
         category_id: categoryId,
-        Store: store_name, 
+        store: store_name,
         status: 'active'
       }])
       .select();

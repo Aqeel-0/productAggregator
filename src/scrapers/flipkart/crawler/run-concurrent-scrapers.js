@@ -11,6 +11,7 @@ const configs = {
     category: 'mobile',
     categoryUrl: 'https://www.flipkart.com/mobiles/pr?sid=tyy%2C4io&otracker=categorytree&p%5B%5D=facets.availability%255B%255D%3DExclude%2BOut%2Bof%2BStock&p%5B%5D=facets.type%255B%255D%3DSmartphones&page=1',
     maxProducts: uiConfig.maxProducts !== undefined ? uiConfig.maxProducts : 45,
+    totalMaxProducts: uiConfig.totalMaxProducts || null,
     maxPages: uiConfig.maxPages !== undefined ? uiConfig.maxPages : 50,
     maxConcurrent: uiConfig.maxConcurrent !== undefined ? uiConfig.maxConcurrent : 10,
     delayBetweenPages: uiConfig.delayBetweenPages !== undefined ? uiConfig.delayBetweenPages : 2000,

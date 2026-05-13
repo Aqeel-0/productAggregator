@@ -10,7 +10,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 class AmazonAiEnhancer {
   constructor() {
     // Initialize Gemini AI client
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = 'AIzaSyDDY125p-daL1_2jMrPMXImDQnjsvDYKa4'//process.env.GEMINI_API_KEY ;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not set in environment variables');
     }
@@ -31,7 +31,7 @@ class AmazonAiEnhancer {
 
       // Process all products in batches
       const enhancedProducts = await this.processBatches(rawData, productType);
-      
+
       console.log(`\n✅ AI Enhancement completed!`);
       console.log(`📊 Final Stats:`, this.stats);
 
@@ -182,7 +182,7 @@ class AmazonAiEnhancer {
     if (productType === 'tablet') {
       return this.buildTabletBatchPrompt(products);
     }
-    
+
     // Default mobile prompt
     let prompt = `You are a product data analyst. Extract attributes from ${products.length} products and return a JSON ARRAY.
 
@@ -190,19 +190,19 @@ IMPORTANT: You MUST return a JSON ARRAY with exactly ${products.length} objects,
 CRITICAL: Include the URL in each response object for accurate matching.
 
 `;
-    
+
     products.forEach((product, index) => {
       const title = product.title || 'N/A';
       const url = product.url || 'N/A';
-      
+
       prompt += `Product ${index + 1}:
 Title: "${title}"
 URL: "${url}"
 
 `;
     });
-    
-         prompt += `EXTRACTION RULES:
+
+    prompt += `EXTRACTION RULES:
 - Extract brand_name, model_name, color, ram, and storage for each product
 - brand_name: Extract the manufacturer/brand (e.g., "Samsung", "Apple", "iQOO", "OnePlus", "Xiaomi", "Realme", "OPPO", "Vivo")
 - model_name: Extract ONLY the model without brand name (e.g., "Galaxy S24", "iPhone 15", "Z10 Lite 5G", "iPad Pro", "Galaxy Tab S9", "Redmi Note 13")
@@ -239,7 +239,7 @@ RESPONSE FORMAT - MUST BE A JSON ARRAY:
 CRITICAL: Return ONLY the JSON array with exactly ${products.length} objects. Include the exact URL for each product. No explanations, no extra text. No markdown formatting.
 
 REMEMBER: Always format colors properly with spaces (e.g., "Jet Black" not "JetBlack", "Titanium Blue" not "TitaniumBlue").`;
-    
+
     return prompt;
   }
 
@@ -302,11 +302,11 @@ PRODUCTS TO ANALYZE:
     products.forEach((product, index) => {
       prompt += `\n${index + 1}. URL: ${product.url}\n`;
       prompt += `   Title: ${product.title}\n`;
-      
+
       // Add RAM and storage information if available
       const specs = product.specifications || {};
       const techDetails = specs['Technical Details']?.technicalDetails || {};
-      
+
       if (techDetails['RAM Size']) {
         prompt += `   RAM: ${techDetails['RAM Size']}\n`;
       }
@@ -332,7 +332,7 @@ PRODUCTS TO ANALYZE:
   validateExtractedData(data) {
     const required = ['url', 'brand_name', 'model_name', 'color', 'ram', 'storage', 'display_size', 'connectivity_type', 'not_tablet'];
     const validated = {};
-    
+
     for (const field of required) {
       if (data[field] !== undefined && data[field] !== null) {
         validated[field] = data[field];
@@ -340,7 +340,7 @@ PRODUCTS TO ANALYZE:
         validated[field] = null;
       }
     }
-    
+
     return validated;
   }
 

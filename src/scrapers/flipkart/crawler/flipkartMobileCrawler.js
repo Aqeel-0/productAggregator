@@ -316,9 +316,9 @@ class FlipkartCrawler {
         if (r.ok) {
           batchBuffer.push(r.product);
           this.checkpoint[indexKey] = Math.max(this.checkpoint[indexKey], r.index);
-          if (this.healthMonitor.evaluate(r.product)) {
+          if (this.healthMonitor.evaluate(r.product) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
@@ -331,7 +331,12 @@ class FlipkartCrawler {
             isRelated,
             timestamp: new Date().toISOString()
           });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       }
 
@@ -389,15 +394,20 @@ class FlipkartCrawler {
       for (const r of results) {
         if (r.ok) {
           buffer.push(r.product);
-          if (this.healthMonitor.evaluate(r.product)) {
+          if (this.healthMonitor.evaluate(r.product) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
         } else {
           this.checkpoint.failedProducts.push({ ...r.original, retryAttempts: (r.original.retryAttempts || 0) + 1 });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       }
       if (buffer.length > 0) this.saveData(buffer.splice(0));

@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const supabaseSingleton = require('./supabase');
 
-const {Brand, Category, Product, ProductVariant, Listing } = require('../database/models');
-const ProductVariantTablet = require('../database/models/ProductVariantTablet');
+const {Brand, Category, Product, ProductVariant, Listing } = require('../../database/models');
+const ProductVariantTablet = require('../../database/models/ProductVariantTablet');
 
 class DatabaseInserter {
   constructor() {
@@ -414,12 +414,10 @@ class DatabaseInserter {
   async insertAllNormalizedData() {
     this.supabase = supabaseSingleton.getClient();
     const normalizedFiles = [
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_tablet_normalized_data.json'), source: 'Flipkart' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_tablet_normalized_data.json'), source: 'Amazon' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
-      { file: path.join(__dirname, '..', '..', 'parsed_data', 'amazon_normalized_data.json'), source: 'Amazon' },
+      { file: path.join(__dirname, '..', '..', '..', 'parsed_data', 'flipkart_normalized_data.json'), source: 'Flipkart' },
+      { file: path.join(__dirname, '..', '..', '..', 'parsed_data', 'croma_normalized_data.json'), source: 'Croma' },
+      { file: path.join(__dirname, '..', '..', '..', 'parsed_data', 'amazon_mobile_normalized_data.json'), source: 'Amazon' },
+      { file: path.join(__dirname, '..', '..', '..', 'parsed_data', 'reliance_normalized_data.json'), source: 'Reliance' },
     ];
 
     console.log('🚀 Starting cross-platform database ingestion...\n');

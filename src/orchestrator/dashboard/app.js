@@ -22,7 +22,7 @@ Object.keys(PLATFORMS).forEach(p => {
 // ─── Config templates ───────────────────────────────────────────────────
 const configTemplates = {
   amazon: { maxProducts: 500, maxPages: 100, maxConcurrent: 15, delayBetweenPages: 2000, headless: true },
-  flipkart: { maxProducts: 450, maxPages: 50, maxConcurrent: 10, delayBetweenPages: 2000, headless: true, relatedProducts: { enabled: true, maxPerProduct: 2 } },
+  flipkart: { maxProducts: 450, totalMaxProducts: 600, maxPages: 50, maxConcurrent: 10, delayBetweenPages: 2000, headless: true, relatedProducts: { enabled: true, maxPerProduct: 2 } },
   croma: { maxProducts: 200, maxConcurrent: 6, delayBetweenPages: 3000, headless: true },
   reliance: { maxProducts: 300, maxPages: 60, maxConcurrent: 5, delayBetweenPages: 2000, headless: true }
 };
@@ -195,13 +195,18 @@ socket.on('scraper:complete', ({ platform, products, duration, fileSizeMb, memor
   checkDataAvailability();
 });
 
+socket.on('scraper:bot-warning', ({ platform, consecutiveNulls, hardThreshold }) => {
+  setProgressText(platform, `⚠️ ${consecutiveNulls} consecutive nulls — retrying...`);
+  addLog('warning', `${PLATFORMS[platform].label}: ${consecutiveNulls} consecutive null products detected. Retrying up to ${hardThreshold} before stopping abruptly.`);
+});
+
 socket.on('scraper:bot-detected', ({ platform, consecutiveNulls, totalNulls, totalAttempts }) => {
   setPlatformStatus(platform, 'error');
-  setProgressText(platform, 'Bot detected — scraper halted');
-  const msg = `${PLATFORMS[platform].label}: Likely bot/block page detected (${consecutiveNulls} consecutive null products out of ${totalAttempts} attempted). Scraper halted to protect the session.`;
+  setProgressText(platform, '⛔ Stopped abruptly');
+  const msg = `${PLATFORMS[platform].label}: Stopped abruptly — persistent failure (${consecutiveNulls} consecutive nulls out of ${totalAttempts} attempted). Scraper halted.`;
   addLog('error', msg);
   showToast(msg, 'error');
-  setErrorStats(platform, `Bot detected after ${totalNulls}/${totalAttempts} null products`);
+  setErrorStats(platform, `Stopped abruptly after ${totalNulls}/${totalAttempts} null products`);
 });
 
 socket.on('scraper:error', ({ platform, error, memory }) => {
@@ -704,10 +709,18 @@ function showConfig(platform) {
 
   let html = `
     <div class="cfg-group">
-      <label>Maximum Products</label>
+      <label>Maximum Products (Main List)</label>
       <input type="number" id="cfg-maxProducts" value="${c.maxProducts}" min="1" max="10000">
-      <div class="cfg-hint">How many products to collect at most</div>
+      <div class="cfg-hint">How many products to collect from the main listing</div>
     </div>`;
+  if (c.totalMaxProducts !== undefined) {
+    html += `
+    <div class="cfg-group">
+      <label>Total Maximum Products</label>
+      <input type="number" id="cfg-totalMaxProducts" value="${c.totalMaxProducts}" min="1" max="10000">
+      <div class="cfg-hint">Overall cap including related/recommended products</div>
+    </div>`;
+  }
   if (c.maxPages !== undefined) {
     html += `
     <div class="cfg-group">
@@ -768,6 +781,8 @@ function saveConfig() {
   };
   const mp = $('cfg-maxPages');
   if (mp) cfg.maxPages = parseInt(mp.value);
+  const tmp = $('cfg-totalMaxProducts');
+  if (tmp) cfg.totalMaxProducts = parseInt(tmp.value);
   if (p === 'flipkart') {
     const re = $('cfg-related'), rm = $('cfg-relatedMax');
     if (re && rm) cfg.relatedProducts = { enabled: re.value === 'true', maxPerProduct: parseInt(rm.value) };

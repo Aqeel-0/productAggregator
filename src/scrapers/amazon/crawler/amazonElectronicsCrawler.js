@@ -423,9 +423,9 @@ class AmazonClusterCrawler {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
           this.checkpoint.lastProcessedIndex = index;
-          if (this.healthMonitor.evaluate(res.value)) {
+          if (this.healthMonitor.evaluate(res.value) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
@@ -438,7 +438,12 @@ class AmazonClusterCrawler {
             error: errMsg,
             timestamp: new Date().toISOString()
           });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       }
 
@@ -847,9 +852,9 @@ class AmazonClusterCrawler {
       settled.forEach((res, k) => {
         if (res.status === 'fulfilled' && res.value) {
           results.push(res.value);
-          if (this.healthMonitor.evaluate(res.value)) {
+          if (this.healthMonitor.evaluate(res.value) === 'hard') {
             this.saveCheckpoint();
-            const err = new Error(`Bot detection triggered during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive null products`);
             err.name = 'BotDetectedError';
             throw err;
           }
@@ -858,7 +863,12 @@ class AmazonClusterCrawler {
             ...batch[k],
             retryAttempts: (batch[k].retryAttempts || 0) + 1
           });
-          this.healthMonitor.evaluate(null);
+          if (this.healthMonitor.evaluate(null) === 'hard') {
+            this.saveCheckpoint();
+            const err = new Error(`Scraper stopped abruptly during retries — ${this.healthMonitor.consecutiveNulls} consecutive errors`);
+            err.name = 'BotDetectedError';
+            throw err;
+          }
         }
       });
       if (results.length > 0) {

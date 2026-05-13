@@ -15,7 +15,26 @@
       "PowerShell($data = Get-Content \"c:\\\\Users\\\\Aqeel\\\\Documents\\\\GitHub\\\\productAggregator\\\\src\\\\scrapers\\\\croma\\\\raw_data\\\\croma_mobile_scraped_data.json\" -Raw | ConvertFrom-Json; Write-Output \"Total products: $\\($data.Count\\)\"; $nullPrice = \\($data | Where-Object { $_.price.current -eq $null }\\).Count; Write-Output \"Null price: $nullPrice\"; Write-Output \"With price: $\\($data.Count - $nullPrice\\)\")",
       "PowerShell($file = Join-Path $PWD \"src\\\\scrapers\\\\croma\\\\raw_data\\\\croma_mobile_scraped_data.json\"; if \\(Test-Path $file\\) { $data = Get-Content $file -Raw | ConvertFrom-Json; Write-Output \"Total: $\\($data.Count\\)\"; $nullPrice = \\($data | Where-Object { -not $_.price.current }\\).Count; Write-Output \"Null price: $nullPrice\"; Write-Output \"With price: $\\($data.Count - $nullPrice\\)\"; $data[0..2] | ForEach-Object { Write-Output \"---\"; Write-Output \"Title: $\\($_.title\\)\"; Write-Output \"Price: $\\($_.price.current\\)\" } } else { Write-Output \"File not found at $file\"; Get-ChildItem \\(Join-Path $PWD \"src\\\\scrapers\\\\croma\\\\raw_data\\\\\"\\) })",
       "PowerShell(Get-ChildItem \\(Join-Path $PWD \"src\\\\scrapers\\\\croma\"\\) -Recurse -File | Select-Object FullName, Length, LastWriteTime)",
-      "Bash(npx jest *)"
+      "Bash(npx jest *)",
+      "Bash(curl -s -X POST \"https://lozvfrbykmojrwyzxrdk.supabase.co/rest/v1/rpc/execute_sql\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\" -H \"Content-Type: application/json\" -d '{\"query\": \"SELECT current_timestamp;\"}')",
+      "Bash(curl -s \"https://lozvfrbykmojrwyzxrdk.supabase.co/rest/v1/brands?limit=1\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\")",
+      "Bash(curl -s -X POST \"https://mcp.supabase.com/mcp?project_ref=lozvfrbykmojrwyzxrdk\" -H \"Content-Type: application/json\" -d '{\"jsonrpc\": \"2.0\", \"method\": \"tools/list\", \"id\": 1}')",
+      "Bash(curl -s -X POST \"https://lozvfrbykmojrwyzxrdk.supabase.co/rest/v1/rpc/query\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\" -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(curl -s \"https://lozvfrbykmojrwyzxrdk.supabase.co/rest/v1/\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvenZmcmJ5a21vanJ3eXp4cmRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NTk5MjgsImV4cCI6MjA3MTAzNTkyOH0.-_Mh5w372xszdREE5Buo0ovfPvTzHR5_sBueT0wxsy0\")",
+      "Bash(supabase --version)",
+      "Bash(npm ls *)",
+      "WebFetch(domain:supabase.com)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql",
+      "Bash(Get-ChildItem -Recurse -Depth 2 C:\\\\Users\\\\Aqeel\\\\Documents\\\\GitHub\\\\productAggregator)",
+      "Bash(Select-Object FullName, Mode)",
+      "Bash(Sort-Object FullName)",
+      "PowerShell(if \\(Test-Path \"src\\\\scrapers\\\\flipkart\\\\raw_data\\\\flipkart_mobile_scraped_data.json\"\\) { $d = Get-Content \"src\\\\scrapers\\\\flipkart\\\\raw_data\\\\flipkart_mobile_scraped_data.json\" -Raw | ConvertFrom-Json; Write-Host \"Raw scraped products: $\\($d.Length\\)\" } else { Write-Host \"File not found at expected path\" })"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

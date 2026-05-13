@@ -7,15 +7,8 @@ class Category extends Model {
     // Determine if it's a smartphone or basic phone
     let targetCategoryName = productData.category;
     
-    // Debug logging
-    console.log(`🔍 Category debug for ${productData.source_details?.url}:`);
-    console.log(`   Raw category: "${targetCategoryName}"`);
-    console.log(`   Type: ${typeof targetCategoryName}`);
-    
     if (!targetCategoryName) {
-      // Default to smartphones category for mobile devices
       targetCategoryName = 'Smartphones';
-      console.log(`   Using default: "${targetCategoryName}"`);
     }
 
     // Use the same cache logic
@@ -42,7 +35,6 @@ class Category extends Model {
         return category.id;
       } else {
         console.warn(`⚠️  Category "${targetCategoryName}" not found in predefined structure. Using default.`);
-        console.log(productData.source_details.url)
         // Fallback: look up "Smartphones" as default
         const { data: defaultCategory, error: fallbackError } = await supabase
           .from('categories')
