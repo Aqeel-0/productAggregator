@@ -17,3 +17,5 @@
 8. Fix pause, refresh and resume logic.
 
 9. Show database exit logs at the dashboard logs 
+
+10. Fix croma image orders
